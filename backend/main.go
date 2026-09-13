@@ -46,12 +46,51 @@ func main() {
 
 	mux := http.NewServeMux()
 	mux.HandleFunc("GET /health", srv.handleHealth)
+
+	// ── Modo original (preservado) ──
 	mux.HandleFunc("GET /api/sessions/{week}/{day}", srv.withAuth(srv.handleGetSession))
 	mux.HandleFunc("PUT /api/sessions/{week}/{day}", srv.withAuth(srv.handlePutSession))
 	mux.HandleFunc("GET /api/prs", srv.withAuth(srv.handleGetPRs))
 	mux.HandleFunc("PUT /api/prs", srv.withAuth(srv.handlePutPRs))
 	mux.HandleFunc("GET /api/state", srv.withAuth(srv.handleGetState))
 	mux.HandleFunc("PUT /api/state", srv.withAuth(srv.handlePutState))
+
+	// ── Perfil do usuário logado ──
+	mux.HandleFunc("GET /api/me", srv.withAuth(srv.handleGetMe))
+	mux.HandleFunc("PUT /api/me", srv.withAuth(srv.handlePutMe))
+
+	// ── Usuários (admin) ──
+	admin := srv.withAuth(srv.handleListUsers)
+	mux.HandleFunc("GET /api/users", srv.withRole(RoleAdmin)(admin))
+	mux.HandleFunc("POST /api/users", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleCreateUser)))
+	mux.HandleFunc("GET /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleGetUser)))
+	mux.HandleFunc("PUT /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleUpdateUser)))
+	mux.HandleFunc("DELETE /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleDeleteUser)))
+
+	// ── Alunos ──
+	mux.HandleFunc("GET /api/students", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleListMyStudents)))
+	mux.HandleFunc("GET /api/students/{id}", srv.withAuth(srv.handleGetStudent))
+	mux.HandleFunc("PUT /api/students/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateStudent)))
+
+	// ── Treinos ──
+	mux.HandleFunc("GET /api/workouts", srv.withAuth(srv.handleListWorkouts))
+	mux.HandleFunc("POST /api/workouts", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleCreateWorkout)))
+	mux.HandleFunc("GET /api/workouts/{id}", srv.withAuth(srv.handleGetWorkout))
+	mux.HandleFunc("PUT /api/workouts/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateWorkout)))
+	mux.HandleFunc("DELETE /api/workouts/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDeleteWorkout)))
+	mux.HandleFunc("POST /api/workouts/{id}/duplicate", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDuplicateWorkout)))
+
+	// ── Dietas ──
+	mux.HandleFunc("GET /api/diets", srv.withAuth(srv.handleListDiets))
+	mux.HandleFunc("POST /api/diets", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleCreateDiet)))
+	mux.HandleFunc("GET /api/diets/{id}", srv.withAuth(srv.handleGetDiet))
+	mux.HandleFunc("PUT /api/diets/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateDiet)))
+	mux.HandleFunc("DELETE /api/diets/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDeleteDiet)))
+	mux.HandleFunc("POST /api/diets/{id}/duplicate", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDuplicateDiet)))
+
+	// ── Histórico ──
+	mux.HandleFunc("GET /api/workout-history", srv.withAuth(srv.handleListHistory))
+	mux.HandleFunc("POST /api/workouts/complete", srv.withAuth(srv.handleCompleteWorkout))
 
 	port := os.Getenv("PORT")
 	if port == "" {

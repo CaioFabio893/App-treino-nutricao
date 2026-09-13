@@ -3,6 +3,11 @@
 // IMPORTANTE: o app acessa o banco SOMENTE através da API Go (que usa o
 // Admin SDK e ignora estas regras). Estas regras servem como proteção extra
 // caso alguém conecte o Firestore direto pelo cliente no futuro.
+//
+// Regras por coleção:
+//   - users/{uid}/...        → apenas o dono (modo original + perfil)
+//   - workouts, diets,
+//     workoutHistory          → NEGADO para clientes (só a API Go acessa)
 rules_version = '2';
 
 service cloud.firestore {
@@ -13,6 +18,18 @@ service cloud.firestore {
 
     match /users/{uid}/{document=**} {
       allow read, write: if isOwner(uid);
+    }
+
+    // Coleções gerenciadas apenas pela API Go (Admin SDK).
+    // Nenhum acesso direto pelo cliente é permitido.
+    match /workouts/{document=**} {
+      allow read, write: if false;
+    }
+    match /diets/{document=**} {
+      allow read, write: if false;
+    }
+    match /workoutHistory/{document=**} {
+      allow read, write: if false;
     }
   }
 }

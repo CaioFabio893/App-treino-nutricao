@@ -1,10 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  // Exportação estática: gera a pasta out/ para o Firebase Hosting.
-  // O app usa login e API via cliente — não precisa de servidor Node.
-  output: "export",
-  trailingSlash: true,
+  // Modo servidor (standalone): permite rotas dinâmicas reais como
+  // /nutritionist/students/[studentId]. Deploy: Cloud Run (mesma ideia da API Go).
+  // LOCAL (dev): `npm run dev` — igual como sempre funcionou.
+  // BUILD: `npm run build` gera `.next/standalone` (servidor Node autocontido).
+  output: "standalone",
+  trailingSlash: false,
   images: { unoptimized: true },
 };
 

@@ -8,8 +8,7 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 ```
 ┌─────────────────────┐      login e senha       ┌──────────────────────┐
 │ Frontend (Next.js)  │ ───────────────────────► │ Firebase Authentication│
-│ Firebase Hosting    │                          └──────────────────────┘
-│ (grátis)            │
+│ Cloud Run (grátis)  │                          └──────────────────────┘
 └─────────┬───────────┘
           │ chama a API com "Authorization: Bearer <token>"
           ▼
@@ -19,7 +18,10 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 └─────────────────────┘                          └──────────────────────┘
 ```
 
-- **Frontend**: Next.js (React), exportado como site estático para o **Firebase Hosting**.
+- **Frontend**: Next.js (React) com `output: "standalone"` — um **servidor Node**
+  autocontido no **Cloud Run**. O modo servidor permite **rotas dinâmicas**
+  (ex. `/nutritionist/students/[studentId]`), que não existem em exportação
+  estática.
 - **Backend**: API em **Go** no **Cloud Run** — verifica o token do Firebase e
   acessa o Firestore (o usuário nunca fala direto com o banco).
 - **Banco**: **Firestore** (NoSQL) — dados por usuário em `users/{uid}/...`.
@@ -30,17 +32,19 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 ```
 ├── backend/          # API Go (Cloud Run)
 │   ├── main.go       # rotas + subida do servidor
-│   ├── auth.go       # verificação do token (Firebase Admin SDK)
-│   ├── handlers.go   # endpoints HTTP + CORS
-│   ├── store.go      # operações no Firestore
-│   ├── models.go     # structs (Session, PR, AppState)
+│   ├── auth.go       # verificação do token (Firebase Admin SDK) + roles
+│   ├── handlers.go   # endpoints HTTP + CORS (fluxo do aluno)
+│   ├── handlers_nutrition.go # endpoints do nutricionista/admin
+│   ├── store.go      # operações no Firestore (CRUD de tudo)
+│   ├── models.go     # structs (Session, PR, AppState, UserProfile, WorkoutDefine, Diet…)
 │   ├── Dockerfile    # imagem para o Cloud Run
 │   └── go.mod
-├── frontend/         # app Next.js (Firebase Hosting)
-│   ├── app/          # páginas (login + treino)
-│   ├── components/   # UI (cards, timer, modais…)
-│   ├── lib/          # firebase, api, dados dos treinos
+├── frontend/         # app Next.js (Cloud Run — modo servidor/standalone)
+│   ├── app/          # páginas (login, treino, painel do nutricionista, admin)
+│   ├── components/   # UI (cards, timer, modais, formulários de treinos/dietas…)
+│   ├── lib/          # firebase, api, auth (roles), tipos
 │   ├── public/       # ícones, manifest, service worker
+│   ├── Dockerfile    # imagem do frontend para o Cloud Run
 │   └── .env.example  # modelo das variáveis
 ├── firebase.json     # configuração do Firebase Hosting + Firestore
 ├── firestore.rules   # regras de segurança do banco
@@ -77,9 +81,10 @@ NEXT_PUBLIC_DEMO=1
 ```
 
 Rode `npm run dev` e abra **http://localhost:3000** — o app entra direto numa
-conta demo com dados de exemplo (séries, PRs, timer e histórico de sessão
-funcionam; tudo fica salvo no navegador). Troque para `NEXT_PUBLIC_DEMO=0`
-quando for conectar o Firebase de verdade.
+conta demo **do nutricionista**, com alunos, treinos e dietas de exemplo
+(alunos, CRUD, duplicação, timeline e finalização de treino funcionam; tudo
+fica salvo no navegador). Troque para `NEXT_PUBLIC_DEMO=0` quando for conectar
+o Firebase de verdade.
 
 > O modo demo simula o backend Go inteiro em memória/localStorage — útil
 > também pra entender o fluxo antes de subir o Cloud Run.
@@ -189,18 +194,38 @@ npm run dev
 
 Abra http://localhost:3000, crie uma conta e comece a usar.
 
-### Passo 7 — Publicar o frontend (Firebase Hosting)
+### Passo 7 — Publicar o frontend (Cloud Run)
+
+O frontend agora roda como **servidor Node standalone** (rotas dinâmicas e
+SSR). A imagem do Docker está em `frontend/Dockerfile`:
 
 ```bash
 cd frontend
-npm run build        # gera a pasta frontend/out
+# IMPORTANTE: o build embute as variáveis NEXT_PUBLIC_* — tenha o .env.local
+# preenchido antes de publicar.
+npm run build
+
+# (opcional) testar o servidor de produção localmente:
+#   Copy-Item -Recurse .next\static .next\standalone\.next\static
+#   Copy-Item -Recurse public\* .next\standalone\
+#   node .next/standalone/server.js   → http://localhost:3000
 
 cd ..
-firebase login
-firebase deploy --only hosting
+# Publica no Cloud Run com o build na nuvem:
+gcloud builds submit frontend --tag gcr.io/SEU_PROJECT_ID/treino-web
+gcloud run deploy treino-web \
+  --image gcr.io/SEU_PROJECT_ID/treino-web \
+  --region us-central1 \
+  --platform managed \
+  --allow-unauthenticated \
+  --max-instances 1 \
+  --memory 512Mi
 ```
 
-O Firebase mostra o link final: `https://SEU_PROJETO.web.app`.
+O link final fica em `https://treino-web-XXX-uc.a.run.app`.
+
+> **Atualização do app:** publique novas versões com `gcloud run deploy treino-web`
+> usando o mesmo nome de imagem (o Cloud Run atualiza a instância).
 
 ### Passo 8 — Propagar as regras do Firestore
 
@@ -214,7 +239,7 @@ firebase deploy --only firestore
 
 | Recurso                 | Cota grátis                          | Pra ver isso, use…           |
 |-------------------------|--------------------------------------|------------------------------|
-| Firebase Hosting        | 10 GB de armazenamento, transferência ilimitada | o app de treino inteiro      |
+| Cloud Run (frontend)    | ~2 milhões de requests/mês + instância grátis | o app de treino inteiro      |
 | Firestore               | 1 GiB, 50 mil leituras/dia, 20 mil gravações/dia | só dados de séries, sem foto |
 | Cloud Run (API Go)      | ~2 milhões de requests/mês + instância grátis   | perfeito pra esse uso        |
 | Authentication          | 50 mil usuários ativos/mês           | conta pessoal / alunos       |
@@ -233,7 +258,9 @@ firebase deploy --only firestore
 
 ## API (referência rápida)
 
-Todas as rotas abaixo exigem `Authorization: Bearer <idToken>` (menos `/health`).
+Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
+
+### Fluxo do aluno (original)
 
 | Método | Rota                          | Descrição                                  |
 |--------|-------------------------------|--------------------------------------------|
@@ -245,7 +272,27 @@ Todas as rotas abaixo exigem `Authorization: Bearer <idToken>` (menos `/health`)
 | GET    | `/api/state`                  | Lê a última posição (semana/dia)           |
 | PUT    | `/api/state`                  | Salva a última posição                     |
 
-## Exemplo de payload (PUT /api/sessions/1/ta)
+### Gestão (nutricionista/admin/aluno) — nova área
+
+| Método | Rota                          | Descrição                                  |
+|--------|-------------------------------|--------------------------------------------|
+| GET    | `/api/me`                     | Perfil do usuário + role                    |
+| PUT    | `/api/me`                     | Cria/atualiza o perfil (setup inicial)      |
+| GET/POST | `/api/users`                | Lista/cria usuários (admin)                 |
+| GET/PUT/DELETE | `/api/users/{id}`    | Edita/exclui usuário (admin)                |
+| GET    | `/api/students`               | Alunos do nutricionista                     |
+| GET    | `/api/students/{id}`          | Detalhe de um aluno                         |
+| PUT    | `/api/students/{id}`          | Nutricionista edita dados do próprio aluno  |
+| GET/POST | `/api/workouts`             | Lista/cria treinos                          |
+| GET/PUT/DELETE | `/api/workouts/{id}`  | Edita/exclui treino                         |
+| POST   | `/api/workouts/{id}/duplicate`| Duplica treino (para outro aluno)           |
+| GET/POST | `/api/diets`               | Lista/cria dietas                           |
+| GET/PUT/DELETE | `/api/diets/{id}`    | Edita/exclui dieta                          |
+| POST   | `/api/diets/{id}/duplicate`   | Duplica dieta                               |
+| GET    | `/api/workout-history`        | Histórico de treinos concluídos             |
+| POST   | `/api/workouts/complete`      | Finaliza um treino (gera registro)          |
+
+### Exemplo de payload (PUT /api/sessions/1/ta)
 
 ```json
 {
@@ -258,17 +305,45 @@ Todas as rotas abaixo exigem `Authorization: Bearer <idToken>` (menos `/health`)
 }
 ```
 
+### Modelo de dados (gestão)
+
+Existe um coleção de **perfis** em `users/{uid}` (nome, email, role, status,
+nutritionistID…) e três coleções raiz gerenciadas **somente pela API Go** (o
+cliente não as acessa direto — as regras em `firestore.rules` negam):
+
+- `workouts/{id}` — treino com `exercises: [...]` embutido (nome, séries,
+  reps, carga, descanso, notas, dia da semana).
+- `diets/{id}` — dieta com `meals: [...]` embutido e cada refeição com
+  `foods: [...]` (nome, quantidade, unidade, notas).
+- `workoutHistory/{id}` — registro de treino concluído (percentual, duração,
+  data, exercícios). O aluno marca **séries executadas** (peso/reps) no modal de
+  conclusão — elas ficam no campo `exercises` do registro e aparecem no
+  histórico do nutricionista (aluno, timeline e exportação CSV em Atividades).
+
+**Papéis** (`role`): `admin` (vê tudo), `nutritionist` (só o que criou),
+`student` (só o próprio). O nutricionista gerencia **treinos por dia da
+semana** e dietas com **refeições/alimentos**, além de duplicar treinos e
+dietas para outros alunos.
+
+> **Primeiro acesso (definir papéis):** todo usuário novo nasce como `student`.
+> Para "subir de cargo", edite o perfil dele no console do Firebase
+> (Firestore → `users/{uid}` → campo `role`), ou chame a API com um admin já
+> existente (painel `/admin`). Sugestão: crie o primeiro admin direto no
+> Firestore logo após o primeiro deploy.
+
 ## Comandos úteis
 
 ```bash
 # Frontend
 cd frontend && npm run dev     # desenvolvimento
-cd frontend && npm run build   # build estático (out/)
+cd frontend && npm run build   # build server (standalone)
 
 # Backend (local, com service account)
 cd backend && go run .
 
 # Deploy
-firebase deploy                # hosting + firestore
-gcloud run deploy treino-api   # backend
+# frontend: gcloud builds submit frontend --tag gcr.io/SEU_PROJETO/treino-web
+#          gcloud run deploy treino-web --image gcr.io/SEU_PROJETO/treino-web ...
+# backend:  gcloud run deploy treino-api
+firebase deploy --only firestore
 ```

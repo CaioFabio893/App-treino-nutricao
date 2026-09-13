@@ -122,6 +122,39 @@ input, textarea { font-family: var(--sans); }
 .cardio-opt-title { font-size: 10px; letter-spacing: 1.5px; color: #ffe8d6; text-transform: uppercase; font-weight: 500; margin-bottom: 4px; }
 .cardio-hr { border: none; border-top: 1px solid rgba(255,255,255,0.12); margin: 10px 0 0; }
 
+/* Badge "Novo" na navegação */
+.nav-new {
+  display: inline-block; margin-left: 5px; font-size: 8px; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; color: var(--white);
+  background: var(--terra); border-radius: 8px; padding: 1px 6px; vertical-align: middle;
+  cursor: pointer;
+}
+
+/* Badge de notificações (novos treinos concluídos) */
+.nav-notif {
+  display: inline-flex; align-items: center; justify-content: center;
+  min-width: 16px; height: 16px; margin-left: 6px; padding: 0 5px;
+  font-size: 10px; font-weight: 700; color: #fff;
+  background: #d32f2f; border-radius: 999px; vertical-align: middle;
+  box-shadow: 0 1px 4px rgba(211, 47, 47, 0.5);
+}
+.notif-banner {
+  display: block; width: 100%; text-align: left; cursor: pointer;
+  background: var(--terra); color: #fff; border: none;
+  border-radius: var(--r); padding: 12px 14px; margin-bottom: 14px;
+  font-size: 13px; font-weight: 600; box-shadow: 0 4px 14px rgba(192, 98, 42, 0.25);
+}
+
+/* Séries executadas (modal de conclusão) */
+.set-list { display: flex; flex-direction: column; gap: 6px; }
+.set-row { display: flex; align-items: center; gap: 8px; background: rgba(255,255,255,0.1); border-radius: var(--r-sm); padding: 6px 8px; }
+.set-lbl { font-size: 11px; color: #ffe8d6; width: 52px; flex-shrink: 0; }
+.set-row input[type="text"] {
+  background: var(--white); color: var(--text); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; font-size: 12px; min-width: 0;
+}
+.set-row input[type="text"]::placeholder { color: var(--muted); }
+
 /* ── EXERCISE CARDS ── */
 .ex-card {
   background: var(--white); border: 1.5px solid var(--border);
@@ -340,3 +373,236 @@ input, textarea { font-family: var(--sans); }
 .loading-txt { margin-left: 12px; font-size: 12px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
 .err-card { text-align: center; padding: 30px 24px; }
 .err-card p { margin-bottom: 18px; font-size: 13px; color: var(--muted); }
+
+/* ── ÁREA DO NUTRICIONISTA ── */
+
+/* Topo com logo + logout do painel */
+.nut-header {
+  position: sticky; top: 0; z-index: 100;
+  background: var(--white);
+  border-bottom: 1.5px solid var(--border);
+  padding: 10px 16px;
+  display: flex; align-items: center; justify-content: space-between;
+  box-shadow: 0 2px 12px rgba(192,98,42,0.07);
+}
+
+/* Navegação por abas do painel */
+.nut-nav {
+  display: flex; overflow-x: auto; background: var(--white);
+  border-bottom: 1.5px solid var(--border); scrollbar-width: none;
+  position: sticky; top: 57px; z-index: 99;
+}
+.nut-nav::-webkit-scrollbar { display: none; }
+.nut-nav a {
+  flex: 0 0 auto; padding: 11px 16px;
+  font-family: var(--sans); font-size: 10px; letter-spacing: 1px; font-weight: 500;
+  color: var(--muted); text-decoration: none;
+  border-bottom: 2.5px solid transparent;
+  cursor: pointer; white-space: nowrap; text-transform: uppercase;
+  transition: color .15s, border-color .15s;
+}
+.nut-nav a.active { color: var(--terra); border-bottom-color: var(--terra); }
+
+.nut-main { padding: 16px 14px 90px; max-width: 720px; margin: 0 auto; }
+
+/* Cabeçalho de seção (título + botão) */
+.page-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; gap: 10px; }
+.page-head h1 { font-family: var(--serif); font-size: 22px; color: var(--terra); font-style: italic; }
+.page-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+/* Cards de lista */
+.nut-card {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 14px; margin-bottom: 10px;
+  box-shadow: var(--shadow); cursor: pointer; transition: box-shadow .2s;
+  display: block; text-decoration: none; color: inherit;
+}
+.nut-card:hover { box-shadow: 0 4px 20px rgba(192,98,42,0.13); }
+.nut-card-head { display: flex; align-items: center; gap: 12px; }
+.avatar {
+  width: 46px; height: 46px; border-radius: 50%;
+  background: var(--peach); border: 1.5px solid var(--border);
+  display: flex; align-items: center; justify-content: center;
+  color: var(--terra); font-family: var(--serif); font-weight: 600; font-size: 18px;
+  flex-shrink: 0; overflow: hidden;
+}
+.avatar img { width: 100%; height: 100%; object-fit: cover; }
+.nut-card-title { font-size: 14px; font-weight: 600; color: var(--text); }
+.nut-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.nut-meta { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 10px; }
+
+/* Badges de status */
+.badge {
+  display: inline-block; font-size: 10px; letter-spacing: 1px;
+  padding: 3px 10px; border-radius: 20px; font-weight: 500;
+  background: var(--peach); border: 1px solid var(--border); color: var(--terra);
+  text-transform: capitalize;
+}
+.badge.active { background: var(--ok-bg); border-color: #b3d49a; color: var(--ok); }
+.badge.paused { background: #fdf3d8; border-color: #e6c877; color: #8a6d1c; }
+.badge.inactive { background: var(--fail-bg); border-color: #e8a0a0; color: var(--fail); }
+
+/* Botões pequenos */
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+.btn-sm {
+  background: var(--cream); border: 1.5px solid var(--border); color: var(--terra);
+  font-family: var(--sans); font-size: 11px; font-weight: 500;
+  padding: 7px 14px; border-radius: 20px; cursor: pointer; letter-spacing: 0.5px;
+  text-decoration: none; display: inline-block; text-align: center;
+}
+.btn-sm:hover { background: var(--peach); }
+.btn-sm.danger { color: var(--fail); }
+.btn-sm.acc { background: var(--terra); color: var(--white); border-color: var(--terra); }
+.btn-sm.acc:hover { background: var(--deep); }
+.btn-sm:disabled { opacity: .5; cursor: default; }
+.btn-sm.full { width: 100%; }
+
+/* Formulários maiores do painel */
+.frm-card {
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--r); padding: 18px 16px; margin-bottom: 14px;
+  box-shadow: var(--shadow);
+}
+.frm-card h3 { font-family: var(--serif); font-size: 17px; color: var(--terra); font-style: italic; margin-bottom: 12px; }
+.frm-row { margin-bottom: 12px; }
+.frm-row label { font-size: 10px; color: var(--muted); display: block; margin-bottom: 5px; letter-spacing: 1px; text-transform: uppercase; font-weight: 500; }
+.frm-row input, .frm-row textarea, .frm-row select {
+  background: var(--cream); border: 1.5px solid var(--border);
+  color: var(--text); font-family: var(--sans); font-size: 14px;
+  padding: 10px 12px; border-radius: var(--r-sm); width: 100%;
+  transition: border-color .15s;
+}
+.frm-row input:focus, .frm-row textarea:focus, .frm-row select:focus { outline: none; border-color: var(--terra); }
+.frm-row textarea { resize: vertical; min-height: 60px; }
+.frm-row-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.frm-row-inline-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
+
+/* Itens dentro do formulário (exercícios/refeições) */
+.item-card {
+  background: var(--cream); border: 1.5px solid var(--border);
+  border-radius: var(--r-sm); padding: 12px; margin-bottom: 10px;
+}
+.item-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 8px; }
+.item-card-head b { font-size: 12px; color: var(--terra); text-transform: uppercase; letter-spacing: 1px; }
+
+/* Linha de alimento */
+.food-line { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+.food-line input { background: var(--white); }
+.food-name { flex: 2; }
+.food-qty { flex: 1; }
+.food-unit { flex: 1; }
+.food-del { flex: 0 0 auto; }
+
+/* Fita de detalhes (ex. Dados do aluno) */
+.detail-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.detail-cell { background: var(--cream); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 10px 12px; }
+.detail-cell .k { font-size: 9px; letter-spacing: 1.5px; color: var(--muted); text-transform: uppercase; }
+.detail-cell .v { font-size: 13px; color: var(--text); margin-top: 3px; font-weight: 500; }
+
+/* Lista de exercícios legível (ex. treino do aluno) */
+.ex-list { list-style: none; counter-reset: ex; }
+.ex-list li { counter-increment: ex; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.ex-list li:last-child { border-bottom: none; }
+.ex-list li::before {
+  content: counter(ex); display: inline-block;
+  width: 22px; height: 22px; border-radius: 50%;
+  background: var(--peach); color: var(--terra);
+  font-size: 11px; font-weight: 600; text-align: center; line-height: 22px;
+  margin-right: 8px;
+}
+.ex-list .ex-lbl { font-weight: 600; font-size: 13px; color: var(--text); }
+.ex-list .ex-desc { font-size: 11px; color: var(--muted); margin-top: 3px; margin-left: 32px; }
+
+/* Cartões de treino/alimento dentro da página do aluno */
+.diet-meal { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px; margin-bottom: 10px; box-shadow: var(--shadow); }
+.diet-meal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+.diet-meal-head b { font-size: 14px; color: var(--terra); }
+.diet-meal-head span { font-size: 12px; color: var(--muted); }
+
+/* Calendário / timeline */
+.cal-week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; margin: 10px 0; }
+.cal-day { background: var(--cream); border: 1px solid var(--border); border-radius: var(--r-sm); padding: 6px 2px; text-align: center; font-size: 10px; color: var(--muted); }
+.cal-day.has { background: var(--ok-bg); border-color: #b3d49a; color: var(--ok); font-weight: 600; }
+.cal-day label { font-size: 8px; letter-spacing: 1px; text-transform: uppercase; display: block; }
+
+.timeline { position: relative; padding-left: 18px; }
+.timeline::before { content: ''; position: absolute; left: 5px; top: 4px; bottom: 4px; width: 2px; background: var(--border); border-radius: 1px; }
+.tl-item { position: relative; padding: 2px 0 12px; }
+.tl-item::before {
+  content: ''; position: absolute; left: -18px; top: 5px;
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--terra); border: 2px solid var(--white);
+  box-shadow: 0 0 0 2px var(--peach);
+}
+.tl-date { font-size: 10px; color: var(--muted); letter-spacing: 1px; text-transform: uppercase; }
+.tl-text { font-size: 12px; color: var(--text); margin-top: 2px; }
+
+/* Exercícios executados no histórico */
+.tl-exercises { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 6px; }
+.tl-ex-chip {
+  font-size: 10px; background: var(--cream); border: 1px solid var(--border);
+  border-radius: 10px; padding: 2px 8px; color: var(--text);
+}
+
+/* Calendário mensal */
+.cal-month { background: var(--white); border: 1px solid var(--border); border-radius: var(--r); padding: 10px; }
+.cal-month-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; }
+.cal-month-head b { font-size: 13px; color: var(--text); }
+.cal-month-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 3px; }
+.cal-month-dow { text-align: center; font-size: 9px; font-weight: 700; color: var(--muted); padding: 2px 0; }
+.cal-month-cell {
+  position: relative; aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+  border-radius: var(--r-sm); border: 1px solid var(--border); background: var(--white);
+  font-size: 11px; color: var(--muted); min-height: 26px;
+}
+.cal-month-cell.empty { border-color: transparent; background: transparent; }
+.cal-month-cell.done { background: var(--ok-bg); border-color: #b3d49a; color: var(--ok); font-weight: 700; }
+.cal-month-cell.planned { border-style: dotted; color: var(--muted); }
+.cal-month-cell.today { outline: 2px solid var(--terra); }
+.cal-month-cell .mark { position: absolute; bottom: 1px; right: 3px; font-size: 10px; }
+.cal-legend { display: flex; gap: 12px; margin-top: 8px; font-size: 10px; color: var(--muted); }
+.cal-legend b { margin-right: 3px; }
+.lg-done { color: var(--ok); }
+.lg-planned { color: var(--muted); }
+.lg-today { color: var(--terra); }
+
+/* Mensagens de vazio/erro */
+.empty-box {
+  background: var(--white); border: 1.5px dashed var(--border);
+  border-radius: var(--r); padding: 24px 16px; text-align: center;
+  color: var(--muted); font-size: 12px; margin-bottom: 14px;
+}
+.err-text { color: var(--fail); font-size: 12px; margin-bottom: 10px; }
+
+/* Simples stats do dashboard */
+.stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 16px; }
+.stat-cell { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--r); padding: 14px; box-shadow: var(--shadow); }
+.stat-num { font-family: var(--serif); font-size: 26px; color: var(--terra); font-style: italic; }
+.stat-lbl { font-size: 9px; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+
+/* Página de impressão (treino/dieta) */
+.print-page { max-width: 720px; margin: 0 auto; }
+.print-actions { display: flex; gap: 8px; margin-bottom: 12px; }
+.print-card { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--r); padding: 24px; box-shadow: var(--shadow); }
+.print-head { border-bottom: 2px solid var(--terra); padding-bottom: 12px; margin-bottom: 14px; }
+.print-logo { font-size: 10px; letter-spacing: 3px; text-transform: uppercase; color: var(--terra); }
+.print-title { font-family: var(--serif); font-style: italic; font-size: 24px; color: var(--text); margin-top: 4px; }
+.print-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.print-meta { font-size: 12px; color: var(--text); margin-top: 8px; }
+.print-desc { font-size: 12px; color: var(--muted); margin-top: 6px; font-style: italic; }
+.print-ex { padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.print-ex:last-child { border-bottom: none; }
+.print-ex-name { font-weight: 600; font-size: 14px; color: var(--text); }
+.print-ex-meta { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.print-ex-note { font-size: 11px; color: var(--terra); margin-top: 3px; }
+.print-meal { padding: 10px 0; border-bottom: 1px dashed var(--border); }
+.print-meal-head { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 4px; }
+.print-meal-head b { color: var(--terra); }
+.print-meal-head span { color: var(--muted); }
+.print-food { font-size: 12px; color: var(--text); padding: 2px 0 2px 8px; }
+
+@media print {
+  .no-print { display: none !important; }
+  body { background: #fff !important; }
+  .print-card { border: none; box-shadow: none; padding: 0; }
+}
