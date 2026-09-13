@@ -1,0 +1,27 @@
+# Dependências
+node_modules/
+frontend/.next/
+frontend/out/
+
+# Variáveis de ambiente (nunca commitar)
+.env
+.env.local
+.env.*.local
+
+# Chaves do service account (nunca commitar!)
+*serviceAccount*.json
+*service-account*.json
+firebase-adminsdk*.json
+
+# Sistemas
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+
+# Go (compilados locais)
+backend/server
+backend/*.exe
+backend/server.exe

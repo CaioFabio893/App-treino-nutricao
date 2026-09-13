@@ -1,0 +1,18 @@
+// Regras do Firestore.
+//
+// IMPORTANTE: o app acessa o banco SOMENTE através da API Go (que usa o
+// Admin SDK e ignora estas regras). Estas regras servem como proteção extra
+// caso alguém conecte o Firestore direto pelo cliente no futuro.
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isOwner(uid) {
+      return request.auth != null && request.auth.uid == uid;
+    }
+
+    match /users/{uid}/{document=**} {
+      allow read, write: if isOwner(uid);
+    }
+  }
+}
