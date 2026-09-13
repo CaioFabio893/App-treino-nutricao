@@ -4,11 +4,21 @@
 // No modo demo (NEXT_PUBLIC_DEMO=1) simula tudo em localStorage, sem rede.
 import type {
   AppState,
+  CommentRequest,
   CompleteWorkoutRequest,
+  CreatePostRequest,
   Diet,
+  DietDailyLog,
   DuplicateRequest,
+  MealCheck,
+  Post,
+  PostsPage,
   PRs,
+  PublicProfile,
+  RankingResponse,
+  ScoreHistoryEntry,
   SessionData,
+  UpsertDietLogRequest,
   UserProfile,
   WorkoutDefine,
   WorkoutHistoryEntry,
@@ -25,11 +35,15 @@ const LS_KEY = {
   session: (w: number, d: string) => `ll_demo_session_${w}_${d}`,
   prs: "ll_demo_prs",
   state: "ll_demo_state",
-  seeded: "ll_demo_seeded_v3",
+  seeded: "ll_demo_seeded_v4",
   students: "ll_demo_students",
   workouts: "ll_demo_workouts",
   diets: "ll_demo_diets",
   history: "ll_demo_history",
+  posts: "ll_demo_posts",
+  dietLogs: "ll_demo_diet_logs",
+  scores: "ll_demo_scores",
+  scoreHistory: "ll_demo_score_history",
 };
 
 function getJSON<T>(key: string): T | null {
@@ -305,6 +319,37 @@ function seedDemo() {
       duration: 62,
       exercisesCompleted: 4,
       totalExercises: 4,
+      exercises: [
+        {
+          name: "Supino reto",
+          order: 1,
+          note: "Bom rendimento!",
+          sets: [
+            { weight: "55", reps: "8", done: true },
+            { weight: "60", reps: "7", done: true },
+            { weight: "60", reps: "6", done: true },
+            { weight: "55", reps: "8", done: true },
+          ],
+        },
+        {
+          name: "Supino inclinado",
+          order: 2,
+          sets: [
+            { weight: "40", reps: "10", done: true },
+            { weight: "45", reps: "10", done: true },
+          ],
+        },
+        {
+          name: "Crucifixo",
+          order: 3,
+          sets: [{ weight: "90", reps: "12", done: true }],
+        },
+        {
+          name: "Tríceps corda",
+          order: 4,
+          sets: [{ weight: "25", reps: "12", done: true }],
+        },
+      ],
     },
   ];
 
@@ -312,6 +357,146 @@ function seedDemo() {
   setJSON(LS_KEY.workouts, [...workouts, ...workoutsMaria]);
   setJSON(LS_KEY.diets, [...diets, ...dietsMaria]);
   setJSON(LS_KEY.history, history);
+
+  // ── Rede social (feed global) ──
+  const now = new Date();
+  const iso = (d: Date) => d.toISOString();
+  const daysAgo = (n: number) => {
+    const d = new Date(now);
+    d.setDate(d.getDate() - n);
+    return d;
+  };
+  const posts: Post[] = [
+    {
+      id: "post-1",
+      userId: "student-joao",
+      userName: "João Silva",
+      type: "workout",
+      text: "Treino A — Peito e Tríceps concluído em 62 min! 💪 Foco total hoje.",
+      workoutId: "workout-a",
+      workoutName: "Treino A — Peito e Tríceps",
+      date: daysAgo(0).toISOString().slice(0, 10),
+      likes: { "student-maria": true, "demo-user": true },
+      likeCount: 2,
+      comments: [
+        {
+          id: "c1",
+          userId: "student-maria",
+          userName: "Maria Souza",
+          text: "Arrasou! 💪",
+          createdAt: iso(daysAgo(0)),
+        },
+        {
+          id: "c2",
+          userId: "demo-user",
+          userName: "Demo (Nutricionista)",
+          text: "Ótimo rendimento, João! Continua assim.",
+          createdAt: iso(daysAgo(0)),
+        },
+      ],
+      createdAt: iso(daysAgo(0)),
+    },
+    {
+      id: "post-2",
+      userId: "student-maria",
+      userName: "Maria Souza",
+      type: "diet",
+      text: "Dia de dieta seguida à risca! 🥗🥑",
+      dietId: "diet-maria",
+      dietName: "Plano alimentar — Definição",
+      date: daysAgo(1).toISOString().slice(0, 10),
+      likes: { "student-joao": true },
+      likeCount: 1,
+      comments: [],
+      createdAt: iso(daysAgo(1)),
+    },
+    {
+      id: "post-3",
+      userId: "student-joao",
+      userName: "João Silva",
+      type: "workout",
+      text: "Treino C — Pernas concluído! Novo PR no agachamento 💥",
+      workoutId: "workout-c",
+      workoutName: "Treino C — Pernas",
+      date: daysAgo(2).toISOString().slice(0, 10),
+      likes: {},
+      likeCount: 0,
+      comments: [],
+      createdAt: iso(daysAgo(2)),
+    },
+    {
+      id: "post-4",
+      userId: "student-maria",
+      userName: "Maria Souza",
+      type: "manual",
+      text: "Meta da semana: 5 treinos e dieta 100% de segunda a sexta. Vamos! 🎯",
+      date: daysAgo(3).toISOString().slice(0, 10),
+      likes: { "student-joao": true, "demo-user": true },
+      likeCount: 2,
+      comments: [
+        {
+          id: "c3",
+          userId: "demo-user",
+          userName: "Demo (Nutricionista)",
+          text: "Conto com você, Maria!",
+          createdAt: iso(daysAgo(3)),
+        },
+      ],
+      createdAt: iso(daysAgo(3)),
+    },
+  ];
+  setJSON(LS_KEY.posts, posts);
+
+  // ── Logs diários de dieta (últimos 14 dias) ──
+  const mealNames = ["Café da manhã", "Almoço", "Lanche", "Jantar"];
+  const dietLogs: DietDailyLog[] = [];
+  for (let n = 0; n < 14; n++) {
+    const d = daysAgo(n).toISOString().slice(0, 10);
+    const isJoao = n % 3 !== 1; // João seguindo quase sempre
+    const isMaria = n % 2 === 0; // Maria mais irregular
+    const mk = (ok: boolean): MealCheck[] =>
+      mealNames.map((m, i) => ({ mealId: `m${i}`, mealName: m, followed: ok }));
+    if (isJoao) {
+      dietLogs.push({
+        studentId: "student-joao",
+        nutritionistId: "demo-user",
+        dietId: "diet-outubro",
+        dietName: "Plano alimentar — Hipertrofia",
+        date: d,
+        status: n === 1 || n === 4 ? "partial" : "followed",
+        mealChecks: n === 1 || n === 4 ? mk(false) : mk(true),
+      });
+    }
+    if (isMaria) {
+      dietLogs.push({
+        studentId: "student-maria",
+        nutritionistId: "demo-user",
+        dietId: "diet-maria",
+        dietName: "Plano alimentar — Definição",
+        date: d,
+        status: n % 4 === 0 ? "followed" : n % 4 === 2 ? "partial" : "not_followed",
+        mealChecks:
+          n % 4 === 0
+            ? mk(true)
+            : n % 4 === 2
+              ? mealNames.map((m, i) => ({ mealId: `m${i}`, mealName: m, followed: i < 2 }))
+              : mk(false),
+      });
+    }
+  }
+  setJSON(LS_KEY.dietLogs, dietLogs);
+
+  // ── Pontuação (ciclo atual + histórico de um ciclo fechado) ──
+  const cycleId = `${now.getFullYear()}-Q${Math.floor(now.getMonth() / 3) + 1}`;
+  setJSON(LS_KEY.scores, [
+    { studentId: "student-joao", rawPoints: 9.4, cycleId, score: 9.4, daysElapsed: 14, daysCompleted: 13 },
+    { studentId: "student-maria", rawPoints: 6.2, cycleId, score: 6.2, daysElapsed: 14, daysCompleted: 8 },
+  ]);
+  setJSON(LS_KEY.scoreHistory, [
+    { studentId: "student-joao", cycleId: "2026-Q2", startDate: "2026-04-01", endDate: "2026-06-30", rawPoints: 8.1, days: 91, score: 8.1 },
+    { studentId: "student-maria", cycleId: "2026-Q2", startDate: "2026-04-01", endDate: "2026-06-30", rawPoints: 7.3, days: 91, score: 7.3 },
+  ] as ScoreHistoryEntry[]);
+
   localStorage.setItem(LS_KEY.seeded, "1");
 }
 
@@ -678,13 +863,274 @@ export function completeWorkout(req: CompleteWorkoutRequest, token: string): Pro
       id: `h-${Date.now()}`,
       studentId: workout?.studentId ?? "demo-student",
       nutritionistId: workout?.nutritionistId ?? "demo-user",
+      workoutName: workout?.name ?? "",
       completedAt: new Date().toISOString(),
     };
     setJSON(LS_KEY.history, [neu, ...list]);
+
+    // Feed automático (mesmo comportamento da API real: 1 post/dia por tipo).
+    const today = new Date().toISOString().slice(0, 10);
+    const allPosts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const already = allPosts.some(
+      (p) => p.userId === neu.studentId && p.type === "workout" && p.date === today
+    );
+    if (!already) {
+      allPosts.unshift({
+        id: `post-${Date.now()}`,
+        userId: neu.studentId,
+        userName: "João Silva",
+        type: "workout",
+        text:
+          req.caption?.trim() ||
+          `${workout?.name ?? "Treino"} concluído${req.duration ? ` em ${req.duration} min` : ""}! 💪`,
+        workoutId: workout?.id,
+        workoutName: workout?.name,
+        date: today,
+        likes: {},
+        likeCount: 0,
+        comments: [],
+        createdAt: new Date().toISOString(),
+      });
+      setJSON(LS_KEY.posts, allPosts);
+    }
     return Promise.resolve(neu);
   }
   return request<WorkoutHistoryEntry>("/api/workouts/complete", token, {
     method: "POST",
     body: JSON.stringify(req),
   });
+}
+
+// ── Rede social (feed global) ──────────────────────────────────────────────
+
+export function listPosts(token: string): Promise<PostsPage> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const visible = posts
+      .filter((p) => !p.deleted)
+      .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
+    return Promise.resolve({ posts: visible, nextCursor: undefined });
+  }
+  return request<PostsPage>("/api/posts", token);
+}
+
+export function createPost(req: CreatePostRequest, token: string): Promise<Post> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const neu: Post = {
+      id: `post-${Date.now()}`,
+      userId: "demo-user",
+      userName: "Demo (Nutricionista)",
+      type: req.type,
+      text: req.text,
+      date: new Date().toISOString().slice(0, 10),
+      likes: {},
+      likeCount: 0,
+      comments: [],
+      createdAt: new Date().toISOString(),
+    };
+    setJSON(LS_KEY.posts, [neu, ...posts]);
+    return Promise.resolve(neu);
+  }
+  return request<Post>("/api/posts", token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export function toggleLike(postId: string, token: string): Promise<Post> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const idx = posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return Promise.reject(new Error("post nao encontrado"));
+    const p = posts[idx];
+    const me = "demo-user";
+    const likes = { ...(p.likes ?? {}) };
+    if (likes[me]) delete likes[me];
+    else likes[me] = true;
+    const next = { ...p, likes, likeCount: Object.keys(likes).length };
+    posts[idx] = next;
+    setJSON(LS_KEY.posts, posts);
+    return Promise.resolve(next);
+  }
+  return request<Post>(`/api/posts/${postId}/like`, token, { method: "POST" });
+}
+
+export function addComment(postId: string, req: CommentRequest, token: string): Promise<Post> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const idx = posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return Promise.reject(new Error("post nao encontrado"));
+    const p = posts[idx];
+    const next: Post = {
+      ...p,
+      comments: [
+        ...(p.comments ?? []),
+        {
+          id: `c-${Date.now()}`,
+          userId: "demo-user",
+          userName: "Demo (Nutricionista)",
+          text: req.text,
+          createdAt: new Date().toISOString(),
+        },
+      ],
+    };
+    posts[idx] = next;
+    setJSON(LS_KEY.posts, posts);
+    return Promise.resolve(next);
+  }
+  return request<Post>(`/api/posts/${postId}/comments`, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+export function deleteComment(postId: string, commentId: string, token: string): Promise<Post> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const idx = posts.findIndex((p) => p.id === postId);
+    if (idx === -1) return Promise.reject(new Error("post nao encontrado"));
+    const p = posts[idx];
+    const next: Post = {
+      ...p,
+      comments: (p.comments ?? []).filter((c) => c.id !== commentId),
+    };
+    posts[idx] = next;
+    setJSON(LS_KEY.posts, posts);
+    return Promise.resolve(next);
+  }
+  return request<Post>(`/api/posts/${postId}/comments/${commentId}`, token, {
+    method: "DELETE",
+  });
+}
+
+export function deletePost(postId: string, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    setJSON(LS_KEY.posts, posts.map((p) => (p.id === postId ? { ...p, deleted: true } : p)));
+    return Promise.resolve();
+  }
+  return request<void>(`/api/posts/${postId}`, token, { method: "DELETE" });
+}
+
+// ── Dieta diária (dia + refeição) ──────────────────────────────────────────
+
+export function listDietLogs(studentId: string, token: string, from?: string, to?: string): Promise<DietDailyLog[]> {
+  if (DEMO_MODE) {
+    let logs = getJSON<DietDailyLog[]>(LS_KEY.dietLogs) ?? [];
+    if (studentId) logs = logs.filter((l) => l.studentId === studentId);
+    if (from) logs = logs.filter((l) => l.date >= from);
+    if (to) logs = logs.filter((l) => l.date <= to);
+    return Promise.resolve(logs);
+  }
+  const qs = new URLSearchParams({ studentId });
+  if (from) qs.set("from", from);
+  if (to) qs.set("to", to);
+  return request<{ logs: DietDailyLog[] }>(`/api/diet-logs?${qs.toString()}`, token).then(
+    (r) => r.logs
+  );
+}
+
+export function putDietLog(req: UpsertDietLogRequest, token: string): Promise<DietDailyLog> {
+  if (DEMO_MODE) {
+    const logs = getJSON<DietDailyLog[]>(LS_KEY.dietLogs) ?? [];
+    const studentId = req.studentId ?? "demo-user";
+    const existing = logs.find((l) => l.studentId === studentId && l.date === req.date);
+    const neu: DietDailyLog = {
+      ...(existing ?? {}),
+      studentId,
+      nutritionistId: "demo-user",
+      date: req.date,
+      status: req.status ?? "followed",
+      mealChecks: req.mealChecks,
+      note: req.note,
+      caption: req.caption,
+      updatedAt: new Date().toISOString(),
+    };
+    const next = existing
+      ? logs.map((l) => (l === existing ? neu : l))
+      : [...logs, neu];
+    setJSON(LS_KEY.dietLogs, next);
+
+    // Post automático de dieta (1/dia): só quando seguida.
+    const allPosts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const d = allPosts.find((p) => p.userId === studentId && p.type === "diet" && p.date === req.date && !p.deleted);
+    if (neu.status === "followed") {
+      if (d) {
+        const idx = allPosts.indexOf(d);
+        allPosts[idx] = { ...d, text: req.caption?.trim() || d.text };
+      } else {
+        allPosts.unshift({
+          id: `post-${Date.now()}`,
+          userId: studentId,
+          userName: "João Silva",
+          type: "diet",
+          text: req.caption?.trim() || "Dia de dieta seguida à risca! 🥗",
+          dietId: neu.dietId,
+          dietName: neu.dietName,
+          date: req.date,
+          likes: {},
+          likeCount: 0,
+          comments: [],
+          createdAt: new Date().toISOString(),
+        });
+      }
+    } else if (d) {
+      allPosts[allPosts.indexOf(d)] = { ...d, deleted: true };
+    }
+    setJSON(LS_KEY.posts, allPosts);
+    return Promise.resolve(neu);
+  }
+  return request<DietDailyLog>("/api/diet-logs", token, {
+    method: "PUT",
+    body: JSON.stringify(req),
+  });
+}
+
+// ── Ranking / pontuação / perfil público ───────────────────────────────────
+
+export function getRanking(token: string): Promise<RankingResponse> {
+  if (DEMO_MODE) {
+    return Promise.resolve({
+      cycleId: "2026-Q3",
+      cycleStart: "2026-07-01",
+      cycleEnd: "2026-09-30",
+      top: [
+        { studentId: "student-joao", name: "João Silva", score: 9.4, rank: 1 },
+        { studentId: "student-maria", name: "Maria Souza", score: 6.2, rank: 2 },
+      ],
+      total: 2,
+      self: { studentId: "demo-user", name: "Demo (Nutricionista)", score: 9.4, rank: 1 },
+      full: undefined,
+    });
+  }
+  return request<RankingResponse>("/api/ranking", token);
+}
+
+export function getScoreHistory(studentId: string, token: string): Promise<ScoreHistoryEntry[]> {
+  if (DEMO_MODE) {
+    const all = getJSON<ScoreHistoryEntry[]>(LS_KEY.scoreHistory) ?? [];
+    return Promise.resolve(all.filter((h) => h.studentId === studentId));
+  }
+  const qs = new URLSearchParams({ studentId });
+  return request<{ history: ScoreHistoryEntry[] }>(`/api/scores/history?${qs.toString()}`, token).then(
+    (r) => r.history
+  );
+}
+
+export function getPublicProfile(id: string, token: string): Promise<PublicProfile> {
+  if (DEMO_MODE) {
+    return Promise.resolve({
+      id,
+      name: id === "student-joao" ? "João Silva" : id === "student-maria" ? "Maria Souza" : "Demo (Nutricionista)",
+      photoURL: undefined,
+      bio: id === "student-joao" ? "Focado em hipertrofia. 🏋️" : id === "student-maria" ? "Definição e saúde. 🥗" : "Nutricionista esportiva.",
+      role: id === "demo-user" ? "nutritionist" : "student",
+      streak: id === "student-joao" ? 5 : 2,
+      score: id === "demo-user" ? undefined : id === "student-joao" ? 9.4 : 6.2,
+      cycleId: "2026-Q3",
+      rank: id === "student-joao" ? 1 : 2,
+    });
+  }
+  return request<PublicProfile>(`/api/public/profile/${id}`, token);
 }

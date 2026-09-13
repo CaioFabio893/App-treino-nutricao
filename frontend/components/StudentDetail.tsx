@@ -1,11 +1,17 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { UserProfile, WorkoutDefine, Diet, WorkoutHistoryEntry, HistoryExercise } from "@/lib/types";
+import type {
+  UserProfile,
+  WorkoutDefine,
+  Diet,
+  WorkoutHistoryEntry,
+  DietDailyLog,
+} from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 
 const WEEK_DAY_LABEL: Record<string, string> = {
@@ -30,15 +36,17 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
   const [workouts, setWorkouts] = useState<WorkoutDefine[]>([]);
   const [diets, setDiets] = useState<Diet[]>([]);
   const [history, setHistory] = useState<WorkoutHistoryEntry[]>([]);
+  const [dietLogs, setDietLogs] = useState<DietDailyLog[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Edição dos dados do aluno (foto, nome, status, datas).
+  // Edição dos dados do aluno (foto, nome, status, datas, bio).
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     name: student.name || "",
     photoURL: student.photoURL || "",
+    bio: student.bio || "",
     status: student.status || "active",
     startDate: student.startDate || "",
     endDate: student.endDate || "",
@@ -48,14 +56,16 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
   const load = useCallback(async () => {
     try {
       const token = await getToken();
-      const [w, d, h] = await Promise.all([
+      const [w, d, h, dl] = await Promise.all([
         api.listWorkouts(token),
         api.listDiets(token),
         api.listHistory(token),
+        api.listDietLogs(student.id, token),
       ]);
       setWorkouts(w.filter((x) => x.studentId === student.id));
       setDiets(d.filter((x) => x.studentId === student.id));
       setHistory(h.filter((x) => x.studentId === student.id));
+      setDietLogs(dl);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar");
@@ -67,6 +77,31 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  // Frequência do aluno no mês corrente (treinos + adesão à dieta).
+  const monthStats = useMemo(() => {
+    const now = new Date();
+    const ym = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+    const daysElapsed = now.getDate();
+    const inMonth = (d?: string) => (d ?? "").startsWith(ym);
+    const workoutCount = history.filter((h) => inMonth(h.completedAt)).length;
+    const workoutDays = new Set(
+      history
+        .filter((h) => inMonth(h.completedAt))
+        .map((h) => h.completedAt!.slice(0, 10))
+    ).size;
+    const dietDays = dietLogs.filter(
+      (l) => inMonth(l.date) && l.status !== "not_followed"
+    ).length;
+    return {
+      workoutCount,
+      workoutDays,
+      workoutPct: daysElapsed ? Math.round((workoutDays / daysElapsed) * 100) : 0,
+      dietDays,
+      dietPct: daysElapsed ? Math.round((dietDays / daysElapsed) * 100) : 0,
+      daysElapsed,
+    };
+  }, [history, dietLogs]);
 
   const close = () => router.push("/nutritionist/students");
 
@@ -81,6 +116,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         {
           name: editForm.name.trim() || student.name,
           photoURL: editForm.photoURL.trim(),
+          bio: editForm.bio.trim(),
           status: editForm.status,
           startDate: editForm.startDate,
           endDate: editForm.endDate,
@@ -145,6 +181,15 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
               type="text"
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
+            />
+          </div>
+          <div className="frm-row">
+            <label className="frm-label">Bio (perfil público)</label>
+            <textarea
+              rows={2}
+              placeholder="Ex.: Focado em hipertrofia. 🏋️"
+              value={editForm.bio}
+              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
             />
           </div>
           <div className="frm-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -248,9 +293,59 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         </div>
       )}
 
-      {/* Calendário mensal: dias com treino concluído (✓) e dias com treino agendado (◦) */}
-      <div className="section-label">Calendário</div>
-      <MonthCalendar workouts={workouts} history={history} />
+      {/* Frequência no mês */}
+      <div className="section-label">Frequência neste mês</div>
+      <div className="stat-grid">
+        <div className="stat-cell">
+          <div className="stat-num">{monthStats.workoutCount}</div>
+          <div className="stat-lbl">Treinos concluídos</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-num">
+            {monthStats.workoutDays}/{monthStats.daysElapsed}
+          </div>
+          <div className="stat-lbl">Dias com treino ({monthStats.workoutPct}%)</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-num">
+            {monthStats.dietDays}/{monthStats.daysElapsed}
+          </div>
+          <div className="stat-lbl">Dias com dieta seguida ({monthStats.dietPct}%)</div>
+        </div>
+      </div>
+
+      {/* Calendário mensal: dupla checagem — treino (✓) e dieta (cor por dia) */}
+      <div className="section-label">Calendário do aluno</div>
+      <MonthCalendar workouts={workouts} history={history} dietLogs={dietLogs} />
+      <div className="section-label">Adesão à dieta por dia</div>
+      {dietLogs.length === 0 ? (
+        <div className="empty-box">Nenhuma marcação de dieta deste aluno ainda.</div>
+      ) : (
+        <div className="diet-days-list">
+          {dietLogs
+            .slice()
+            .sort((a, b) => b.date.localeCompare(a.date))
+            .slice(0, 14)
+            .map((l) => (
+              <div key={l.date} className={`diet-day-row st-${l.status}`}>
+                <b>{l.date}</b>
+                <span className={`diet-day-badge ${l.status}`}>
+                  {l.status === "followed" ? "✓ seguida" : l.status === "partial" ? "◐ parcial" : "○ não seguida"}
+                </span>
+                {l.mealChecks && l.mealChecks.length > 0 && (
+                  <div className="diet-day-meals">
+                    {l.mealChecks.map((c, i) => (
+                      <span key={i} className={`diet-meal-check ${c.followed ? "ok" : "no"}`}>
+                        {c.followed ? "✓" : "✕"} {c.mealName}
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {l.note && <div className="diet-day-note">{l.note}</div>}
+              </div>
+            ))}
+        </div>
+      )}
 
       {/* Treinos */}
       <div className="section-label">Treinos</div>
@@ -258,10 +353,11 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         <div className="empty-box">Nenhum treino para este aluno ainda.</div>
       ) : (
         workouts.map((w) => (
-          <Link
+          <div
             key={w.id}
-            href={`/nutritionist/workouts?edit=${w.id}`}
             className="nut-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => router.push(`/nutritionist/workouts?edit=${w.id}`)}
           >
             <div className="nut-card-head">
               <div className="avatar">🏋</div>
@@ -275,17 +371,22 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
               </div>
             </div>
             <div className="btn-row">
-              <Link className="btn-sm" href={`/nutritionist/workouts?edit=${w.id}`}>
+              <Link
+                className="btn-sm"
+                href={`/nutritionist/workouts?edit=${w.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 Editar
               </Link>
               <Link
                 className="btn-sm"
                 href={`/nutritionist/workouts?new=1&student=${student.id}&copy=${w.id}`}
+                onClick={(e) => e.stopPropagation()}
               >
                 Duplicar
               </Link>
             </div>
-          </Link>
+          </div>
         ))
       )}
 
@@ -295,10 +396,11 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         <div className="empty-box">Nenhuma dieta para este aluno ainda.</div>
       ) : (
         diets.map((d) => (
-          <Link
+          <div
             key={d.id}
-            href={`/nutritionist/diets?edit=${d.id}`}
             className="nut-card"
+            style={{ cursor: "pointer" }}
+            onClick={() => router.push(`/nutritionist/diets?edit=${d.id}`)}
           >
             <div className="nut-card-head">
               <div className="avatar">🥗</div>
@@ -312,17 +414,22 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
               </div>
             </div>
             <div className="btn-row">
-              <Link className="btn-sm" href={`/nutritionist/diets?edit=${d.id}`}>
+              <Link
+                className="btn-sm"
+                href={`/nutritionist/diets?edit=${d.id}`}
+                onClick={(e) => e.stopPropagation()}
+              >
                 Editar
               </Link>
               <Link
                 className="btn-sm"
                 href={`/nutritionist/diets?new=1&student=${student.id}&copy=${d.id}`}
+                onClick={(e) => e.stopPropagation()}
               >
                 Duplicar
               </Link>
             </div>
-          </Link>
+          </div>
         ))
       )}
 
@@ -367,18 +474,32 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
                     <b>{workout?.name ?? "Treino"}</b> concluído
                     {h.duration ? ` em ${h.duration} min` : ""} —{" "}
                     {h.exercisesCompleted}/{h.totalExercises} exercícios
-                    {h.exercises && h.exercises.length > 0 && (
-                      <div className="tl-exercises">
-                        {h.exercises.map((ex) => (
-                          <span key={ex.order} className="tl-ex-chip">
-                            {ex.name}
-                            {ex.sets?.length
-                              ? ` · ${ex.sets.filter((s) => s.done).length}/${ex.sets.length}`
-                              : ""}
-                          </span>
-                        ))}
-                      </div>
-                    )}
+{h.exercises && h.exercises.length > 0 && (
+  <div className="hist-list">
+    {h.exercises.map((ex) => (
+      <div key={ex.order} className="hist-ex">
+        <div className="hist-ex-name">
+          {ex.name}
+          <span className="hist-ex-count">
+            {ex.sets?.filter((s) => s.done).length ?? 0}/{ex.sets?.length ?? 0}
+          </span>
+        </div>
+        {ex.sets && ex.sets.length > 0 && (
+          <div className="last-chips">
+            {ex.sets.map((s, si) => (
+              <span key={si} className={`chip${s.done ? " done" : ""}`}>
+                S{si + 1}: {s.weight || "—"} × {s.reps || "—"}
+              </span>
+            ))}
+          </div>
+        )}
+        {ex.note ? (
+          <div className="hist-ex-note">Obs: {ex.note}</div>
+        ) : null}
+      </div>
+    ))}
+  </div>
+)}
                   </div>
                 </div>
               );
@@ -407,14 +528,17 @@ const WEEK_DAY_KEY: Record<number, string> = {
 function MonthCalendar({
   workouts,
   history,
+  dietLogs,
 }: {
   workouts: WorkoutDefine[];
   history: WorkoutHistoryEntry[];
+  dietLogs: DietDailyLog[];
 }) {
   const [cursor, setCursor] = useState(() => {
     const d = new Date();
     return new Date(d.getFullYear(), d.getMonth(), 1);
   });
+  const [detail, setDetail] = useState<{ key: string; log?: DietDailyLog } | null>(null);
 
   const completedByDay = new Map<string, WorkoutHistoryEntry[]>();
   for (const h of history) {
@@ -422,6 +546,10 @@ function MonthCalendar({
     const key = h.completedAt.slice(0, 10);
     if (!completedByDay.has(key)) completedByDay.set(key, []);
     completedByDay.get(key)!.push(h);
+  }
+  const dietByDay = new Map<string, DietDailyLog>();
+  for (const l of dietLogs) {
+    dietByDay.set(l.date, l);
   }
   const scheduledWeekDays = new Set(
     workouts.map((w) => w.dayOfWeek).filter(Boolean) as string[]
@@ -436,6 +564,8 @@ function MonthCalendar({
   const cells: (number | null)[] = [];
   for (let i = 0; i < firstDow; i++) cells.push(null);
   for (let d = 1; d <= daysInMonth; d++) cells.push(d);
+
+  const detailLog = detail?.log;
 
   return (
     <div className="cal-month">
@@ -458,36 +588,75 @@ function MonthCalendar({
           if (day === null) return <div key={i} className="cal-month-cell empty" />;
           const key = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const done = completedByDay.get(key) ?? [];
+          const diet = dietByDay.get(key);
           const wd = WEEK_DAY_KEY[new Date(year, month, day).getDay()];
           const planned = scheduledWeekDays.has(wd) && done.length === 0;
           const isToday = key === todayKey;
-          const title = [
-            ...done.map(
-              (h) =>
-                `✓ ${workouts.find((w) => w.id === h.workoutId)?.name ?? "Treino"} concluído`
-            ),
-            planned ? "◦ Treino agendado" : "",
-          ]
-            .filter(Boolean)
-            .join(" · ");
           return (
             <div
               key={i}
-              className={`cal-month-cell ${done.length ? "done" : ""} ${planned ? "planned" : ""} ${isToday ? "today" : ""}`}
-              title={title || undefined}
+              className={`cal-month-cell ${done.length ? "done" : ""} ${planned ? "planned" : ""} ${isToday ? "today" : ""} ${diet ? `diet-${diet.status}` : ""}`}
+              title={
+                [
+                  ...done.map((h) => `✓ Treino: ${workouts.find((w) => w.id === h.workoutId)?.name ?? "Treino"}`),
+                  planned ? "◦ Treino agendado" : "",
+                  diet ? `Dieta: ${diet.status === "followed" ? "seguida" : diet.status === "partial" ? "parcial" : "não seguida"}` : "",
+                ]
+                  .filter(Boolean)
+                  .join(" · ")
+              }
+              onClick={() => (done.length || diet) && setDetail({ key, log: diet })}
+              style={{ cursor: done.length || diet ? "pointer" : "default" }}
             >
               <span className="d">{day}</span>
               {done.length > 0 && <span className="mark">✓</span>}
-              {planned && <span className="mark">◦</span>}
+              {planned && !done.length && <span className="mark">◦</span>}
+              {diet && <span className="mark diet-mark">{diet.status === "followed" ? "◆" : diet.status === "partial" ? "◐" : "○"}</span>}
             </div>
           );
         })}
       </div>
       <div className="cal-legend">
-        <span><b className="lg-done">✓</b> concluído</span>
+        <span><b className="lg-done">✓</b> treino concluído</span>
         <span><b className="lg-planned">◦</b> agendado</span>
-        <span><b className="lg-today">●</b> hoje</span>
+        <span><b className="lg-diet-followed">◆</b> dieta seguida</span>
+        <span><b className="lg-diet-partial">◐</b> parcial</span>
+        <span><b className="lg-diet-not">○</b> não seguida</span>
       </div>
+
+      {detail && (
+        <div className="cal-day-detail">
+          <div className="cal-day-detail-head">
+            <b>{detail.key}</b>
+            <button type="button" className="btn-sm" onClick={() => setDetail(null)}>
+              ✕
+            </button>
+          </div>
+          {detailLog ? (
+            <>
+              <div className="diet-day-badge-wrap">
+                <span className={`diet-day-badge ${detailLog.status}`}>
+                  {detailLog.status === "followed" ? "✓ seguida" : detailLog.status === "partial" ? "◐ parcial" : "○ não seguida"}
+                </span>
+              </div>
+              {(detailLog.mealChecks?.length ?? 0) > 0 ? (
+                <div className="diet-day-meals">
+                  {detailLog.mealChecks!.map((c, i) => (
+                    <span key={i} className={`diet-meal-check ${c.followed ? "ok" : "no"}`}>
+                      {c.followed ? "✓" : "✕"} {c.mealName}
+                    </span>
+                  ))}
+                </div>
+              ) : (
+                <div className="diet-day-note">Dia marcado sem detalhe por refeição.</div>
+              )}
+              {detailLog.note && <div className="diet-day-note">Observação: {detailLog.note}</div>}
+            </>
+          ) : (
+            <div className="diet-day-note">{completedByDay.get(detail.key)?.length ?? 0} treino(s) concluído(s) neste dia. Sem marcação de dieta.</div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

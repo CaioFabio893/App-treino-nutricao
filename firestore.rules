@@ -6,8 +6,14 @@
 //
 // Regras por coleção:
 //   - users/{uid}/...        → apenas o dono (modo original + perfil)
+//   - posts/{postId}         → leitura p/ autenticados; autor cria/edita/apaga;
+//                              nutricionista/admin podem moderar (editar/apagar)
+//   - dietLogs/{docId}       → dono do log e seu nutricionista leem; aluno/admin
+//                              escrevem (o aluno só o próprio)
 //   - workouts, diets,
-//     workoutHistory          → NEGADO para clientes (só a API Go acessa)
+//     workoutHistory         → NEGADO para clientes (só a API Go acessa)
+//   - scores/{uid}           → leitura p/ autenticados; escrita só API
+//   - scores_history/{uid}   → leitura p/ dono + nutricionista/admin; escrita só API
 rules_version = '2';
 
 service cloud.firestore {
@@ -16,8 +22,43 @@ service cloud.firestore {
       return request.auth != null && request.auth.uid == uid;
     }
 
+    function isModerator() {
+      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['nutritionist', 'admin'];
+    }
+
+    function isStudentOrAdmin(studentId) {
+      return request.auth != null && (
+        request.auth.uid == studentId ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+      );
+    }
+
+    function canViewStudentData(studentId) {
+      let me = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
+      return request.auth.uid == studentId ||
+             me.role == 'admin' ||
+             (me.role == 'nutritionist' && get(/databases/$(database)/documents/users/$(studentId)).data.nutritionistID == request.auth.uid);
+    }
+
     match /users/{uid}/{document=**} {
       allow read, write: if isOwner(uid);
+    }
+
+    // Feed global: todos os autenticados leem; o autor escreve o próprio;
+    // moderadores podem editar/apagar qualquer post.
+    match /posts/{postId} {
+      allow read: if request.auth != null;
+      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
+      allow update, delete: if request.auth != null && (
+        resource.data.userId == request.auth.uid || isModerator()
+      );
+    }
+
+    // Log diário de dieta: aluno marca o próprio dia; admin marca qualquer um;
+    // leitura para o próprio aluno e seu nutricionista (detalhe por refeição incluído).
+    match /dietLogs/{docId} {
+      allow read: if request.auth != null && canViewStudentData(resource.data.studentId);
+      allow write: if request.auth != null && isStudentOrAdmin(request.resource.data.studentId);
     }
 
     // Coleções gerenciadas apenas pela API Go (Admin SDK).
@@ -30,6 +71,18 @@ service cloud.firestore {
     }
     match /workoutHistory/{document=**} {
       allow read, write: if false;
+    }
+
+    // Nota corrente: todos os autenticados leem (ranking); escrita só da API.
+    match /scores/{uid} {
+      allow read: if request.auth != null;
+      allow write: if false;
+    }
+
+    // Histórico de ciclos: o próprio aluno e o nutricionista/admin leem.
+    match /scores_history/{uid}/{document=**} {
+      allow read: if request.auth != null && canViewStudentData(uid);
+      allow write: if false;
     }
   }
 }

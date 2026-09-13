@@ -347,6 +347,14 @@ export default function WorkoutForm({
             </div>
           </div>
           <div className="frm-row">
+            <label>Link de vídeo (YouTube, opcional)</label>
+            <input
+              value={ex.videoUrl ?? ""}
+              placeholder="https://www.youtube.com/watch?v=…"
+              onChange={(e) => setEx(i, { videoUrl: e.target.value })}
+            />
+          </div>
+          <div className="frm-row">
             <label>Observação</label>
             <textarea
               value={ex.notes ?? ""}

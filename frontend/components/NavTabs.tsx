@@ -6,6 +6,8 @@ import { useNewCompletions } from "@/lib/useNewCompletions";
 
 const NAV_ITEMS = [
   { href: "/nutritionist", label: "Dashboard" },
+  { href: "/nutritionist/feed", label: "Feed" },
+  { href: "/nutritionist/ranking", label: "Ranking" },
   { href: "/nutritionist/students", label: "Meus Alunos" },
   { href: "/nutritionist/workouts", label: "Treinos" },
   { href: "/nutritionist/diets", label: "Dietas" },

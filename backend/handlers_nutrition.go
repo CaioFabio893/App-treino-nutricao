@@ -770,6 +770,7 @@ func (s *Server) handleCompleteWorkout(w http.ResponseWriter, r *http.Request) {
 	entry := &WorkoutHistoryEntry{
 		StudentID:          workout.StudentID,
 		WorkoutID:          workout.ID,
+		WorkoutName:        workout.Name,
 		NutritionistID:     workout.NutritionistID,
 		CompletedAt:        time.Now(),
 		Duration:           req.Duration,
@@ -782,5 +783,28 @@ func (s *Server) handleCompleteWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "falha ao registrar conclusao", http.StatusInternalServerError)
 		return
 	}
+
+	// Rede social: publicação automática no feed (uma por dia) com a legenda
+	// opcional do aluno.
+	if err := s.publishWorkoutPost(r.Context(), created, req.Caption); err != nil {
+		http.Error(w, "falha ao publicar no feed", http.StatusInternalServerError)
+		return
+	}
+
+	// Ranking: recalcula a nota do ciclo em andamento.
+	studentProf, err := s.getUserProfile(r.Context(), created.StudentID)
+	if err != nil {
+		http.Error(w, "falha ao ler aluno", http.StatusInternalServerError)
+		return
+	}
+	startDate := ""
+	if studentProf != nil {
+		startDate = studentProf.StartDate
+	}
+	if err := s.recomputeScore(r.Context(), created.StudentID, startDate); err != nil {
+		http.Error(w, "falha ao atualizar pontuacao", http.StatusInternalServerError)
+		return
+	}
+
 	writeJSON(w, http.StatusOK, created)
 }

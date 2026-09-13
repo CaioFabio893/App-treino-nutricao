@@ -92,6 +92,23 @@ func main() {
 	mux.HandleFunc("GET /api/workout-history", srv.withAuth(srv.handleListHistory))
 	mux.HandleFunc("POST /api/workouts/complete", srv.withAuth(srv.handleCompleteWorkout))
 
+	// ── Rede social (feed global) ──
+	mux.HandleFunc("POST /api/posts", srv.withAuth(srv.handleCreatePost))
+	mux.HandleFunc("GET /api/posts", srv.withAuth(srv.handleListPosts))
+	mux.HandleFunc("POST /api/posts/{id}/like", srv.withAuth(srv.handleToggleLike))
+	mux.HandleFunc("POST /api/posts/{id}/comments", srv.withAuth(srv.handleAddComment))
+	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", srv.withAuth(srv.handleDeleteComment))
+	mux.HandleFunc("DELETE /api/posts/{id}", srv.withAuth(srv.handleDeletePost))
+
+	// ── Dieta diária (dia + refeição) ──
+	mux.HandleFunc("GET /api/diet-logs", srv.withAuth(srv.handleListDietLogs))
+	mux.HandleFunc("PUT /api/diet-logs", srv.withAuth(srv.handleUpsertDietLog))
+
+	// ── Ranking / pontuação / perfil público ──
+	mux.HandleFunc("GET /api/ranking", srv.withAuth(srv.handleGetRanking))
+	mux.HandleFunc("GET /api/scores/history", srv.withAuth(srv.handleGetScoreHistory))
+	mux.HandleFunc("GET /api/public/profile/{id}", srv.withAuth(srv.handleGetPublicProfile))
+
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
