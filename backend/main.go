@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strconv"
 	"syscall"
 	"time"
 
@@ -13,13 +14,13 @@ import (
 	firebaseAuth "firebase.google.com/go/v4/auth"
 
 	"cloud.google.com/go/firestore"
-)
 
-// Server agrupa os clientes do Firebase usados pela API.
-type Server struct {
-	fs   *firestore.Client
-	auth *firebaseAuth.Client
-}
+	"treino-louise/backend/handlers"
+	"treino-louise/backend/middleware"
+	"treino-louise/backend/models"
+	"treino-louise/backend/repository"
+	"treino-louise/backend/service"
+)
 
 func main() {
 	ctx := context.Background()
@@ -32,91 +33,118 @@ func main() {
 		log.Fatalf("firebase.NewApp: %v", err)
 	}
 
-	firestoreClient, err := app.Firestore(ctx)
+	var firestoreClient *firestore.Client
+	firestoreClient, err = app.Firestore(ctx)
 	if err != nil {
 		log.Fatalf("app.Firestore: %v", err)
 	}
 
-	authClient, err := app.Auth(ctx)
+	var authClient *firebaseAuth.Client
+	authClient, err = app.Auth(ctx)
 	if err != nil {
 		log.Fatalf("app.Auth: %v", err)
 	}
 
-	srv := &Server{fs: firestoreClient, auth: authClient}
+	// Injeção de dependências (camadas: repository → service → handlers/auth).
+	db := repository.New(firestoreClient)
+	svc := service.New(db)
+	h := handlers.New(svc, db)
+	a := middleware.NewAuth(authClient, db)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", srv.handleHealth)
+	mux.HandleFunc("GET /health", h.HandleHealth)
 
 	// ── Modo original (preservado) ──
-	mux.HandleFunc("GET /api/sessions/{week}/{day}", srv.withAuth(srv.handleGetSession))
-	mux.HandleFunc("PUT /api/sessions/{week}/{day}", srv.withAuth(srv.handlePutSession))
-	mux.HandleFunc("GET /api/prs", srv.withAuth(srv.handleGetPRs))
-	mux.HandleFunc("PUT /api/prs", srv.withAuth(srv.handlePutPRs))
-	mux.HandleFunc("GET /api/state", srv.withAuth(srv.handleGetState))
-	mux.HandleFunc("PUT /api/state", srv.withAuth(srv.handlePutState))
+	mux.HandleFunc("GET /api/sessions/{week}/{day}", a.Require(h.HandleGetSession))
+	mux.HandleFunc("PUT /api/sessions/{week}/{day}", a.Require(h.HandlePutSession))
+	mux.HandleFunc("GET /api/prs", a.Require(h.HandleGetPRs))
+	mux.HandleFunc("PUT /api/prs", a.Require(h.HandlePutPRs))
+	mux.HandleFunc("GET /api/state", a.Require(h.HandleGetState))
+	mux.HandleFunc("PUT /api/state", a.Require(h.HandlePutState))
 
 	// ── Perfil do usuário logado ──
-	mux.HandleFunc("GET /api/me", srv.withAuth(srv.handleGetMe))
-	mux.HandleFunc("PUT /api/me", srv.withAuth(srv.handlePutMe))
+	mux.HandleFunc("GET /api/me", a.Require(h.HandleGetMe))
+	mux.HandleFunc("PUT /api/me", a.Require(h.HandlePutMe))
 
 	// ── Usuários (admin) ──
-	admin := srv.withAuth(srv.handleListUsers)
-	mux.HandleFunc("GET /api/users", srv.withRole(RoleAdmin)(admin))
-	mux.HandleFunc("POST /api/users", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleCreateUser)))
-	mux.HandleFunc("GET /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleGetUser)))
-	mux.HandleFunc("PUT /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleUpdateUser)))
-	mux.HandleFunc("DELETE /api/users/{id}", srv.withRole(RoleAdmin)(srv.withAuth(srv.handleDeleteUser)))
+	mux.HandleFunc("GET /api/users", a.Allow(models.RoleAdmin)(a.Require(h.HandleListUsers)))
+	mux.HandleFunc("POST /api/users", a.Allow(models.RoleAdmin)(a.Require(h.HandleCreateUser)))
+	mux.HandleFunc("GET /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleGetUser)))
+	mux.HandleFunc("PUT /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleUpdateUser)))
+	mux.HandleFunc("DELETE /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleDeleteUser)))
 
 	// ── Alunos ──
-	mux.HandleFunc("GET /api/students", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleListMyStudents)))
-	mux.HandleFunc("GET /api/students/{id}", srv.withAuth(srv.handleGetStudent))
-	mux.HandleFunc("PUT /api/students/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateStudent)))
+	mux.HandleFunc("GET /api/students", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleListMyStudents)))
+	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
+	mux.HandleFunc("PUT /api/students/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleUpdateStudent)))
 
 	// ── Treinos ──
-	mux.HandleFunc("GET /api/workouts", srv.withAuth(srv.handleListWorkouts))
-	mux.HandleFunc("POST /api/workouts", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleCreateWorkout)))
-	mux.HandleFunc("GET /api/workouts/{id}", srv.withAuth(srv.handleGetWorkout))
-	mux.HandleFunc("PUT /api/workouts/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateWorkout)))
-	mux.HandleFunc("DELETE /api/workouts/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDeleteWorkout)))
-	mux.HandleFunc("POST /api/workouts/{id}/duplicate", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDuplicateWorkout)))
+	mux.HandleFunc("GET /api/workouts", a.Require(h.HandleListWorkouts))
+	mux.HandleFunc("POST /api/workouts", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleCreateWorkout)))
+	mux.HandleFunc("GET /api/workouts/{id}", a.Require(h.HandleGetWorkout))
+	mux.HandleFunc("PUT /api/workouts/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleUpdateWorkout)))
+	mux.HandleFunc("DELETE /api/workouts/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleDeleteWorkout)))
+	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleDuplicateWorkout)))
 
 	// ── Dietas ──
-	mux.HandleFunc("GET /api/diets", srv.withAuth(srv.handleListDiets))
-	mux.HandleFunc("POST /api/diets", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleCreateDiet)))
-	mux.HandleFunc("GET /api/diets/{id}", srv.withAuth(srv.handleGetDiet))
-	mux.HandleFunc("PUT /api/diets/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleUpdateDiet)))
-	mux.HandleFunc("DELETE /api/diets/{id}", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDeleteDiet)))
-	mux.HandleFunc("POST /api/diets/{id}/duplicate", srv.withRole(RoleNutritionist, RoleAdmin)(srv.withAuth(srv.handleDuplicateDiet)))
+	mux.HandleFunc("GET /api/diets", a.Require(h.HandleListDiets))
+	mux.HandleFunc("POST /api/diets", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleCreateDiet)))
+	mux.HandleFunc("GET /api/diets/{id}", a.Require(h.HandleGetDiet))
+	mux.HandleFunc("PUT /api/diets/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleUpdateDiet)))
+	mux.HandleFunc("DELETE /api/diets/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleDeleteDiet)))
+	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleDuplicateDiet)))
 
 	// ── Histórico ──
-	mux.HandleFunc("GET /api/workout-history", srv.withAuth(srv.handleListHistory))
-	mux.HandleFunc("POST /api/workouts/complete", srv.withAuth(srv.handleCompleteWorkout))
+	mux.HandleFunc("GET /api/workout-history", a.Require(h.HandleListHistory))
+	mux.HandleFunc("POST /api/workouts/complete", a.Require(h.HandleCompleteWorkout))
 
 	// ── Rede social (feed global) ──
-	mux.HandleFunc("POST /api/posts", srv.withAuth(srv.handleCreatePost))
-	mux.HandleFunc("GET /api/posts", srv.withAuth(srv.handleListPosts))
-	mux.HandleFunc("POST /api/posts/{id}/like", srv.withAuth(srv.handleToggleLike))
-	mux.HandleFunc("POST /api/posts/{id}/comments", srv.withAuth(srv.handleAddComment))
-	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", srv.withAuth(srv.handleDeleteComment))
-	mux.HandleFunc("DELETE /api/posts/{id}", srv.withAuth(srv.handleDeletePost))
+	mux.HandleFunc("POST /api/posts", a.Require(h.HandleCreatePost))
+	mux.HandleFunc("GET /api/posts", a.Require(h.HandleListPosts))
+	mux.HandleFunc("POST /api/posts/{id}/like", a.Require(h.HandleToggleLike))
+	mux.HandleFunc("POST /api/posts/{id}/comments", a.Require(h.HandleAddComment))
+	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", a.Require(h.HandleDeleteComment))
+	mux.HandleFunc("DELETE /api/posts/{id}", a.Require(h.HandleDeletePost))
 
 	// ── Dieta diária (dia + refeição) ──
-	mux.HandleFunc("GET /api/diet-logs", srv.withAuth(srv.handleListDietLogs))
-	mux.HandleFunc("PUT /api/diet-logs", srv.withAuth(srv.handleUpsertDietLog))
+	mux.HandleFunc("GET /api/diet-logs", a.Require(h.HandleListDietLogs))
+	mux.HandleFunc("PUT /api/diet-logs", a.Require(h.HandleUpsertDietLog))
 
 	// ── Ranking / pontuação / perfil público ──
-	mux.HandleFunc("GET /api/ranking", srv.withAuth(srv.handleGetRanking))
-	mux.HandleFunc("GET /api/scores/history", srv.withAuth(srv.handleGetScoreHistory))
-	mux.HandleFunc("GET /api/public/profile/{id}", srv.withAuth(srv.handleGetPublicProfile))
+	mux.HandleFunc("GET /api/ranking", a.Require(h.HandleGetRanking))
+	mux.HandleFunc("GET /api/scores/history", a.Require(h.HandleGetScoreHistory))
+	mux.HandleFunc("GET /api/public/profile/{id}", a.Require(h.HandleGetPublicProfile))
 
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "8080"
 	}
 
+	// ── Cadeia de hardening (hardening.md) ──
+	// Externamente: CORS → SecurityHeaders → RateLimit → mux.
+	// CORS: em produção, defina ALLOWED_ORIGIN com o domínio exato do frontend
+	// (ex.: "https://app.treinolouise.com"). Default "*" para desenvolvimento.
+	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
+	if allowedOrigin == "" {
+		allowedOrigin = "*"
+	}
+
+	// Rate limit por IP/minuto. RATE_LIMIT=0 (ou ausente) desativa.
+	rateLimit := 0
+	if v := os.Getenv("RATE_LIMIT"); v != "" {
+		if n, err := strconv.Atoi(v); err == nil && n > 0 {
+			rateLimit = n
+		}
+	}
+
+	var handler http.Handler = mux
+	handler = middleware.SecurityHeaders(handler)
+	handler = middleware.CORS(allowedOrigin)(handler)
+	handler = middleware.RateLimit(rateLimit, time.Minute)(handler)
+
 	httpSrv := &http.Server{
 		Addr:              ":" + port,
-		Handler:           withCORS(mux),
+		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
 	}
 

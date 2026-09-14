@@ -85,8 +85,8 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
   const anyDone = meals.some((_, i) => followed(i));
 
   return (
-    <div className="nut-card" style={{ cursor: "default" }}>
-      <div className="nut-card-title">
+    <div className="stu-card">
+      <div className="stu-card-title">
         Marcar refeições de hoje
         <span
           className={`diet-day-status ${log?.status ?? "not_followed"}`}
@@ -98,7 +98,7 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
               : "○ Dia não marcado"}
         </span>
       </div>
-      <div className="nut-card-sub">
+      <div className="stu-card-sub">
         Toque nas refeições conforme for cumprindo o plano.
       </div>
       <div className="diet-check-list">

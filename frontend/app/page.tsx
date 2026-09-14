@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import StudentDashboard from "@/components/StudentDashboard";
 import ProfileSetup from "@/components/ProfileSetup";
 import SetupNeeded, { LoadingScreen } from "@/components/SetupNeeded";
 
@@ -18,6 +17,10 @@ export default function Home() {
     if (!initializing && user && !needsProfile && (role === "nutritionist" || role === "admin")) {
       router.replace("/nutritionist");
     }
+    // Alunos vão para a primeira aba da área do aluno (rota própria).
+    if (!initializing && user && !needsProfile && role === "student") {
+      router.replace("/treinos");
+    }
   }, [initializing, user, configured, role, needsProfile, router]);
 
   if (!configured) return <SetupNeeded />;
@@ -25,6 +28,6 @@ export default function Home() {
   if (!user) return <LoadingScreen />;
   // Usuário sem perfil configurado.
   if (needsProfile) return <ProfileSetup />;
-  // Alunos veem o treino de hoje + dieta.
-  return <StudentDashboard />;
+  // Aguarda o redirect acima (aluno → /treinos; gestão → /nutritionist).
+  return <LoadingScreen />;
 }

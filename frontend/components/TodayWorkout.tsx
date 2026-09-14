@@ -3,18 +3,9 @@
 import { useCallback, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import * as api from "@/lib/api";
+import { WEEK_DAY_LABEL } from "@/lib/days";
 import type { Check, HistoryExercise, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import RestTimer from "./RestTimer";
-
-const WEEK_DAY_LABEL: Record<string, string> = {
-  monday: "Segunda",
-  tuesday: "Terça",
-  wednesday: "Quarta",
-  thursday: "Quinta",
-  friday: "Sexta",
-  saturday: "Sábado",
-  sunday: "Domingo",
-};
 
 interface DraftSet {
   w: string;

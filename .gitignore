@@ -13,6 +13,19 @@ frontend/out/
 *service-account*.json
 firebase-adminsdk*.json
 
+# Chaves privadas e certificados (nunca commitar!)
+*.pem
+*.key
+*.p12
+*.pfx
+*.crt
+*.der
+
+# Outros ambientes (nunca commitar; apenas .env.example é commitado)
+.env.production
+.env.test
+.env.development
+
 # Sistemas
 .DS_Store
 Thumbs.db

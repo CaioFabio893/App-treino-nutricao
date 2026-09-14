@@ -1,0 +1,295 @@
+/* ══════════════════════════════════════════════════════════════════════
+   PAINEL (nutricionista / admin) — tema "dashboard" profissional
+   Este bloco vive todo dentro de .dashboard, então não afeta o app do
+   aluno (que mantém a identidade cream/terracota original).
+   Estratégia: redefine as MESMAS variáveis usadas pelo resto do CSS
+   (--terra, --peach, --border, --text, --muted, --white, --ok, --fail,
+   --r, --shadow, --sans, --serif) só que dentro do escopo .dashboard —
+   assim praticamente todo componente reaproveitado (cards, badges,
+   formulários, ranking, feed, calendário, timeline) herda a nova
+   identidade automaticamente, sem precisar duplicar regra por regra.
+   ══════════════════════════════════════════════════════════════════════ */
+
+.dashboard {
+  /* Paleta nova */
+  --d-bg:          #F1F5F3;
+  --d-surface:     #FFFFFF;
+  --d-surface-2:   #E7F0EB;
+  --d-border:      #DCE6E0;
+  --d-text:        #172420;
+  --d-muted:       #63736C;
+  --d-primary:     #0B6B52;
+  --d-primary-dark:#083D30;
+  --d-primary-mid: #4B937B;
+  --d-primary-bright: #35C596;
+  --d-sidebar-bg:  #0F1D19;
+  --d-sidebar-text:#A9BAB3;
+  --d-ok:          #1F7A4D;
+  --d-ok-bg:       #E3F3E9;
+  --d-fail:        #B3413A;
+  --d-fail-bg:     #F8E9E7;
+  --d-radius:      10px;
+  --d-radius-sm:   7px;
+  --d-shadow:      0 1px 2px rgba(16,24,21,.06), 0 1px 0 rgba(16,24,21,.04);
+  --d-head:        'Space Grotesk', var(--d-body), sans-serif;
+  --d-body:        'Inter', sans-serif;
+
+  /* Reaproveita as variáveis do resto do app apontando pra paleta nova */
+  --cream: var(--d-bg);
+  --peach: var(--d-surface-2);
+  --blush: var(--d-primary-mid);
+  --terra: var(--d-primary);
+  --deep:  var(--d-primary-dark);
+  --text:  var(--d-text);
+  --muted: var(--d-muted);
+  --border: var(--d-border);
+  --white: var(--d-surface);
+  --ok: var(--d-ok);
+  --ok-bg: var(--d-ok-bg);
+  --fail: var(--d-fail);
+  --fail-bg: var(--d-fail-bg);
+  --r: var(--d-radius);
+  --r-sm: var(--d-radius-sm);
+  --shadow: var(--d-shadow);
+  --sans: var(--d-body);
+  --serif: var(--d-head);
+
+  display: flex;
+  align-items: stretch;
+  min-height: 100vh;
+  background: var(--d-bg);
+  color: var(--d-text);
+  font-family: var(--d-body);
+}
+
+/* ── Sidebar ── */
+.dash-sidebar {
+  width: 246px; flex: 0 0 246px;
+  background: var(--d-sidebar-bg); color: var(--d-sidebar-text);
+  display: flex; flex-direction: column;
+  position: sticky; top: 0; height: 100vh; overflow-y: auto;
+  z-index: 200;
+}
+.dash-brand {
+  display: flex; align-items: center; gap: 10px;
+  padding: 18px 16px; border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.dash-brand-mark {
+  width: 34px; height: 34px; border-radius: 9px; flex-shrink: 0;
+  background: var(--d-primary-bright); color: var(--d-sidebar-bg);
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--d-head); font-weight: 700; font-size: 13px; letter-spacing: 0.5px;
+}
+.dash-brand-text {
+  font-family: var(--d-head); font-weight: 600; font-size: 14.5px; color: #fff;
+  line-height: 1.25;
+}
+.dash-brand-text span {
+  display: block; font-family: var(--d-body); font-weight: 400; font-size: 11px;
+  color: var(--d-sidebar-text); margin-top: 1px;
+}
+.dash-sidebar-close { display: none; margin-left: auto; background: none; border: none; color: var(--d-sidebar-text); cursor: pointer; padding: 4px; }
+
+.dash-nav { display: flex; flex-direction: column; gap: 2px; padding: 12px 10px; flex: 1; }
+.dash-nav-link {
+  display: flex; align-items: center; gap: 11px;
+  padding: 9px 12px; border-radius: 8px;
+  font-size: 13.5px; font-weight: 500; color: var(--d-sidebar-text);
+  text-decoration: none; position: relative;
+  transition: background .12s, color .12s;
+}
+.dash-nav-link svg { flex-shrink: 0; opacity: 0.85; }
+.dash-nav-link:hover { background: rgba(255,255,255,0.06); color: #fff; }
+.dash-nav-link.active { background: rgba(53,197,150,0.14); color: #fff; }
+.dash-nav-link.active svg { opacity: 1; color: var(--d-primary-bright); }
+.dash-nav-link.active::before {
+  content: ''; position: absolute; left: -10px; top: 6px; bottom: 6px; width: 3px;
+  background: var(--d-primary-bright); border-radius: 0 3px 3px 0;
+}
+.dash-nav-badge {
+  margin-left: auto; min-width: 18px; height: 18px; padding: 0 5px;
+  background: #d3453f; color: #fff; font-size: 10.5px; font-weight: 700;
+  border-radius: 999px; display: flex; align-items: center; justify-content: center;
+}
+
+.dash-sidebar-foot { padding: 12px; border-top: 1px solid rgba(255,255,255,0.08); }
+.dash-user { display: flex; align-items: center; gap: 10px; padding: 6px; margin-bottom: 8px; }
+.dash-user-avatar {
+  width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+  background: var(--d-primary-bright); color: var(--d-sidebar-bg);
+  font-family: var(--d-head); font-weight: 700; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+}
+.dash-user-info { min-width: 0; }
+.dash-user-name { font-size: 12.5px; font-weight: 600; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-user-role { font-size: 10.5px; color: var(--d-sidebar-text); }
+.dash-logout {
+  display: flex; align-items: center; gap: 8px; width: 100%;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08);
+  color: var(--d-sidebar-text); font-family: var(--d-body); font-size: 12.5px; font-weight: 500;
+  padding: 8px 10px; border-radius: 7px; cursor: pointer;
+}
+.dash-logout:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+/* ── Burger / overlay (mobile) ── */
+.dash-burger {
+  display: none; position: fixed; top: 12px; left: 12px; z-index: 210;
+  width: 38px; height: 38px; border-radius: 9px;
+  background: var(--d-sidebar-bg); color: #fff; border: none; cursor: pointer;
+  align-items: center; justify-content: center; box-shadow: 0 2px 10px rgba(0,0,0,.25);
+}
+.dash-overlay { position: fixed; inset: 0; background: rgba(8,14,12,0.5); z-index: 190; }
+
+/* ── Área de conteúdo ── */
+.dash-content { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.dash-topbar {
+  position: sticky; top: 0; z-index: 150;
+  background: var(--d-surface); border-bottom: 1px solid var(--d-border);
+  padding: 14px 26px; display: flex; align-items: center; justify-content: space-between;
+}
+.dash-topbar-title { font-family: var(--d-head); font-weight: 700; font-size: 17px; color: var(--d-text); }
+.dash-topbar-logout {
+  background: transparent; border: 1px solid var(--d-border); color: var(--d-muted);
+  font-family: var(--d-body); font-size: 12px; font-weight: 500;
+  padding: 6px 13px; border-radius: 7px; cursor: pointer;
+}
+.dash-topbar-logout:hover { background: var(--d-surface-2); color: var(--d-text); }
+
+.dashboard .nut-main { max-width: 1120px; margin: 0; padding: 22px 26px 60px; width: 100%; }
+
+@media (max-width: 900px) {
+  .dash-burger { display: flex; }
+  .dash-sidebar {
+    position: fixed; left: 0; top: 0; width: 250px;
+    transform: translateX(-100%); transition: transform .22s ease;
+  }
+  .dash-sidebar.open { transform: translateX(0); box-shadow: 4px 0 28px rgba(0,0,0,.3); }
+  .dash-sidebar-close { display: block; }
+  .dash-topbar { padding: 12px 16px 12px 58px; }
+  .dashboard .nut-main { padding: 16px 16px 60px; }
+}
+
+/* ── Cabeçalho de página: tipografia sóbria em vez do serif itálico ── */
+.dashboard .page-head h1 {
+  font-family: var(--d-head); font-style: normal; font-weight: 700;
+  font-size: 21px; color: var(--d-text);
+}
+.dashboard .frm-card h3 { font-family: var(--d-head); font-style: normal; font-weight: 700; color: var(--d-text); }
+.dashboard .stat-num { font-family: var(--d-head); font-style: normal; font-weight: 700; font-variant-numeric: tabular-nums; }
+.dashboard .rank-score { font-family: var(--d-head); font-style: normal; font-weight: 700; }
+.dashboard .print-title { font-family: var(--d-head); font-style: normal; font-weight: 700; }
+.dashboard .profile-public-card h2 { font-family: var(--d-head); font-style: normal; font-weight: 700; }
+.dashboard .profile-public-stat b { font-family: var(--d-head); font-style: normal; font-weight: 700; }
+
+/* ── KPIs do painel: grade responsiva em vez de 2 colunas fixas ── */
+.dashboard .stat-grid { grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; }
+.dashboard .stat-cell { box-shadow: none; }
+.dashboard .stat-lbl { text-transform: none; letter-spacing: 0.2px; font-size: 11.5px; }
+
+/* ── Cabeçalho de seção: título direto em vez do "eyebrow" com linha ── */
+.dashboard .section-label {
+  font-size: 14px; letter-spacing: 0; color: var(--d-text); font-weight: 700;
+  text-transform: none; font-family: var(--d-head);
+  border-bottom: 1px solid var(--d-border); padding-bottom: 8px;
+}
+.dashboard .section-label::after { display: none; }
+
+/* ── Cards de lista: linha de dados mais discreta ── */
+.dashboard .nut-card { box-shadow: none; transition: background .12s, border-color .12s; }
+.dashboard .nut-card:hover { box-shadow: none; background: var(--d-surface-2); border-color: var(--d-primary-mid); }
+
+.dashboard .frm-card,
+.dashboard .empty-box,
+.dashboard .rank-row,
+.dashboard .post-card,
+.dashboard .post-composer,
+.dashboard .diet-meal { box-shadow: none; }
+
+.dashboard .badge { text-transform: none; }
+
+/* ── Tabela em telas largas (Alunos / Treinos) ── */
+.dashboard .cards-view { display: block; }
+.dashboard .table-view { display: none; }
+
+.dashboard .dash-table {
+  width: 100%; border-collapse: collapse;
+  background: var(--d-surface); border: 1px solid var(--d-border);
+  border-radius: var(--d-radius); overflow: hidden;
+  font-size: 13px; color: var(--d-text);
+  box-shadow: var(--d-shadow);
+}
+.dashboard .dash-table th {
+  text-align: left; font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase;
+  color: var(--d-muted); font-weight: 600;
+  padding: 10px 12px; background: var(--d-surface-2);
+  border-bottom: 1px solid var(--d-border); white-space: nowrap;
+  /* Ações alinhadas à direita */
+}
+.dashboard .dash-table th.num, .dashboard .dash-table td.num { text-align: right; }
+.dashboard .dash-table td {
+  padding: 10px 12px; border-bottom: 1px solid var(--d-border); vertical-align: middle;
+}
+.dashboard .dash-table tbody tr:last-child td { border-bottom: none; }
+.dashboard .dash-table tbody tr { transition: background .12s; }
+.dashboard .dash-table tbody tr.clickable { cursor: pointer; }
+.dashboard .dash-table tbody tr.clickable:hover { background: var(--d-surface-2); }
+
+/* Célula com avatar + nome */
+.dash-cell-user { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.dash-cell-user > span.b1 { display: flex; flex-direction: column; min-width: 0; }
+.dash-cell-title { font-weight: 600; color: var(--d-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.dash-cell-sub { font-size: 11px; color: var(--d-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 260px; }
+.avatar-sm { width: 34px; height: 34px; border-radius: 50%; font-size: 14px; }
+
+@media (min-width: 901px) {
+  .dashboard .table-view { display: block; }
+  .dashboard .cards-view { display: none; }
+}
+
+/* ── Barra de busca + filtros das listas ── */
+.dashboard .dash-filters {
+  display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-start;
+  margin-bottom: 14px;
+}
+.dashboard .dash-filters .frm-row { margin-bottom: 0; }
+.dashboard .dash-filters input[type="search"],
+.dashboard .dash-filters select {
+  background: var(--d-surface); border: 1.5px solid var(--d-border);
+  color: var(--d-text); font-family: var(--d-body); font-size: 13px;
+  padding: 8px 12px; border-radius: var(--d-radius-sm); width: 100%;
+  transition: border-color .15s;
+}
+.dashboard .dash-filters input[type="search"]:focus,
+.dashboard .dash-filters select:focus { outline: none; border-color: var(--d-primary); }
+.dashboard .dash-filters .dash-filter-search { flex: 1 1 260px; min-width: 220px; }
+.dashboard .dash-filters select { width: auto; min-width: 150px; }
+
+/* ── Card de gráfico (adesão) ── */
+.dashboard .dash-chart-card {
+  background: var(--d-surface); border: 1px solid var(--d-border);
+  border-radius: var(--d-radius); padding: 16px 16px 12px;
+  margin-bottom: 16px; box-shadow: var(--d-shadow);
+}
+.dashboard .dash-chart-head { margin-bottom: 10px; }
+.dashboard .dash-chart-title { font-family: var(--d-head); font-weight: 700; font-size: 14px; color: var(--d-text); }
+.dashboard .dash-chart-sub { font-size: 11.5px; color: var(--d-muted); margin-top: 2px; }
+.dashboard .dash-chart-empty {
+  height: 130px; display: flex; align-items: center; justify-content: center;
+  color: var(--d-muted); font-size: 12px; text-align: center; padding: 0 20px;
+}
+
+/* ── Skeletons (carregamento no lugar do spinner) ── */
+.dashboard .dash-skel {
+  background: linear-gradient(90deg, var(--d-surface-2) 25%, #e4ede7 40%, var(--d-surface-2) 63%);
+  background-size: 400% 100%;
+  animation: dash-skel-shine 1.5s ease infinite;
+  border-radius: 6px;
+}
+@keyframes dash-skel-shine {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+.dashboard .dash-skel-line { height: 12px; margin: 5px 0; }
+.dashboard .dash-skel-avatar { border-radius: 50%; flex-shrink: 0; }
+.dashboard .dash-table-skel td { padding: 15px 12px; }
+.dashboard .dash-table-skel .dash-skel { height: 14px; }

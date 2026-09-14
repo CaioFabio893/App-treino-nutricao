@@ -2,7 +2,7 @@
 
 // ── Skeletons do painel (área .dashboard) ─────────────────────────────────
 // Substituem o LoadingScreen genérico nas telas do nutricionista/admin.
-// As classes .dash-skel* vivem dentro do escopo .dashboard no globals.css,
+// As classes .dash-skel* vivem dentro do escopo .dashboard no dashboard.css,
 // então o app do aluno não é afetado.
 
 import type { CSSProperties } from "react";
