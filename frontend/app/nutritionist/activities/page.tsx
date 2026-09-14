@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { ActivitiesSkeleton } from "@/components/Skeleton";
 
 export default function ActivitiesPage() {
   const { getToken } = useAuth();
@@ -65,7 +65,7 @@ export default function ActivitiesPage() {
       .sort((a, b) => b.total - a.total);
   }, [students, history]);
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <ActivitiesSkeleton />;
 
   const studentName = (id: string) => students.find((s) => s.id === id)?.name || id.slice(0, 8);
   const workoutName = (id: string) => workouts.find((w) => w.id === id)?.name || "Treino";

@@ -5,12 +5,13 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { DietsPageSkeleton } from "@/components/Skeleton";
 import DietForm from "@/components/DietForm";
+import ConfirmModal from "@/components/ConfirmModal";
 
 export default function DietsPage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<DietsPageSkeleton />}>
       <DietsInner />
     </Suspense>
   );
@@ -29,6 +30,8 @@ function DietsInner() {
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Diet | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const load = useCallback(async () => {
     try {
@@ -56,7 +59,7 @@ function DietsInner() {
     [diets, editId]
   );
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <DietsPageSkeleton />;
 
   if (isNew || editId) {
     return (
@@ -75,14 +78,19 @@ function DietsInner() {
     );
   }
 
-  const handleDelete = async (d: Diet) => {
-    if (!confirm(`Tem certeza que deseja excluir "${d.name}"?`)) return;
+  const performDelete = async () => {
+    if (deleting || !deleteTarget) return;
+    setDeleting(true);
     try {
       const token = await getToken();
-      await api.deleteDiet(d.id!, token);
+      await api.deleteDiet(deleteTarget.id!, token);
+      setDeleteTarget(null);
       void load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao excluir");
+      setDeleteTarget(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -168,7 +176,7 @@ function DietsInner() {
               <button
                 type="button"
                 className="btn-sm danger"
-                onClick={() => void handleDelete(d)}
+                onClick={() => setDeleteTarget(d)}
               >
                 Excluir
               </button>
@@ -176,6 +184,22 @@ function DietsInner() {
           </div>
         ))
       )}
+      <ConfirmModal
+        open={!!deleteTarget}
+        title="Excluir dieta"
+        message={
+          <>
+            Tem certeza que deseja excluir{" "}
+            <strong>{deleteTarget?.name || ""}</strong>? Essa ação não pode ser
+            desfeita.
+          </>
+        }
+        confirmLabel="Excluir"
+        busyLabel="Excluindo…"
+        busy={deleting}
+        onConfirm={() => void performDelete()}
+        onCancel={() => setDeleteTarget(null)}
+      />
     </div>
   );
 }

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import * as api from "@/lib/api";
 import type { Diet, Food, Meal, UserProfile } from "@/lib/types";
+import ConfirmModal from "./ConfirmModal";
 
 const newFood = (): Food => ({ name: "", quantity: 0, unit: "" });
 const newMeal = (order: number): Meal => ({ name: "", time: "", order, foods: [] });
@@ -83,11 +84,20 @@ export default function DietForm({
   };
 
   const addMeal = () => setMeals((prev) => [...prev, newMeal(prev.length + 1)]);
+  const [confirmMeal, setConfirmMeal] = useState<number | null>(null);
   const removeMeal = (mi: number) => {
     const m = meals[mi];
-    if (!m.name || confirm(`Tem certeza que deseja excluir a refeição "${m.name}"?`)) {
+    if (!m?.name) {
       setMeals((prev) => prev.filter((_, j) => j !== mi));
+    } else {
+      setConfirmMeal(mi);
     }
+  };
+  const confirmRemoveMeal = () => {
+    if (confirmMeal !== null) {
+      setMeals((prev) => prev.filter((_, j) => j !== confirmMeal));
+    }
+    setConfirmMeal(null);
   };
 
   const moveMeal = (mi: number, delta: number) => {
@@ -346,6 +356,21 @@ export default function DietForm({
           {busy ? "Salvando…" : "Salvar dieta"}
         </button>
       </div>
+
+      <ConfirmModal
+        open={confirmMeal !== null}
+        title="Excluir refeição"
+        message={
+          <>
+            Remover a refeição{" "}
+            <strong>{confirmMeal !== null ? meals[confirmMeal]?.name || "" : ""}</strong>?
+            Essa alteração vale até salvar a dieta.
+          </>
+        }
+        confirmLabel="Excluir"
+        onConfirm={confirmRemoveMeal}
+        onCancel={() => setConfirmMeal(null)}
+      />
     </div>
   );
 }

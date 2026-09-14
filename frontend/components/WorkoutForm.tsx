@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import * as api from "@/lib/api";
 import type { UserProfile, WorkoutDefine, WorkoutExercise } from "@/lib/types";
+import ConfirmModal from "./ConfirmModal";
 
 export const WEEK_DAYS = [
   { value: "", label: "Sem dia fixo" },
@@ -88,11 +89,20 @@ export default function WorkoutForm({
     setExercises((prev) => [...prev, newExercise(prev.length + 1)]);
   };
 
+  const [confirmExercise, setConfirmExercise] = useState<number | null>(null);
   const removeExercise = (i: number) => {
     const ex = exercises[i];
-    if (!ex.name || confirm(`Tem certeza que deseja excluir "${ex.name}"?`)) {
+    if (!ex?.name) {
       setExercises((prev) => prev.filter((_, j) => j !== i));
+    } else {
+      setConfirmExercise(i);
     }
+  };
+  const confirmRemoveExercise = () => {
+    if (confirmExercise !== null) {
+      setExercises((prev) => prev.filter((_, j) => j !== confirmExercise));
+    }
+    setConfirmExercise(null);
   };
 
   const moveExercise = (i: number, delta: number) => {
@@ -382,6 +392,25 @@ export default function WorkoutForm({
           {busy ? "Salvando…" : "Salvar treino"}
         </button>
       </div>
+
+      <ConfirmModal
+        open={confirmExercise !== null}
+        title="Excluir exercício"
+        message={
+          <>
+            Remover o exercício{" "}
+            <strong>
+              {confirmExercise !== null
+                ? exercises[confirmExercise]?.name || ""
+                : ""}
+            </strong>
+            ? Essa alteração vale até salvar o treino.
+          </>
+        }
+        confirmLabel="Excluir"
+        onConfirm={confirmRemoveExercise}
+        onCancel={() => setConfirmExercise(null)}
+      />
     </div>
   );
 }

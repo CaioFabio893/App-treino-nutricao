@@ -12,7 +12,7 @@ import type {
   WorkoutHistoryEntry,
   DietDailyLog,
 } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { ProfileSkeleton } from "@/components/Skeleton";
 
 const WEEK_DAY_LABEL: Record<string, string> = {
   monday: "Segunda",
@@ -103,6 +103,51 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
     };
   }, [history, dietLogs]);
 
+  // Últimos 7 dias + sequência atual (streak) de treinos e dieta.
+  const weekStats = useMemo(() => {
+    const MS = 86400000;
+    const key = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const isWithin7 = (d?: string) => {
+      if (!d) return false;
+      const t = new Date(`${d.slice(0, 10)}T00:00:00`);
+      const diff = (today.getTime() - t.getTime()) / MS;
+      return diff >= 0 && diff <= 6;
+    };
+    const workoutDays7 = new Set(
+      history.filter((h) => isWithin7(h.completedAt)).map((h) => h.completedAt!.slice(0, 10))
+    ).size;
+    const dietDays7 = dietLogs.filter(
+      (l) => isWithin7(l.date) && l.status !== "not_followed"
+    ).length;
+
+    const workoutDaySet = new Set(
+      history.filter((h) => h.completedAt).map((h) => h.completedAt!.slice(0, 10))
+    );
+    let workoutStreak = 0;
+    let c = new Date(today);
+    if (!workoutDaySet.has(key(c))) c = new Date(today.getTime() - MS);
+    while (workoutDaySet.has(key(c))) {
+      workoutStreak++;
+      c = new Date(c.getTime() - MS);
+    }
+
+    const dietDaySet = new Set(
+      dietLogs.filter((l) => l.status !== "not_followed").map((l) => l.date)
+    );
+    let dietStreak = 0;
+    c = new Date(today);
+    if (!dietDaySet.has(key(c))) c = new Date(today.getTime() - MS);
+    while (dietDaySet.has(key(c))) {
+      dietStreak++;
+      c = new Date(c.getTime() - MS);
+    }
+
+    return { workoutDays7, dietDays7, workoutStreak, dietStreak };
+  }, [history, dietLogs]);
+
   const close = () => router.push("/nutritionist/students");
 
   const saveStudent = async () => {
@@ -133,7 +178,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
     }
   };
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <ProfileSkeleton />;
 
   const lastWorkout = history[0] ?? null;
 
@@ -156,6 +201,9 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
           </Link>
           <Link className="btn-sm" href={`/nutritionist/diets?new=1&student=${student.id}`}>
             + Dieta
+          </Link>
+          <Link className="btn-sm acc" href={`/nutritionist/print?student=${student.id}`}>
+            🖨 Plano semanal
           </Link>
         </div>
       </div>
@@ -311,6 +359,31 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             {monthStats.dietDays}/{monthStats.daysElapsed}
           </div>
           <div className="stat-lbl">Dias com dieta seguida ({monthStats.dietPct}%)</div>
+        </div>
+      </div>
+
+      {/* Últimos 7 dias + sequência */}
+      <div className="section-label">Últimos 7 dias</div>
+      <div className="stat-grid">
+        <div className="stat-cell">
+          <div className="stat-num">{weekStats.workoutDays7}/7</div>
+          <div className="stat-lbl">Dias com treino</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-num">{weekStats.dietDays7}/7</div>
+          <div className="stat-lbl">Dias com dieta seguida</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-num">
+            {weekStats.workoutStreak > 0 ? `🔥 ${weekStats.workoutStreak}` : "—"}
+          </div>
+          <div className="stat-lbl">Sequência de treinos (dias)</div>
+        </div>
+        <div className="stat-cell">
+          <div className="stat-num">
+            {weekStats.dietStreak > 0 ? `${weekStats.dietStreak}` : "—"}
+          </div>
+          <div className="stat-lbl">Sequência de dieta (dias)</div>
         </div>
       </div>
 

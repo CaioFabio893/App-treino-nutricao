@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { ProfileSkeleton } from "@/components/Skeleton";
 
 export default function ProfilePage() {
   const { user, profile, getToken, refreshProfile } = useAuth();
@@ -77,7 +77,7 @@ export default function ProfilePage() {
     }
   };
 
-  if (!ready || !profile) return <LoadingScreen />;
+  if (!ready || !profile) return <ProfileSkeleton />;
 
   const active = students.filter((s) => s.status === "active").length;
   const totalCompleted = history.length;

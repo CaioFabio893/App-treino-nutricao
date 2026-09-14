@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile, WorkoutDefine, Diet, WorkoutHistoryEntry } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { DashboardSkeleton } from "@/components/Skeleton";
 import { useNewCompletions } from "@/lib/useNewCompletions";
 
 interface Stats {
@@ -48,7 +48,7 @@ export default function NutritionistDashboard() {
     void load();
   }, [load]);
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <DashboardSkeleton />;
 
   const activeStudents = data.students.filter((s) => s.status === "active").length;
 

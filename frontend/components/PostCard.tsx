@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import * as api from "@/lib/api";
 import type { Post, Role } from "@/lib/types";
+import ConfirmModal from "./ConfirmModal";
 
 const TYPE_LABEL: Record<string, string> = {
   workout: "Treino",
@@ -37,6 +38,8 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   const [busy, setBusy] = useState(false);
   const [showComments, setShowComments] = useState(false);
   const [commentText, setCommentText] = useState("");
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
   const likes = post.likes ?? {};
   const liked = Boolean(likes[meId]);
@@ -84,14 +87,17 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   };
 
   const delPost = async () => {
-    const isOwner = post.userId === meId;
-    if (!confirm(`Remover este post${isOwner || canModerate ? "" : "?"}?`)) return;
+    if (deleting) return;
+    setDeleting(true);
     try {
       const token = await getToken();
       await api.deletePost(post.id, token);
       onPost({ ...post, deleted: true });
+      setConfirmDelete(false);
     } catch {
       /* silencioso */
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -117,7 +123,7 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
           </div>
         </div>
         {(post.userId === meId || canModerate) && (
-          <button type="button" className="post-del" title="Excluir" onClick={() => void delPost()}>
+          <button type="button" className="post-del" title="Excluir" onClick={() => setConfirmDelete(true)}>
             ✕
           </button>
         )}
@@ -173,6 +179,17 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={confirmDelete}
+        title="Excluir post"
+        message="Remover este post do feed? Essa ação não pode ser desfeita."
+        confirmLabel="Excluir"
+        busyLabel="Excluindo…"
+        busy={deleting}
+        onConfirm={() => void delPost()}
+        onCancel={() => setConfirmDelete(false)}
+      />
     </article>
   );
 }

@@ -248,11 +248,11 @@ export default function TodayWorkout({
         <div className="wod-badge">{WEEK_DAY_LABEL[workout.dayOfWeek!] || "Treino"}</div>
         <div className="wod-title">{workout.name}</div>
         {workout.objective && (
-          <div style={{ fontSize: 12, color: "#ffe8d6", marginBottom: 8 }}>
+          <div style={{ fontSize: 12, color: "#E6F7EF", marginBottom: 8 }}>
             Objetivo: {workout.objective}
           </div>
         )}
-        <div style={{ fontSize: 12, color: "#ffe8d6", opacity: 0.85 }}>
+        <div style={{ fontSize: 12, color: "#E6F7EF", opacity: 0.85 }}>
           Registre cada série em tempo real — peso, reps e ✓ ao concluir.
         </div>
       </div>

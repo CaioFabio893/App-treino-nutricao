@@ -853,6 +853,44 @@ export function listHistory(token: string): Promise<WorkoutHistoryEntry[]> {
   return request<WorkoutHistoryEntry[]>("/api/workout-history", token);
 }
 
+// Página do histórico (mais recentes primeiro). Usado na Timeline com
+// botão "Carregar mais". O backend aceita offset/limit e devolve
+// { entries, total, offset, limit, hasMore }.
+export interface HistoryPage {
+  entries: WorkoutHistoryEntry[];
+  total: number;
+  offset: number;
+  limit: number;
+  hasMore: boolean;
+}
+
+export function listHistoryPage(
+  token: string,
+  opts: { limit?: number; offset?: number } = {}
+): Promise<HistoryPage> {
+  if (DEMO_MODE) {
+    const all = getJSON<WorkoutHistoryEntry[]>(LS_KEY.history) ?? [];
+    const sorted = [...all].sort((a, b) =>
+      (b.completedAt ?? "").localeCompare(a.completedAt ?? "")
+    );
+    const limit = opts.limit && opts.limit > 0 ? opts.limit : sorted.length;
+    const offset = Math.max(0, opts.offset ?? 0);
+    const entries = sorted.slice(offset, offset + limit);
+    return Promise.resolve({
+      entries,
+      total: sorted.length,
+      offset,
+      limit,
+      hasMore: offset + limit < sorted.length,
+    });
+  }
+  const qs = new URLSearchParams();
+  if (opts.limit) qs.set("limit", String(opts.limit));
+  if (opts.offset) qs.set("offset", String(opts.offset));
+  const q = qs.toString();
+  return request<HistoryPage>(`/api/workout-history${q ? `?${q}` : ""}`, token);
+}
+
 export function completeWorkout(req: CompleteWorkoutRequest, token: string): Promise<WorkoutHistoryEntry> {
   if (DEMO_MODE) {
     const list = getJSON<WorkoutHistoryEntry[]>(LS_KEY.history) ?? [];
@@ -903,7 +941,12 @@ export function completeWorkout(req: CompleteWorkoutRequest, token: string): Pro
 
 // ── Rede social (feed global) ──────────────────────────────────────────────
 
-export function listPosts(token: string): Promise<PostsPage> {
+// Feed paginado (mais recentes primeiro). O backend aceita limit e cursor
+// e devolve { posts, next }; o modo demo devolve tudo de uma vez.
+export function listPosts(
+  token: string,
+  opts: { limit?: number; cursor?: string } = {}
+): Promise<PostsPage> {
   if (DEMO_MODE) {
     const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
     const visible = posts
@@ -911,7 +954,14 @@ export function listPosts(token: string): Promise<PostsPage> {
       .sort((a, b) => (b.createdAt ?? "").localeCompare(a.createdAt ?? ""));
     return Promise.resolve({ posts: visible, nextCursor: undefined });
   }
-  return request<PostsPage>("/api/posts", token);
+  const qs = new URLSearchParams();
+  if (opts.limit) qs.set("limit", String(opts.limit));
+  if (opts.cursor) qs.set("cursor", opts.cursor);
+  const q = qs.toString();
+  return request<{ posts: Post[]; next?: string }>(
+    `/api/posts${q ? `?${q}` : ""}`,
+    token
+  ).then((r) => ({ posts: r.posts, nextCursor: r.next }));
 }
 
 export function createPost(req: CreatePostRequest, token: string): Promise<Post> {

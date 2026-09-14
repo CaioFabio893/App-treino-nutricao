@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
@@ -718,24 +719,66 @@ func normalizeMeals(d *Diet) {
 
 // handleListHistory lista o histórico. Nutricionista vê o de seus alunos,
 // aluno vê o próprio, admin vê tudo.
+//
+// Suporta paginação por offset/limit: sem parâmetros devolve a lista completa
+// (comportamento original); com `limit` devolve { entries, total, offset,
+// limit, hasMore }. Os itens vêm sempre mais recentes primeiro.
 func (s *Server) handleListHistory(w http.ResponseWriter, r *http.Request) {
 	uid := uidFrom(r.Context())
 	role := roleFrom(r.Context())
-	var entries []*WorkoutHistoryEntry
+	var all []*WorkoutHistoryEntry
 	var err error
 	switch role {
 	case RoleAdmin:
-		entries, err = s.listHistory(r.Context())
+		all, err = s.listHistory(r.Context())
 	case RoleNutritionist:
-		entries, err = s.listHistoryForNutritionist(r.Context(), uid)
+		all, err = s.listHistoryForNutritionist(r.Context(), uid)
 	default:
-		entries, err = s.listHistoryForStudent(r.Context(), uid)
+		all, err = s.listHistoryForStudent(r.Context(), uid)
 	}
 	if err != nil {
 		http.Error(w, "falha ao listar historico", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, entries)
+
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		if n, e := strconv.Atoi(v); e == nil && n >= 0 {
+			offset = n
+		}
+	}
+	limit := 0 // 0 = sem paginação (lista completa)
+	if v := r.URL.Query().Get("limit"); v != "" {
+		if n, e := strconv.Atoi(v); e == nil && n > 0 {
+			limit = n
+		}
+	}
+	if limit == 0 {
+		if all == nil {
+			all = []*WorkoutHistoryEntry{}
+		}
+		writeJSON(w, http.StatusOK, all)
+		return
+	}
+
+	if offset > len(all) {
+		offset = len(all)
+	}
+	end := offset + limit
+	if end > len(all) {
+		end = len(all)
+	}
+	page := all[offset:end]
+	if page == nil {
+		page = []*WorkoutHistoryEntry{}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{
+		"entries": page,
+		"total":   len(all),
+		"offset":  offset,
+		"limit":   limit,
+		"hasMore": end < len(all),
+	})
 }
 
 // handleCompleteWorkout registra a conclusão de um treino (aluno).

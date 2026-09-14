@@ -12,12 +12,17 @@ export default function Feed() {
   const [ready, setReady] = useState(false);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
+  const [cursor, setCursor] = useState<string | undefined>(undefined);
+  const [loadingMore, setLoadingMore] = useState(false);
+
+  const PAGE_SIZE = 20;
 
   const load = useCallback(async () => {
     try {
       const token = await getToken();
-      const page = await api.listPosts(token);
+      const page = await api.listPosts(token, { limit: PAGE_SIZE });
       setPosts(page.posts);
+      setCursor(page.nextCursor);
     } catch {
       /* offline */
     } finally {
@@ -28,6 +33,21 @@ export default function Feed() {
   useEffect(() => {
     void load();
   }, [load]);
+
+  const loadMore = async () => {
+    if (!cursor || loadingMore) return;
+    setLoadingMore(true);
+    try {
+      const token = await getToken();
+      const page = await api.listPosts(token, { limit: PAGE_SIZE, cursor });
+      setPosts((prev) => [...prev, ...page.posts]);
+      setCursor(page.nextCursor);
+    } catch {
+      /* silencioso */
+    } finally {
+      setLoadingMore(false);
+    }
+  };
 
   const publish = async () => {
     const t = text.trim();
@@ -90,9 +110,23 @@ export default function Feed() {
           automáticos — e professores podem publicar avisos aqui.
         </div>
       ) : (
-        posts.map((p) => (
-          <PostCard key={p.id} post={p} meId={meId} meRole={meRole} getToken={getToken} onPost={updatePost} />
-        ))
+        <>
+          {posts.map((p) => (
+            <PostCard key={p.id} post={p} meId={meId} meRole={meRole} getToken={getToken} onPost={updatePost} />
+          ))}
+          {cursor && (
+            <div className="btn-row" style={{ justifyContent: "center", paddingTop: 4 }}>
+              <button
+                type="button"
+                className="btn-s"
+                disabled={loadingMore}
+                onClick={() => void loadMore()}
+              >
+                {loadingMore ? "Carregando…" : "Carregar mais"}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

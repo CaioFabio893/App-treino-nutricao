@@ -4,7 +4,7 @@ import { use, useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { ProfileSkeleton } from "@/components/Skeleton";
 import StudentDetail from "@/components/StudentDetail";
 
 // Rota dinâmica /nutritionist/students/[studentId]
@@ -37,7 +37,7 @@ export default function StudentDetailPage({
     void load();
   }, [load]);
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <ProfileSkeleton />;
 
   if (!student || error) {
     return (

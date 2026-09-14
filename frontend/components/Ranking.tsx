@@ -5,6 +5,7 @@ import Link from "next/link";
 import * as api from "@/lib/api";
 import type { RankingResponse } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
+import { RankingSkeleton } from "./Skeleton";
 
 export default function Ranking() {
   const { getToken } = useAuth();
@@ -26,7 +27,7 @@ export default function Ranking() {
     void load();
   }, [load]);
 
-  if (!ready) return <div className="empty-box">Carregando ranking…</div>;
+  if (!ready) return <RankingSkeleton />;
   if (!data) return <div className="empty-box">Ranking indisponível.</div>;
 
   const medal = (rank: number) =>

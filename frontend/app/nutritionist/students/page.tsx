@@ -5,11 +5,11 @@ import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { StudentsPageSkeleton } from "@/components/Skeleton";
 
 export default function StudentsPage() {
   return (
-    <Suspense fallback={<LoadingScreen />}>
+    <Suspense fallback={<StudentsPageSkeleton />}>
       <StudentsInner />
     </Suspense>
   );
@@ -26,6 +26,7 @@ function StudentsInner() {
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
+  const [statusFilter, setStatusFilter] = useState(""); // "" = todos
 
   const load = useCallback(async () => {
     try {
@@ -70,13 +71,106 @@ function StudentsInner() {
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
-    if (!q) return students;
-    return students.filter(
-      (s) => s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
-    );
-  }, [students, query]);
+    return students.filter((s) => {
+      if (statusFilter && s.status !== statusFilter) return false;
+      if (!q) return true;
+      return (
+        s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
+      );
+    });
+  }, [students, query, statusFilter]);
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <StudentsPageSkeleton />;
+
+  const openStudent = (id: string) => router.push(`/nutritionist/students/${id}`);
+
+  const renderCard = (s: UserProfile) => {
+    const stats = statsFor(s.id);
+    return (
+      <div
+        key={`card-${s.id}`}
+        className="nut-card"
+        onClick={() => openStudent(s.id)}
+      >
+        <div className="nut-card-head">
+          <div className="avatar">
+            {s.photoURL ? (
+              <img src={s.photoURL} alt={s.name} />
+            ) : (
+              s.name?.charAt(0)?.toUpperCase() || "?"
+            )}
+          </div>
+          <div>
+            <div className="nut-card-title">{s.name || "Sem nome"}</div>
+            <div className="nut-card-sub">{s.email}</div>
+          </div>
+        </div>
+        <div className="nut-meta">
+          <span className={`badge ${s.status || ""}`}>{s.status || "active"}</span>
+          {s.startDate && <span className="badge">Início: {s.startDate}</span>}
+          {s.endDate && <span className="badge">Término: {s.endDate}</span>}
+          <span className="badge">{stats.workoutCount} treinos</span>
+        </div>
+        <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
+          <div>🥗 Dieta atual: <b style={{ color: "var(--text)" }}>{stats.currentDiet ?? "—"}</b></div>
+          <div>🏋 Último treino: <b style={{ color: "var(--text)" }}>
+            {stats.lastWorkoutName
+              ? `${stats.lastWorkoutName}${stats.lastDate ? ` · ${new Date(stats.lastDate).toLocaleDateString("pt-BR")}` : ""}`
+              : "—"}
+          </b></div>
+        </div>
+        <div className="btn-row">
+          <button type="button" className="btn-sm acc" onClick={() => openStudent(s.id)}>
+            Ver perfil
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderRow = (s: UserProfile) => {
+    const stats = statsFor(s.id);
+    return (
+      <tr key={`row-${s.id}`} className="clickable" onClick={() => openStudent(s.id)}>
+        <td>
+          <div className="dash-cell-user">
+            <span className="avatar avatar-sm">
+              {s.photoURL ? (
+                <img src={s.photoURL} alt={s.name} />
+              ) : (
+                s.name?.charAt(0)?.toUpperCase() || "?"
+              )}
+            </span>
+            <span className="b1">
+              <span className="dash-cell-title">{s.name || "Sem nome"}</span>
+              <span className="dash-cell-sub">{s.email}</span>
+            </span>
+          </div>
+        </td>
+        <td>
+          <span className={`badge ${s.status || ""}`}>{s.status || "active"}</span>
+        </td>
+        <td>{stats.workoutCount} treino(s)</td>
+        <td>
+          {s.startDate || s.endDate
+            ? `${s.startDate ?? "—"} → ${s.endDate ?? "—"}`
+            : "—"}
+        </td>
+        <td>{stats.currentDiet ?? "—"}</td>
+        <td>
+          <div className="btn-row" onClick={(e) => e.stopPropagation()}>
+            <button
+              type="button"
+              className="btn-sm acc"
+              onClick={() => openStudent(s.id)}
+            >
+              Ver perfil
+            </button>
+          </div>
+        </td>
+      </tr>
+    );
+  };
 
   return (
     <div>
@@ -89,13 +183,27 @@ function StudentsInner() {
 
       {error && <div className="err-text">{error}</div>}
 
-      <div className="frm-row" style={{ maxWidth: 360 }}>
-        <input
-          type="search"
-          placeholder="Buscar aluno por nome ou e-mail…"
-          value={query}
-          onChange={(e) => setQuery(e.target.value)}
-        />
+      <div className="dash-filters">
+        <div className="frm-row dash-filter-search">
+          <input
+            type="search"
+            placeholder="Buscar aluno por nome ou e-mail…"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+          />
+        </div>
+        <div className="frm-row">
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            aria-label="Filtrar por status"
+          >
+            <option value="">Todos os status</option>
+            <option value="active">Ativo</option>
+            <option value="paused">Pausado</option>
+            <option value="inactive">Inativo</option>
+          </select>
+        </div>
       </div>
 
       {filtered.length === 0 ? (
@@ -114,49 +222,24 @@ function StudentsInner() {
           </div>
         </div>
       ) : (
-        filtered.map((s) => {
-          const stats = statsFor(s.id);
-          return (
-            <div
-              key={s.id}
-              className="nut-card"
-              onClick={() => router.push(`/nutritionist/students/${s.id}`)}
-            >
-              <div className="nut-card-head">
-                <div className="avatar">
-                  {s.photoURL ? (
-                    <img src={s.photoURL} alt={s.name} />
-                  ) : (
-                    s.name?.charAt(0)?.toUpperCase() || "?"
-                  )}
-                </div>
-                <div>
-                  <div className="nut-card-title">{s.name || "Sem nome"}</div>
-                  <div className="nut-card-sub">{s.email}</div>
-                </div>
-              </div>
-              <div className="nut-meta">
-                <span className={`badge ${s.status || ""}`}>{s.status || "active"}</span>
-                {s.startDate && <span className="badge">Início: {s.startDate}</span>}
-                {s.endDate && <span className="badge">Término: {s.endDate}</span>}
-                <span className="badge">{stats.workoutCount} treinos</span>
-              </div>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
-                <div>🥗 Dieta atual: <b style={{ color: "var(--text)" }}>{stats.currentDiet ?? "—"}</b></div>
-                <div>🏋 Último treino: <b style={{ color: "var(--text)" }}>
-                  {stats.lastWorkoutName
-                    ? `${stats.lastWorkoutName}${stats.lastDate ? ` · ${new Date(stats.lastDate).toLocaleDateString("pt-BR")}` : ""}`
-                    : "—"}
-                </b></div>
-              </div>
-              <div className="btn-row">
-                <button type="button" className="btn-sm acc">
-                  Ver perfil
-                </button>
-              </div>
-            </div>
-          );
-        })
+        <>
+          <div className="cards-view">{filtered.map(renderCard)}</div>
+          <div className="table-view">
+            <table className="dash-table">
+              <thead>
+                <tr>
+                  <th>Aluno</th>
+                  <th>Status</th>
+                  <th>Treinos</th>
+                  <th>Período</th>
+                  <th>Dieta atual</th>
+                  <th>Ações</th>
+                </tr>
+              </thead>
+              <tbody>{filtered.map(renderRow)}</tbody>
+            </table>
+          </div>
+        </>
       )}
     </div>
   );

@@ -4,7 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile } from "@/lib/types";
-import { LoadingScreen } from "@/components/SetupNeeded";
+import { AdminSkeleton } from "@/components/Skeleton";
 
 const emptyUser = (): UserProfile => ({
   id: "",
@@ -24,6 +24,8 @@ export default function AdminPage() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [confirmUser, setConfirmUser] = useState<UserProfile | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   const showToast = (m: string) => {
     setToast(m);
@@ -77,15 +79,20 @@ export default function AdminPage() {
     }
   };
 
-  const remove = async (u: UserProfile) => {
-    if (!confirm(`Excluir o usuário "${u.name || u.id}"?`)) return;
+  const remove = async () => {
+    if (deleting || !confirmUser) return;
+    setDeleting(true);
     try {
       const token = await getToken();
-      await api.deleteUser(u.id, token);
+      await api.deleteUser(confirmUser.id, token);
       showToast("✓ Usuário excluído");
+      setConfirmUser(null);
       void load();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao excluir");
+      setConfirmUser(null);
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -95,7 +102,7 @@ export default function AdminPage() {
     window.scrollTo(0, 0);
   };
 
-  if (!ready) return <LoadingScreen />;
+  if (!ready) return <AdminSkeleton />;
 
   return (
     <div>
@@ -245,13 +252,53 @@ export default function AdminPage() {
               <button type="button" className="btn-sm acc" onClick={() => startEdit(u)}>
                 Editar
               </button>
-              <button type="button" className="btn-sm danger" onClick={() => void remove(u)}>
+              <button type="button" className="btn-sm danger" onClick={() => setConfirmUser(u)}>
                 Excluir
               </button>
             </div>
           </div>
         ))
       )}
+
+      {/* Confirmação de exclusão */}
+      <div
+        className={`modal-bg${confirmUser ? " open" : ""}`}
+        onClick={(e) => e.target === e.currentTarget && !deleting && setConfirmUser(null)}
+      >
+        <div className="modal-box">
+          <div className="modal-handle" />
+          <div className="modal-title">Excluir usuário</div>
+          <div className="modal-sub">
+            Tem certeza que deseja excluir{" "}
+            <strong>{confirmUser?.name || confirmUser?.id || ""}</strong>?
+            <br />
+            Essa ação não pode ser desfeita.
+          </div>
+          <div className="btn-row">
+            {deleting ? (
+              <button type="button" className="btn-sm danger" disabled>
+                Excluindo…
+              </button>
+            ) : (
+              <button
+                type="button"
+                className="btn-sm danger"
+                onClick={() => void remove()}
+              >
+                Excluir
+              </button>
+            )}
+            <button
+              type="button"
+              className="btn-s"
+              disabled={deleting}
+              onClick={() => setConfirmUser(null)}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
