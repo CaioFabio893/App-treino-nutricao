@@ -31,21 +31,25 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 
 ```
 ├── backend/          # API Go (Cloud Run)
-│   ├── main.go       # rotas + subida do servidor
-│   ├── auth.go       # verificação do token (Firebase Admin SDK) + roles
-│   ├── handlers.go   # endpoints HTTP + CORS (fluxo do aluno)
-│   ├── handlers_nutrition.go # endpoints do nutricionista/admin
-│   ├── store.go      # operações no Firestore (CRUD de tudo)
-│   ├── models.go     # structs (Session, PR, AppState, UserProfile, WorkoutDefine, Diet…)
+│   ├── main.go       # bootstrap, injeção de dependências e rotas
+│   ├── models/       # structs (Session, PR, AppState, UserProfile, Workout, Diet…)
+│   ├── repository/   # acesso ao Firestore (CRUD de tudo)
+│   ├── service/      # regras de negócio (ciclos, dietas, ranking, pontuação, social)
+│   ├── middleware/   # auth (Firebase), CORS, security headers, rate limit
+│   ├── handlers/     # endpoints HTTP (testes em */*_test.go)
 │   ├── Dockerfile    # imagem para o Cloud Run
 │   └── go.mod
 ├── frontend/         # app Next.js (Cloud Run — modo servidor/standalone)
-│   ├── app/          # páginas (login, treino, painel do nutricionista, admin)
-│   ├── components/   # UI (cards, timer, modais, formulários de treinos/dietas…)
-│   ├── lib/          # firebase, api, auth (roles), tipos
+│   ├── app/          # páginas (login, home, aluno, painel do nutricionista, admin)
+│   │   ├── (aluno)/  # área do aluno: treinos, dietas e comunidade
+│   │   ├── base.css  # design system global (dashboard.css/student.css por área)
+│   │   └── ...       # nutritionist/, admin/, profile/[id]/
+│   ├── components/   # UI (layout, cards, timer, modais, formulários, student/)
+│   ├── lib/          # firebase, api, auth (roles), tipos, dias da semana
 │   ├── public/       # ícones, manifest, service worker
 │   ├── Dockerfile    # imagem do frontend para o Cloud Run
 │   └── .env.example  # modelo das variáveis
+├── .opencode/skills/ # skills de governança (boas práticas, segurança, UX, planos)
 ├── firebase.json     # configuração do Firebase Hosting + Firestore
 ├── firestore.rules   # regras de segurança do banco
 └── .firebaserc       # projeto Firebase padrão
@@ -291,6 +295,15 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | POST   | `/api/diets/{id}/duplicate`   | Duplica dieta                               |
 | GET    | `/api/workout-history`        | Histórico de treinos concluídos             |
 | POST   | `/api/workouts/complete`      | Finaliza um treino (gera registro)          |
+| GET/POST | `/api/posts`               | Feed social: lista/cria publicações         |
+| POST   | `/api/posts/{id}/like`         | Curtir/descurtir uma publicação             |
+| POST   | `/api/posts/{id}/comments`     | Comentar uma publicação                     |
+| DELETE | `/api/posts/{id}/comments/{cid}` | Remove um comentário                      |
+| DELETE | `/api/posts/{id}`              | Exclui uma publicação                       |
+| GET/PUT | `/api/diet-logs`             | Cheque de dieta: lê/atualiza o dia          |
+| GET    | `/api/ranking`                 | Ranking de adesão                           |
+| GET    | `/api/scores/history`          | Histórico de pontuação                      |
+| GET    | `/api/public/profile/{id}`     | Perfil público (feed/ranking)               |
 
 ### Exemplo de payload (PUT /api/sessions/1/ta)
 
@@ -340,6 +353,7 @@ cd frontend && npm run build   # build server (standalone)
 
 # Backend (local, com service account)
 cd backend && go run .
+cd backend && go test ./...   # testes (handlers, repository, service)
 
 # Deploy
 # frontend: gcloud builds submit frontend --tag gcr.io/SEU_PROJETO/treino-web
