@@ -504,32 +504,120 @@ if (DEMO_MODE) seedDemo();
 
 // ── Requisições reais ──────────────────────────────────────────────────────
 
+const REQUEST_TIMEOUT_MS = 15_000;
+
+const NETWORK_ERROR_MSG =
+  "Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.";
+const TIMEOUT_ERROR_MSG =
+  "O servidor está demorando para responder. Tente novamente em instantes.";
+const UNEXPECTED_ERROR_MSG =
+  "Ocorreu um erro inesperado. Tente novamente.";
+
+// Erro de API com status HTTP (quando a API respondeu) e mensagem já pronta
+// para exibir ao usuário. Tempos de rede (offline/timeout) têm status undefined.
+export class ApiError extends Error {
+  readonly status?: number;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+  }
+}
+
+// Converte qualquer erro em mensagem segura para o usuário (sem detalhes
+// técnicos, stack trace ou mensagens internas do backend).
+export function friendlyError(err: unknown): string {
+  if (err instanceof ApiError) return err.message;
+  return UNEXPECTED_ERROR_MSG;
+}
+
+// Mapêia o status HTTP para uma mensagem amigável. Para 4xx com mensagem do
+// backend (validação/objeto não encontrado), preserva a mensagem — o backend
+// usa textos curtos e legíveis. Nunca expõe erros internos de 5xx.
+function errorMessageFor(status: number, backendMsg?: string): string {
+  if (status === 401) {
+    return "Sua sessão expirou ou não é válida. Entre novamente.";
+  }
+  if (status === 403) {
+    return "Você não tem permissão para realizar esta ação.";
+  }
+  if (status === 429) {
+    return "Muitas requisições por enquanto. Aguarde um pouco e tente novamente.";
+  }
+  if (status >= 500) {
+    return "Erro interno do servidor. Tente novamente em instantes.";
+  }
+  if (backendMsg && backendMsg.trim()) return backendMsg.trim();
+  return "Não foi possível concluir a operação. Verifique os dados e tente novamente.";
+}
+
 async function request<T>(
   path: string,
   token: string,
   init?: RequestInit
 ): Promise<T> {
-  if (!API_URL) throw new Error("API não configurada (NEXT_PUBLIC_API_URL)");
-  const res = await fetch(`${API_URL}${path}`, {
-    ...init,
-    headers: {
-      "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`,
-      ...(init?.headers || {}),
-    },
-  });
-  if (!res.ok) {
-    let msg = `API respondeu ${res.status}`;
-    try {
-      const body = await res.json();
-      if (body?.error) msg = body.error;
-    } catch {
-      /* sem corpo */
-    }
-    throw new Error(msg);
+  if (!API_URL) {
+    throw new ApiError("API não configurada (NEXT_PUBLIC_API_URL)");
   }
-  if (res.status === 204) return undefined as T;
-  return (await res.json()) as T;
+
+  // Timeout: evita que a chamada fique pendurada para sempre quando o
+  // servidor não responde. Compõe com o AbortSignal do caller, se houver.
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  const externalSignal = init?.signal;
+  if (externalSignal) {
+    if (externalSignal.aborted) {
+      clearTimeout(timer);
+      throw new ApiError(UNEXPECTED_ERROR_MSG);
+    }
+    externalSignal.addEventListener("abort", () => controller.abort(), {
+      once: true,
+    });
+  }
+
+  try {
+    let res: Response;
+    try {
+      res = await fetch(`${API_URL}${path}`, {
+        ...init,
+        signal: controller.signal,
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+          ...(init?.headers || {}),
+        },
+      });
+    } catch {
+      // fetch só rejeita em falha de rede/CORS/dns — nunca por status HTTP.
+      if (externalSignal?.aborted) throw new ApiError(UNEXPECTED_ERROR_MSG);
+      if (controller.signal.aborted) throw new ApiError(TIMEOUT_ERROR_MSG);
+      throw new ApiError(NETWORK_ERROR_MSG);
+    }
+
+    if (!res.ok) {
+      let backendMsg: string | undefined;
+      try {
+        const body = await res.json();
+        if (body && typeof body.error === "string") backendMsg = body.error;
+      } catch {
+        /* corpo não-JSON (erro em texto puro) — usa o mapeamento por status */
+      }
+      throw new ApiError(errorMessageFor(res.status, backendMsg), res.status);
+    }
+
+    if (res.status === 204) return undefined as T;
+    try {
+      return (await res.json()) as T;
+    } catch {
+      // 2xx com corpo inválido: comportamento anômalo do backend.
+      throw new ApiError(
+        "O servidor retornou uma resposta inválida. Tente novamente."
+      );
+    }
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 // ── API pública: modo original ─────────────────────────────────────────────

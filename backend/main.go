@@ -141,11 +141,18 @@ func main() {
 	handler = middleware.SecurityHeaders(handler)
 	handler = middleware.CORS(allowedOrigin)(handler)
 	handler = middleware.RateLimit(rateLimit, time.Minute)(handler)
+	handler = middleware.MaxBody(handler)
+	// Recover é o mais externo: cobre qualquer panic abaixo (middlewares, auth,
+	// handlers, service, repository) sem derrubar o processo.
+	handler = middleware.Recover(handler)
 
 	httpSrv := &http.Server{
 		Addr:              ":" + port,
 		Handler:           handler,
 		ReadHeaderTimeout: 10 * time.Second,
+		ReadTimeout:       30 * time.Second,
+		WriteTimeout:      60 * time.Second,
+		IdleTimeout:       60 * time.Second,
 	}
 
 	go func() {

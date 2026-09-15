@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import * as api from "@/lib/api";
+import { friendlyError } from "@/lib/api";
 import type { Post, Role } from "@/lib/types";
 import ConfirmModal from "./ConfirmModal";
 
@@ -40,6 +41,7 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   const [commentText, setCommentText] = useState("");
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const likes = post.likes ?? {};
   const liked = Boolean(likes[meId]);
@@ -49,12 +51,13 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   const doLike = async () => {
     if (busy) return;
     setBusy(true);
+    setError(null);
     try {
       const token = await getToken();
       const updated = await api.toggleLike(post.id, token);
       onPost(updated);
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -64,38 +67,41 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
     const text = commentText.trim();
     if (!text || busy) return;
     setBusy(true);
+    setError(null);
     try {
       const token = await getToken();
       const updated = await api.addComment(post.id, { text }, token);
       onPost(updated);
       setCommentText("");
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
   };
 
   const removeComment = async (cid: string) => {
+    setError(null);
     try {
       const token = await getToken();
       const updated = await api.deleteComment(post.id, cid, token);
       onPost(updated);
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setError(friendlyError(err));
     }
   };
 
   const delPost = async () => {
     if (deleting) return;
     setDeleting(true);
+    setError(null);
     try {
       const token = await getToken();
       await api.deletePost(post.id, token);
       onPost({ ...post, deleted: true });
       setConfirmDelete(false);
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
       setDeleting(false);
     }
@@ -143,6 +149,11 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
           💬 {comments.length}
         </button>
       </div>
+      {error && (
+        <div className="post-act-err" role="alert">
+          {error}
+        </div>
+      )}
 
       {showComments && (
         <div className="post-comments">

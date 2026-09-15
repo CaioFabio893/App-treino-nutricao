@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"log"
 	"net"
 	"net/http"
 	"strings"
@@ -138,4 +139,39 @@ func clientIP(r *http.Request) string {
 		return r.RemoteAddr
 	}
 	return host
+}
+
+// ── Recovery ──
+
+// Recover impede que um panic em um handler derrube o processo inteiro
+// (por padrão, um panic em handler mata o servidor). Converte em 500 e
+// registra no log apenas o essencial: valor do panic, método e caminho —
+// sem token, sem corpo e sem dados pessoais.
+func Recover(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		defer func() {
+			if rec := recover(); rec != nil {
+				log.Printf("panic no handler: %v (method=%s path=%s)", rec, r.Method, r.URL.Path)
+				http.Error(w, `{"error":"erro interno"}`, http.StatusInternalServerError)
+			}
+		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+// ── Limite de corpo ──
+
+// maxBodyBytes limita o corpo de POST/PUT para evitar payloads gigantes.
+// 1 MiB é suficiente para este app (não há upload de arquivos).
+const maxBodyBytes = 1 << 20
+
+// MaxBody aplica http.MaxBytesReader em POST/PUT: corpos maiores falham no
+// decode de JSON e o handler devolve 400, em vez de alocar memória ilimitada.
+func MaxBody(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method == http.MethodPost || r.Method == http.MethodPut {
+			r.Body = http.MaxBytesReader(w, r.Body, maxBodyBytes)
+		}
+		next.ServeHTTP(w, r)
+	})
 }

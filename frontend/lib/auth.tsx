@@ -17,7 +17,7 @@ import {
 } from "firebase/auth";
 import { firebaseAuth, firebaseConfigured } from "./firebase";
 import { DEMO_MODE } from "./config";
-import { getMe as apiGetMe } from "./api";
+import { ApiError, getMe as apiGetMe } from "./api";
 import type { Role, UserProfile } from "./types";
 
 interface AuthCtx {
@@ -80,8 +80,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
       const p = await apiGetMe(token);
       setProfile(p);
-    } catch {
-      setProfile(null);
+    } catch (err) {
+      // Sessão expirada/inválida (401): desloga para não deixar o usuário em
+      // estado inconsistente (role errado, telas de "sem acesso").
+      if (!DEMO_MODE && err instanceof ApiError && err.status === 401) {
+        if (firebaseAuth) await fbSignOut(firebaseAuth);
+        setUser(null);
+        setProfile(null);
+      }
+      // Falhas transitórias (rede, timeout, 5xx): mantém o perfil atual em
+      // vez de apagá-lo — evita "piscar" o usuário entre papéis por um erro
+      // momentâneo de conexão.
     }
   }, []);
 

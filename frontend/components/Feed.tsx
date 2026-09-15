@@ -2,14 +2,18 @@
 
 import { useCallback, useEffect, useState } from "react";
 import * as api from "@/lib/api";
+import { friendlyError } from "@/lib/api";
 import type { Post } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import PostCard from "./PostCard";
+import LoadError from "./LoadError";
 
 export default function Feed() {
   const { getToken, profile } = useAuth();
   const [posts, setPosts] = useState<Post[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [text, setText] = useState("");
   const [busy, setBusy] = useState(false);
   const [cursor, setCursor] = useState<string | undefined>(undefined);
@@ -23,8 +27,9 @@ export default function Feed() {
       const page = await api.listPosts(token, { limit: PAGE_SIZE });
       setPosts(page.posts);
       setCursor(page.nextCursor);
+      setLoadError(false);
     } catch {
-      /* offline */
+      setLoadError(true);
     } finally {
       setReady(true);
     }
@@ -42,8 +47,8 @@ export default function Feed() {
       const page = await api.listPosts(token, { limit: PAGE_SIZE, cursor });
       setPosts((prev) => [...prev, ...page.posts]);
       setCursor(page.nextCursor);
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setActionError(friendlyError(err));
     } finally {
       setLoadingMore(false);
     }
@@ -53,13 +58,14 @@ export default function Feed() {
     const t = text.trim();
     if (!t || busy) return;
     setBusy(true);
+    setActionError(null);
     try {
       const token = await getToken();
       const neu = await api.createPost({ type: "manual", text: t }, token);
       setPosts((prev) => [neu, ...prev]);
       setText("");
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setActionError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -102,8 +108,19 @@ export default function Feed() {
         </div>
       )}
 
+      {actionError && (
+        <div className="err-text" role="alert">
+          {actionError}
+        </div>
+      )}
+
       {!ready ? (
         <div className="empty-box">Carregando feed…</div>
+      ) : loadError ? (
+        <LoadError
+          message="Não foi possível carregar o feed."
+          onRetry={() => void load()}
+        />
       ) : posts.length === 0 ? (
         <div className="empty-box">
           Nada por aqui ainda. Ao concluir treinos ou marcar a dieta, aparecem posts

@@ -3,6 +3,7 @@
 import { useCallback, useMemo, useState } from "react";
 import type { MouseEvent } from "react";
 import * as api from "@/lib/api";
+import { friendlyError } from "@/lib/api";
 import { WEEK_DAY_LABEL } from "@/lib/days";
 import type { Check, HistoryExercise, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import RestTimer from "./RestTimer";
@@ -224,8 +225,8 @@ export default function TodayWorkout({
       setDraft(emptyDraft(workout));
       onToast("✓ Treino finalizado! Publicado no feed e pontuação atualizada.");
       onCompleted();
-    } catch {
-      onToast("⚠ Falha ao finalizar treino.");
+    } catch (err) {
+      onToast("⚠ " + friendlyError(err));
     } finally {
       setBusy(false);
     }

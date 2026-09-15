@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import * as api from "@/lib/api";
+import { friendlyError } from "@/lib/api";
 import type { Diet, DietDailyLog, MealCheck } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 
@@ -10,8 +11,8 @@ const todayKey = () => new Date().toISOString().slice(0, 10);
 export default function DietCheck({ diet }: { diet: Diet | undefined }) {
   const { getToken, profile } = useAuth();
   const [log, setLog] = useState<DietDailyLog | null>(null);
-  const [ready, setReady] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [caption, setCaption] = useState("");
   const [note, setNote] = useState("");
 
@@ -25,9 +26,7 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
       setCaption(today?.caption ?? "");
       setNote(today?.note ?? "");
     } catch {
-      /* offline */
-    } finally {
-      setReady(true);
+      /* offline — mantém a marcação atual */
     }
   }, [getToken, profile]);
 
@@ -56,6 +55,7 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
       followed: mi === i ? !followed(mi) : followed(mi),
     }));
     setBusy(true);
+    setError(null);
     try {
       const token = await getToken();
       const updated = await api.putDietLog(
@@ -74,8 +74,8 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
         token
       );
       setLog(updated);
-    } catch {
-      /* silencioso */
+    } catch (err) {
+      setError(friendlyError(err));
     } finally {
       setBusy(false);
     }
@@ -117,6 +117,11 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
           </button>
         ))}
       </div>
+      {error && (
+        <div className="post-act-err" role="alert">
+          {error}
+        </div>
+      )}
       <div className="frm-row" style={{ marginTop: 8 }}>
         <label className="frm-label">Legenda (publicada no feed)</label>
         <input
@@ -143,6 +148,7 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
           onClick={async () => {
             if (busy) return;
             setBusy(true);
+            setError(null);
             try {
               const token = await getToken();
               const updated = await api.putDietLog(
@@ -161,8 +167,8 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
                 token
               );
               setLog(updated);
-            } catch {
-              /* silencioso */
+            } catch (err) {
+              setError(friendlyError(err));
             } finally {
               setBusy(false);
             }
@@ -177,6 +183,7 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
             disabled={busy}
             onClick={async () => {
               setBusy(true);
+              setError(null);
               try {
                 const token = await getToken();
                 const updated = await api.putDietLog(
@@ -193,8 +200,8 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
                 setLog(updated);
                 setCaption("");
                 setNote("");
-              } catch {
-                /* silencioso */
+              } catch (err) {
+                setError(friendlyError(err));
               } finally {
                 setBusy(false);
               }

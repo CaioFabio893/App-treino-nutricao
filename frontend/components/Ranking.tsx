@@ -6,18 +6,21 @@ import * as api from "@/lib/api";
 import type { RankingResponse } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { RankingSkeleton } from "./Skeleton";
+import LoadError from "./LoadError";
 
 export default function Ranking() {
   const { getToken } = useAuth();
   const [data, setData] = useState<RankingResponse | null>(null);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const token = await getToken();
       setData(await api.getRanking(token));
+      setLoadError(false);
     } catch {
-      /* offline */
+      setLoadError(true);
     } finally {
       setReady(true);
     }
@@ -28,6 +31,14 @@ export default function Ranking() {
   }, [load]);
 
   if (!ready) return <RankingSkeleton />;
+  if (loadError) {
+    return (
+      <LoadError
+        message="Não foi possível carregar o ranking."
+        onRetry={() => void load()}
+      />
+    );
+  }
   if (!data) return <div className="empty-box">Ranking indisponível.</div>;
 
   const medal = (rank: number) =>

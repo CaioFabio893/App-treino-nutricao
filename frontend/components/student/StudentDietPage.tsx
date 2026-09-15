@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import type { Diet } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 import DietCheck from "@/components/DietCheck";
+import LoadError from "@/components/LoadError";
 import { todayDateLabel } from "@/lib/days";
 
 /** Página "Dietas" do aluno: dieta ativa + acompanhamento de hoje. */
@@ -13,14 +14,16 @@ export default function StudentDietPage() {
   const { getToken, profile } = useAuth();
   const [diets, setDiets] = useState<Diet[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
 
   const load = useCallback(async () => {
     try {
       const token = await getToken();
       const d = await api.listDiets(token);
       setDiets(d.filter((x) => x.studentId === (profile?.id ?? "")));
+      setLoadError(false);
     } catch {
-      /* offline */
+      setLoadError(true);
     } finally {
       setReady(true);
     }
@@ -31,6 +34,23 @@ export default function StudentDietPage() {
   }, [load]);
 
   if (!ready) return <LoadingScreen />;
+
+  if (loadError) {
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>Sua dieta</h1>
+            <div className="page-sub">{todayDateLabel()}</div>
+          </div>
+        </div>
+        <LoadError
+          message="Não foi possível carregar sua dieta."
+          onRetry={() => void load()}
+        />
+      </div>
+    );
+  }
 
   const today = new Date().toISOString().slice(0, 10);
   const todayDiet = diets.find(

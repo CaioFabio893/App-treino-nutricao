@@ -736,3 +736,19 @@ input, textarea { font-family: var(--sans); }
 }
 .pwa-install-ios ol { margin: 8px 0 0; padding-left: 18px; }
 .pwa-install-ios li { margin-bottom: 5px; color: var(--muted); }
+
+/* ── Estados de erro (carga falhou / ação falhou) ── */
+.load-error {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 10px;
+  margin: 12px 0; padding: 14px 16px; border-radius: var(--r, 14px);
+  background: #FCF2F0; border: 1px solid #EBD3CE; color: #93392B;
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  font-size: 13px; line-height: 1.5;
+}
+.load-error p { margin: 0; }
+.post-act-err {
+  margin-top: 8px; padding: 8px 12px; border-radius: 10px;
+  background: #FCF2F0; border: 1px solid #EBD3CE; color: #93392B;
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  font-size: 12px; line-height: 1.4;
+}

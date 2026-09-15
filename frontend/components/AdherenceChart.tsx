@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import * as api from "@/lib/api";
 import { useAuth } from "@/lib/auth";
 import type { DietDailyLog, WorkoutHistoryEntry } from "@/lib/types";
+import LoadError from "./LoadError";
 import {
   Bar,
   CartesianGrid,
@@ -42,6 +43,7 @@ function isoLocal(d: Date): string {
 export default function AdherenceChart() {
   const { getToken } = useAuth();
   const [data, setData] = useState<Point[] | null>(null);
+  const [loadError, setLoadError] = useState(false);
   const [colors, setColors] = useState({
     primary: "#0B6B52",
     accent: "#35C596",
@@ -94,8 +96,10 @@ export default function AdherenceChart() {
         });
       }
       setData(points);
+      setLoadError(false);
     } catch {
       setData([]);
+      setLoadError(true);
     }
   }, [getToken]);
 
@@ -113,7 +117,12 @@ export default function AdherenceChart() {
           Treinos concluídos (barras) e dieta seguida % (linha) — todos os alunos
         </div>
       </div>
-      {!data ? (
+      {loadError ? (
+        <LoadError
+          message="Não foi possível carregar os dados de adesão."
+          onRetry={() => void load()}
+        />
+      ) : !data ? (
         <div className="dash-chart-empty">Calculando…</div>
       ) : !hasData ? (
         <div className="dash-chart-empty">

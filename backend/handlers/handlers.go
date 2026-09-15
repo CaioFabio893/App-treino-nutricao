@@ -4,6 +4,7 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"strconv"
@@ -28,11 +29,16 @@ func New(svc *service.Service, repo repository.Repository) *Handlers {
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {
+	// Serializa ANTES de escrever o header: se a serialização falhar, ainda dá
+	// para responder 500 sem "superfluous WriteHeader" no log.
+	var buf bytes.Buffer
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		http.Error(w, "erro ao serializar resposta", http.StatusInternalServerError)
+		return
+	}
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
 	w.WriteHeader(status)
-	if err := json.NewEncoder(w).Encode(v); err != nil {
-		http.Error(w, "erro ao serializar resposta", http.StatusInternalServerError)
-	}
+	_, _ = w.Write(buf.Bytes())
 }
 
 // canAccessResource verifica se o usuário logado pode acessar um recurso

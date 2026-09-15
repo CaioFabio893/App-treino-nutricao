@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 )
 
@@ -37,5 +39,24 @@ func TestParseWeekDay(t *testing.T) {
 	r.SetPathValue("day", "")
 	if _, _, ok := parseWeekDay(r); ok {
 		t.Error("empty day should be invalid")
+	}
+}
+
+func TestWriteJSON(t *testing.T) {
+	// Serialização válida: 200 + corpo JSON.
+	rr := httptest.NewRecorder()
+	writeJSON(rr, http.StatusOK, map[string]string{"status": "ok"})
+	if rr.Code != http.StatusOK {
+		t.Errorf("code = %d, want 200", rr.Code)
+	}
+	if !strings.Contains(rr.Body.String(), `"status":"ok"`) {
+		t.Errorf("body = %q, want JSON ok", rr.Body.String())
+	}
+
+	// Serialização inválida (channel não serializa): 500 sem status duplicado.
+	rr = httptest.NewRecorder()
+	writeJSON(rr, http.StatusOK, make(chan int))
+	if rr.Code != http.StatusInternalServerError {
+		t.Errorf("code = %d, want 500", rr.Code)
 	}
 }

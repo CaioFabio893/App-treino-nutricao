@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import type { WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 import TodayWorkout from "@/components/TodayWorkout";
+import LoadError from "@/components/LoadError";
 import { WEEK_DAY_KEY, WEEK_DAY_LABEL, todayDateLabel } from "@/lib/days";
 
 /** Página "Treinos" do aluno: escolha do treino, semana e histórico. */
@@ -14,6 +15,7 @@ export default function StudentWorkoutsPage() {
   const [workouts, setWorkouts] = useState<WorkoutDefine[]>([]);
   const [history, setHistory] = useState<WorkoutHistoryEntry[]>([]);
   const [ready, setReady] = useState(false);
+  const [loadError, setLoadError] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
   // Treino escolhido pelo aluno: ele decide, não fica preso ao dia da semana.
   const [selectedId, setSelectedId] = useState("");
@@ -32,8 +34,9 @@ export default function StudentWorkoutsPage() {
       ]);
       setWorkouts(w.filter((x) => x.studentId === (profile?.id ?? "")));
       setHistory(h);
+      setLoadError(false);
     } catch {
-      /* offline */
+      setLoadError(true);
     } finally {
       setReady(true);
     }
@@ -70,6 +73,23 @@ export default function StudentWorkoutsPage() {
   }, [workouts]);
 
   if (!ready) return <LoadingScreen />;
+
+  if (loadError) {
+    return (
+      <div>
+        <div className="page-head">
+          <div>
+            <h1>Seus treinos</h1>
+            <div className="page-sub">{todayDateLabel()}</div>
+          </div>
+        </div>
+        <LoadError
+          message="Não foi possível carregar seus treinos."
+          onRetry={() => void load()}
+        />
+      </div>
+    );
+  }
 
   return (
     <div>

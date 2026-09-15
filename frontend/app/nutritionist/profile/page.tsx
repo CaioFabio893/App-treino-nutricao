@@ -5,6 +5,7 @@ import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
+import LoadError from "@/components/LoadError";
 
 export default function ProfilePage() {
   const { user, profile, getToken, refreshProfile } = useAuth();
@@ -77,7 +78,18 @@ export default function ProfilePage() {
     }
   };
 
-  if (!ready || !profile) return <ProfileSkeleton />;
+  if (!ready) return <ProfileSkeleton />;
+
+  // Perfil logado não carregou (rede/servidor): mostra erro com retry em vez
+  // de ficar no skeleton eterno.
+  if (!profile) {
+    return (
+      <LoadError
+        message="Não foi possível carregar seu perfil."
+        onRetry={() => void refreshProfile()}
+      />
+    );
+  }
 
   const active = students.filter((s) => s.status === "active").length;
   const totalCompleted = history.length;
