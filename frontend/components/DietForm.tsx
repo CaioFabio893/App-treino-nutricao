@@ -126,7 +126,8 @@ export default function DietForm({
     );
   };
 
-  const canSave = Boolean(name.trim()) && Boolean(studentId);
+  const dateRangeInvalid = Boolean(startDate && endDate) && startDate > endDate;
+  const canSave = Boolean(name.trim()) && Boolean(studentId) && !dateRangeInvalid;
 
   const save = async () => {
     if (!canSave || busy) return;
@@ -228,6 +229,11 @@ export default function DietForm({
             />
           </div>
         </div>
+        {dateRangeInvalid && (
+          <div className="err-text" style={{ marginTop: -4 }}>
+            A data de início não pode ser posterior à data de término.
+          </div>
+        )}
       </div>
 
       <div className="section-label">Refeições ({meals.length})</div>

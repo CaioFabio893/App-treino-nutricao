@@ -1,11 +1,18 @@
 "use client";
 
 import { use, useCallback, useEffect, useState } from "react";
+import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
 import StudentDetail from "@/components/StudentDetail";
+
+/** Mensagens amigáveis para erros conhecidos da API (demo/backend). */
+function friendlyError(raw: string): string {
+  if (/aluno\s*nao\s*encontrado/i.test(raw)) return "Aluno não encontrado.";
+  return raw || "Aluno não encontrado.";
+}
 
 // Rota dinâmica /nutritionist/students/[studentId]
 // Em Next 16, `params` chega como Promise; client components usam `use()`.
@@ -27,7 +34,7 @@ export default function StudentDetailPage({
       setStudent(s);
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Aluno não encontrado");
+      setError(friendlyError(e instanceof Error ? e.message : ""));
     } finally {
       setReady(true);
     }
@@ -41,12 +48,15 @@ export default function StudentDetailPage({
 
   if (!student || error) {
     return (
-      <div className="empty-box">
-        {error || "Aluno não encontrado."}
+      <div className="load-error" role="alert">
+        <p style={{ fontWeight: 600 }}>{error || "Aluno não encontrado."}</p>
+        <p style={{ fontSize: 12 }}>
+          Verifique se o aluno está cadastrado ou volte para a lista de alunos.
+        </p>
         <div className="btn-row">
-          <a className="btn-sm" href="/nutritionist/students">
+          <Link className="btn-sm" href="/nutritionist/students">
             ‹ Voltar para alunos
-          </a>
+          </Link>
         </div>
       </div>
     );
