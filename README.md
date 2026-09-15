@@ -156,13 +156,18 @@ cd backend
 gcloud builds submit --tag gcr.io/SEU_PROJECT_ID/treino-api
 
 # Publica no Cloud Run (cota gratuita):
+# ⚠️ PRODUÇÃO DEVE definir ALLOWED_ORIGIN com a origem EXATA do frontend
+#    (ex.: https://treino-web-xxxxx-uc.a.run.app, ou o domínio próprio).
+#    Sem essa variável o backend responde com CORS "*" (permissivo) —
+#    aceitável em dev, não recomendado em produção. NUNCA use "*".
 gcloud run deploy treino-api \
   --image gcr.io/SEU_PROJECT_ID/treino-api \
   --region us-central1 \
   --platform managed \
   --allow-unauthenticated \
   --max-instances 1 \
-  --memory 128Mi
+  --memory 128Mi \
+  --set-env-vars "ALLOWED_ORIGIN=https://treino-web-xxxxx-uc.a.run.app"
 ```
 
 O comando no final mostra a **URL da sua API**. Copie para o `.env.local`:
@@ -205,8 +210,7 @@ SSR). A imagem do Docker está em `frontend/Dockerfile`:
 
 ```bash
 cd frontend
-# IMPORTANTE: o build embute as variáveis NEXT_PUBLIC_* — tenha o .env.local
-# preenchido antes de publicar.
+# Teste local (opcional): gera .next com as variáveis do .env.local.
 npm run build
 
 # (opcional) testar o servidor de produção localmente:
@@ -215,8 +219,29 @@ npm run build
 #   node .next/standalone/server.js   → http://localhost:3000
 
 cd ..
+```
+
+**IMPORTANTE — variáveis no build do container:** o `.env.local` **não** vai
+para o contexto docker (está no `.dockerignore`). O `frontend/Dockerfile`
+recebe os valores públicos como **build args** (`NEXT_PUBLIC_*`). Forneça
+todos os valores do seu `.env.local` no `gcloud builds submit` (troque os
+placeholders pelos valores reais — são dados públicos do cliente, não
+segredos; **nunca** passe chaves de serviço/private keys aqui):
+
+```bash
 # Publica no Cloud Run com o build na nuvem:
-gcloud builds submit frontend --tag gcr.io/SEU_PROJECT_ID/treino-web
+#   REPLACE_ME_API_URL  → URL da API (Passo 5), ex. https://treino-api-XXX-uc.a.run.app
+#   REPLACE_ME_*        → valores de NEXT_PUBLIC_FIREBASE_* do console Firebase
+gcloud builds submit frontend \
+  --tag gcr.io/SEU_PROJECT_ID/treino-web \
+  --build-arg NEXT_PUBLIC_API_URL=REPLACE_ME_API_URL \
+  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=REPLACE_ME_FIREBASE_API_KEY \
+  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=REPLACE_ME_AUTH_DOMAIN \
+  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=REPLACE_ME_PROJECT_ID \
+  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=REPLACE_ME_STORAGE_BUCKET \
+  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=REPLACE_ME_MESSAGING_SENDER_ID \
+  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=REPLACE_ME_APP_ID
+
 gcloud run deploy treino-web \
   --image gcr.io/SEU_PROJECT_ID/treino-web \
   --region us-central1 \
@@ -225,6 +250,9 @@ gcloud run deploy treino-web \
   --max-instances 1 \
   --memory 512Mi
 ```
+
+> **NEXT_PUBLIC_DEMO** fica de fora de propósito: em produção o modo demo deve
+> estar desligado, e o `.env.local` que o ativa não entra na imagem.
 
 O link final fica em `https://treino-web-XXX-uc.a.run.app`.
 

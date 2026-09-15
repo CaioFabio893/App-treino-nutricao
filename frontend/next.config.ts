@@ -6,9 +6,9 @@ import type { NextConfig } from "next";
 //   'unsafe-inline' necessário para scripts injetados pelo React/Next.js.
 // - style-src: 'unsafe-inline' necessário para estilos injetados pelo React/Next.js.
 // - connect-src: Google APIs (Firebase Auth: identitytoolkit, securetoken),
-//   Firebase RTDB, e WebSocket do dev server (HMR). A API Go é same-origin
-//   (proxy/reverse em produção — NEXT_PUBLIC_API_URL vazio). Se a API for
-//   cross-origin, adicione o domínio em connect-src.
+//   Firebase RTDB, domínio do Cloud Run onde a API Go é publicada
+//   (https://*.a.run.app — NEXT_PUBLIC_API_URL aponta pra lá em produção),
+//   e WebSocket do dev server (HMR).
 // - frame-src: YouTube embeds em treinos (TodayWorkout).
 // - frame-ancestors 'none': substitui X-Frame-Options DENY (mais moderno).
 const CSP = [
@@ -17,7 +17,7 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com ws://localhost:* wss://localhost:*",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.a.run.app ws://localhost:* wss://localhost:*",
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
