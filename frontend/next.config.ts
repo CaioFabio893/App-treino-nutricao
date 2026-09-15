@@ -26,6 +26,37 @@ const nextConfig: NextConfig = {
           },
         ],
       },
+      // PWA: o service worker precisa ser revalidado a cada visita (para pegar
+      // novas versões) e poder controlar o escopo "/".
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "no-cache, no-store, must-revalidate" },
+          { key: "Service-Worker-Allowed", value: "/" },
+        ],
+      },
+      // Manifest também revalidado: atualizações (ícones/screenshots) chegam logo.
+      {
+        source: "/manifest.json",
+        headers: [{ key: "Cache-Control", value: "no-cache" }],
+      },
+      // Ícones são imutáveis: cache longo no navegador e pelo SW.
+      {
+        source: "/icon-192.png",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        source: "/icon-512.png",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        source: "/icon-maskable-512.png",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
+        source: "/apple-touch-icon.png",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
     ];
   },
 };

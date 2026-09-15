@@ -145,7 +145,7 @@
 .dash-topbar {
   position: sticky; top: 0; z-index: 150;
   background: var(--d-surface); border-bottom: 1px solid var(--d-border);
-  padding: 14px 26px; display: flex; align-items: center; justify-content: space-between;
+  padding: calc(14px + env(safe-area-inset-top, 0px)) 26px 14px; display: flex; align-items: center; justify-content: space-between;
 }
 .dash-topbar-title { font-family: var(--d-head); font-weight: 700; font-size: 17px; color: var(--d-text); }
 .dash-topbar-logout {
@@ -165,7 +165,7 @@
   }
   .dash-sidebar.open { transform: translateX(0); box-shadow: 4px 0 28px rgba(0,0,0,.3); }
   .dash-sidebar-close { display: block; }
-  .dash-topbar { padding: 12px 16px 12px 58px; }
+  .dash-topbar { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px 58px; }
   .dashboard .nut-main { padding: 16px 16px 60px; }
 }
 

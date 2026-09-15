@@ -84,7 +84,7 @@
 .stu-topbar {
   position: sticky; top: 0; z-index: 150;
   background: var(--white); border-bottom: 1.5px solid var(--border);
-  padding: 10px 16px; display: flex; align-items: center; justify-content: space-between;
+  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; display: flex; align-items: center; justify-content: space-between;
   box-shadow: 0 2px 12px rgba(11,107,82,0.07);
 }
 .stu-topbar-logout {
