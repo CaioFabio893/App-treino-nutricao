@@ -20,8 +20,8 @@
   --d-radius:      10px;
   --d-radius-sm:   7px;
   --d-shadow:      0 1px 2px rgba(16,24,21,.06), 0 1px 0 rgba(16,24,21,.04);
-  --d-head:        'Space Grotesk', var(--d-body), sans-serif;
-  --d-body:        'Inter', sans-serif;
+  --d-head:        var(--font-head), 'Space Grotesk', var(--d-body), sans-serif;
+  --d-body:        var(--font-body), 'Inter', sans-serif;
 
   /* Reaproveita as variáveis do app apontando pra paleta nova */
   --cream: var(--d-bg);
