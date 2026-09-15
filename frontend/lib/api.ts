@@ -16,6 +16,7 @@ import type {
   PRs,
   PublicProfile,
   RankingResponse,
+  Role,
   ScoreHistoryEntry,
   SessionData,
   UpsertDietLogRequest,
@@ -61,6 +62,41 @@ function setJSON(key: string, value: unknown) {
   } catch {
     /* sem espaço / privado */
   }
+}
+
+// ── Identidade do modo demo ────────────────────────────────────────────────
+// Em produção a identidade do usuário vem do token JWT. No modo demo o token
+// carrega o id simulado (ex.: "demo:student-joao") emitido pelo getToken() do
+// AuthProvider — assim posts, likes, comentários e ranking são atribuídos ao
+// papel realmente ativo (aluno ou nutricionista), nunca a um id fixo.
+function demoMe(
+  token: string
+): { id: string; name: string; email: string; role: Role; nutritionistID?: string; status: string } {
+  const id = token && token.startsWith("demo:") ? token.slice("demo:".length) : "demo-user";
+  if (id === "student-joao") {
+    return {
+      id: "student-joao",
+      name: "João Silva",
+      email: "joao@email.com",
+      role: "student",
+      nutritionistID: "demo-user",
+      status: "active",
+    };
+  }
+  return {
+    id: "demo-user",
+    name: "Demo (Nutricionista)",
+    email: "demo@treino.app",
+    role: "nutritionist",
+    status: "active",
+  };
+}
+
+// Nome de um aluno da seed para posts automáticos (libera o hardcode e mantém
+// coerência caso a lista de alunos da demo seja editada no painel).
+function demoStudentName(studentId: string): string {
+  const students = getJSON<UserProfile[]>(LS_KEY.students) ?? [];
+  return students.find((s) => s.id === studentId)?.name ?? studentId;
 }
 
 function seedDemo() {
@@ -691,13 +727,7 @@ export function putState(st: AppState, token: string) {
 // getMe devolve o perfil do usuário logado (nome, role etc.).
 export async function getMe(token: string): Promise<UserProfile> {
   if (DEMO_MODE) {
-    return {
-      id: "demo-user",
-      name: "Demo",
-      email: "demo@treino.app",
-      role: "nutritionist",
-      status: "active",
-    };
+    return demoMe(token);
   }
   return request<UserProfile>("/api/me", token);
 }
@@ -1004,7 +1034,7 @@ export function completeWorkout(req: CompleteWorkoutRequest, token: string): Pro
       allPosts.unshift({
         id: `post-${Date.now()}`,
         userId: neu.studentId,
-        userName: "João Silva",
+        userName: demoStudentName(neu.studentId),
         type: "workout",
         text:
           req.caption?.trim() ||
@@ -1055,10 +1085,11 @@ export function listPosts(
 export function createPost(req: CreatePostRequest, token: string): Promise<Post> {
   if (DEMO_MODE) {
     const posts = getJSON<Post[]>(LS_KEY.posts) ?? [];
+    const me = demoMe(token);
     const neu: Post = {
       id: `post-${Date.now()}`,
-      userId: "demo-user",
-      userName: "Demo (Nutricionista)",
+      userId: me.id,
+      userName: me.name,
       type: req.type,
       text: req.text,
       date: new Date().toISOString().slice(0, 10),
@@ -1082,7 +1113,7 @@ export function toggleLike(postId: string, token: string): Promise<Post> {
     const idx = posts.findIndex((p) => p.id === postId);
     if (idx === -1) return Promise.reject(new Error("post nao encontrado"));
     const p = posts[idx];
-    const me = "demo-user";
+    const me = demoMe(token).id;
     const likes = { ...(p.likes ?? {}) };
     if (likes[me]) delete likes[me];
     else likes[me] = true;
@@ -1100,14 +1131,15 @@ export function addComment(postId: string, req: CommentRequest, token: string): 
     const idx = posts.findIndex((p) => p.id === postId);
     if (idx === -1) return Promise.reject(new Error("post nao encontrado"));
     const p = posts[idx];
+    const me = demoMe(token);
     const next: Post = {
       ...p,
       comments: [
         ...(p.comments ?? []),
         {
           id: `c-${Date.now()}`,
-          userId: "demo-user",
-          userName: "Demo (Nutricionista)",
+          userId: me.id,
+          userName: me.name,
           text: req.text,
           createdAt: new Date().toISOString(),
         },
@@ -1201,7 +1233,7 @@ export function putDietLog(req: UpsertDietLogRequest, token: string): Promise<Di
         allPosts.unshift({
           id: `post-${Date.now()}`,
           userId: studentId,
-          userName: "João Silva",
+          userName: demoStudentName(studentId),
           type: "diet",
           text: req.caption?.trim() || "Dia de dieta seguida à risca! 🥗",
           dietId: neu.dietId,
@@ -1229,17 +1261,31 @@ export function putDietLog(req: UpsertDietLogRequest, token: string): Promise<Di
 
 export function getRanking(token: string): Promise<RankingResponse> {
   if (DEMO_MODE) {
+    const me = demoMe(token);
+    const top: RankingResponse["top"] = [
+      { studentId: "student-joao", name: "João Silva", score: 9.4, rank: 1 },
+      { studentId: "student-maria", name: "Maria Souza", score: 6.2, rank: 2 },
+    ];
+    // Igual à API real: self só existe para o aluno logado; nutricionista
+    // recebe full (os alunos dele). Nenhum caso mostra o nutricionista como
+    // participante do ranking de alunos.
+    const self =
+      me.role === "student"
+        ? top.find((e) => e.studentId === me.id) ?? {
+            studentId: me.id,
+            name: me.name,
+            score: 0,
+            rank: top.length + 1,
+          }
+        : undefined;
     return Promise.resolve({
       cycleId: "2026-Q3",
       cycleStart: "2026-07-01",
       cycleEnd: "2026-09-30",
-      top: [
-        { studentId: "student-joao", name: "João Silva", score: 9.4, rank: 1 },
-        { studentId: "student-maria", name: "Maria Souza", score: 6.2, rank: 2 },
-      ],
-      total: 2,
-      self: { studentId: "demo-user", name: "Demo (Nutricionista)", score: 9.4, rank: 1 },
-      full: undefined,
+      top,
+      total: top.length,
+      self,
+      full: me.role === "student" ? undefined : top,
     });
   }
   return request<RankingResponse>("/api/ranking", token);

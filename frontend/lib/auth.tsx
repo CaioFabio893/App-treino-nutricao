@@ -144,12 +144,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const getToken = useCallback(async () => {
-    if (DEMO_MODE) return "demo-token";
+    if (DEMO_MODE) {
+      // No modo demo o token carrega a identidade ativa ("demo:student-joao"
+      // ou "demo:demo-user") para que a API demo atribua posts/likes/ranking
+      // ao papel realmente simulado — mesmo mecanismo do token JWT real.
+      return `demo:${profile?.id ?? "demo-user"}`;
+    }
     if (!firebaseAuth || !firebaseAuth.currentUser) {
       throw new Error("Sem sessão ativa");
     }
     return await firebaseAuth.currentUser.getIdToken(true);
-  }, []);
+  }, [profile]);
 
   // O role vem do perfil; em modo demo força "nutritionist".
   const role: Role = DEMO_MODE
