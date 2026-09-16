@@ -19,14 +19,17 @@ const NAV_ITEMS = [
  * Shell de layout da área do aluno: topbar com logo + nome + sair,
  * conteúdo centralizado (mesmo respiro do painel) e bottom nav fixa
  * com ícones SVG no mesmo estilo do DashIcon do nutricionista.
- * Também faz o guarda de acesso: sem login → /login; papel de gestão → /nutritionist.
+ * Também faz o guarda de acesso: sem login → /login; nutricionista → /nutritionist.
+ * Admins NÃO são redirecionados: podem navegar pela área do aluno (o seletor
+ * de áreas do admin permite voltar ao painel quando quiser).
  */
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
   const { user, initializing, role, profile, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  const isStaff = role === "nutritionist" || role === "admin";
+  // Apenas nutricionistas (não-admin) são expulsos da área do aluno.
+  const isStaff = role === "nutritionist";
 
   useEffect(() => {
     if (initializing) return;

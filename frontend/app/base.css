@@ -752,3 +752,25 @@ input, textarea { font-family: var(--sans); }
   font-family: var(--sans, Inter, system-ui, sans-serif);
   font-size: 12px; line-height: 1.4;
 }
+
+/* ── Seletor de áreas (admin) ──
+   Botão flutuante fixo no centro-inferior, acima da bottom nav do aluno
+   (z-index 200) e abaixo de toasts/modais (300). Só aparece para role=admin. */
+.admin-areas {
+  position: fixed; left: 50%; bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%); z-index: 240;
+  display: flex; gap: 4px; padding: 4px;
+  border-radius: 999px;
+  background: rgba(8,14,12,0.72);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+  backdrop-filter: blur(8px);
+}
+.admin-areas-btn {
+  border: none; background: transparent; color: rgba(255,255,255,0.8);
+  font-family: var(--sans, Inter, system-ui, sans-serif);
+  font-size: 12px; font-weight: 600; letter-spacing: .01em;
+  padding: 8px 14px; border-radius: 999px; cursor: pointer;
+  text-decoration: none; line-height: 1; white-space: nowrap;
+}
+.admin-areas-btn:hover { color: #fff; background: rgba(255,255,255,0.12); }
+.admin-areas-btn.active { background: var(--terra, #0B6B52); color: #fff; }
