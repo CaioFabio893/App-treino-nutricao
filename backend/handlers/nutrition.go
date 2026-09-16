@@ -131,6 +131,12 @@ func (h *Handlers) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		p.ID = id
+		// Merge com o registro existente: a edição comum de usuário jamais
+		// altera silenciosamente o plano, as features, o provedor de login ou
+		// o histórico de aprovação — esses campos vêm só dos fluxos
+		// administrativos dedicados (assign-plan / approve / reject).
+		preserveAdminFields(existing, &p)
 		p.CreatedAt = existing.CreatedAt
 		if err := h.repo.PutUserProfile(r.Context(), id, &p); err != nil {
 			http.Error(w, "falha ao atualizar usuario", http.StatusInternalServerError)
@@ -138,6 +144,18 @@ func (h *Handlers) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// preserveAdminFields copia do perfil existente os campos que uma edição
+// comum de usuário NUNCA pode alterar silenciosamente: plano (planID),
+// features, provedor de login e o histórico de aprovação/rejeição.
+func preserveAdminFields(existing, p *models.UserProfile) {
+	p.PlanID = existing.PlanID
+	p.Features = existing.Features
+	p.AuthProvider = existing.AuthProvider
+	p.ApprovedBy = existing.ApprovedBy
+	p.ApprovedAt = existing.ApprovedAt
+	p.RejectedReason = existing.RejectedReason
 }
 
 // HandleUpdateStudent permite que o NUTRICIONISTA edite dados do próprio aluno
@@ -173,17 +191,33 @@ func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	// Só campos do aluno são editáveis aqui; role/vínculo são preservados.
-	p.Role = existing.Role
-	p.NutritionistID = existing.NutritionistID
-	p.Email = existing.Email
-	p.CreatedAt = existing.CreatedAt
-	p.ID = id
-	if err := h.repo.PutUserProfile(r.Context(), id, &p); err != nil {
+	// Merge com o perfil existente: esta rota só permite editar dados do aluno
+	// (nome, foto, bio, status e datas). Role, vínculo, plano, features e o
+	// histórico de aprovação são SEMPRE preservados do registro existente —
+	// nunca vêm do body do nutricionista.
+	merged := mergeStudentEdits(existing, &p)
+	merged.ID = id
+	if err := h.repo.PutUserProfile(r.Context(), id, merged); err != nil {
 		http.Error(w, "falha ao atualizar aluno", http.StatusInternalServerError)
 		return
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
+}
+
+// mergeStudentEdits produz o perfil final de uma edição de aluno feita pelo
+// nutricionista/admin: parte do perfil existente (preservando TODOS os campos
+// administrativos — role, vínculo, plano, features e histórico de aprovação)
+// e aplica somente os campos de dados editáveis por esta rota.
+func mergeStudentEdits(existing, p *models.UserProfile) *models.UserProfile {
+	out := *existing
+	out.ID = existing.ID
+	out.Name = p.Name
+	out.PhotoURL = p.PhotoURL
+	out.Bio = p.Bio
+	out.Status = p.Status
+	out.StartDate = p.StartDate
+	out.EndDate = p.EndDate
+	return &out
 }
 
 // HandleDeleteUser exclui o perfil do Firestore e a conta do Firebase Auth

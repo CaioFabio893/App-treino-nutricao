@@ -183,10 +183,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const needsProfile = !DEMO_MODE && !!user && profile !== null && profile.needsProfile === true;
 
   // Cadastro pendente ou recusado → tela de espera/recusa em vez do app.
+  // ADMIN nunca é enviado para a tela de aprovação: mesmo com status legado
+  // ou incorreto (pending_approval/rejected), ele precisa chegar ao painel
+  // para gerenciar a fila de aprovação.
   const needsApproval =
     !DEMO_MODE &&
     !!user &&
     !!profile &&
+    role !== "admin" &&
     (profile.status === "pending_approval" || profile.status === "rejected");
 
   const value = useMemo<AuthCtx>(

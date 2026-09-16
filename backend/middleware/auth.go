@@ -110,8 +110,16 @@ func (a *Auth) Allow(roles ...models.Role) func(http.HandlerFunc) http.HandlerFu
 // RequireApproved bloqueia usuários cujo cadastro ainda não foi aprovado
 // (status pending_approval/rejected) e usuários sem perfil. Envolve todas as
 // rotas de negócio — só GET/PUT /api/me ficam liberadas para pendentes.
+//
+// ADMIN autenticado sempre passa (bypass do status): o papel admin nunca fica
+// travado por pending_approval/rejected/inactive. A autenticação continua
+// obrigatória — quem não tem token válido não chega aqui (o Require roda antes).
 func (a *Auth) RequireApproved(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		if RoleFrom(r.Context()) == models.RoleAdmin {
+			next(w, r)
+			return
+		}
 		if !IsApproved(r.Context()) {
 			http.Error(w, `{"error":"cadastro pendente de aprovacao"}`, http.StatusForbidden)
 			return

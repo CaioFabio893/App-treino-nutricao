@@ -70,6 +70,48 @@ func TestRequireApproved(t *testing.T) {
 	}
 }
 
+// TestRequireApprovedAdminBypass prova que ADMIN autenticado sempre passa pelo
+// RequireApproved — independente do status — enquanto usuários comuns seguem
+// obedecendo às regras de status.
+func TestRequireApprovedAdminBypass(t *testing.T) {
+	a := &Auth{}
+	tests := []struct {
+		name       string
+		role       models.Role
+		status     string
+		wantCode   int
+		wantCalled bool
+	}{
+		{"admin + pending_approval permitido", models.RoleAdmin, models.StatusPendingApproval, http.StatusOK, true},
+		{"admin + rejected permitido", models.RoleAdmin, models.StatusRejected, http.StatusOK, true},
+		{"admin + inactive permitido", models.RoleAdmin, models.StatusInactive, http.StatusOK, true},
+		{"admin + active permitido", models.RoleAdmin, models.StatusActive, http.StatusOK, true},
+		{"comum + pending_approval bloqueado", models.RoleStudent, models.StatusPendingApproval, http.StatusForbidden, false},
+		{"comum + rejected bloqueado", models.RoleStudent, models.StatusRejected, http.StatusForbidden, false},
+		{"comum + active permitido", models.RoleStudent, models.StatusActive, http.StatusOK, true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			called := false
+			h := a.RequireApproved(func(w http.ResponseWriter, r *http.Request) {
+				called = true
+				w.WriteHeader(http.StatusOK)
+			})
+			rr := httptest.NewRecorder()
+			r := httptest.NewRequest("GET", "/api/workouts", nil)
+			ctx := context.WithValue(r.Context(), roleKey, tt.role)
+			ctx = context.WithValue(ctx, statusKey, tt.status)
+			h(rr, r.WithContext(ctx))
+			if rr.Code != tt.wantCode {
+				t.Errorf("%s: code = %d, want %d", tt.name, rr.Code, tt.wantCode)
+			}
+			if called != tt.wantCalled {
+				t.Errorf("%s: called = %v, want %v", tt.name, called, tt.wantCalled)
+			}
+		})
+	}
+}
+
 func TestRequireFeature(t *testing.T) {
 	a := &Auth{}
 	hit := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }
