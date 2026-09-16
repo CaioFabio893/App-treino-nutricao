@@ -9,6 +9,10 @@ import type { NextConfig } from "next";
 //   Firebase RTDB, domínio do Cloud Run onde a API Go é publicada
 //   (https://*.a.run.app — NEXT_PUBLIC_API_URL aponta pra lá em produção),
 //   e WebSocket do dev server (HMR).
+// A URL exata da API também entra no connect-src: o wildcard *.a.run.app
+// cobre apenas UM nível de subdomínio, e na região southamerica-east1 o
+// Cloud Run gera URLs com dois níveis (SERVICE-PROJ.southamerica-east1.run.app).
+// Sem esta origem explícita o navegador bloquearia o fetch para a API.
 // - frame-src: YouTube embeds em treinos (TodayWorkout).
 // - frame-ancestors 'none': substitui X-Frame-Options DENY (mais moderno).
 const CSP = [
@@ -17,7 +21,8 @@ const CSP = [
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",
-  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.a.run.app ws://localhost:* wss://localhost:*",
+  "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.a.run.app ws://localhost:* wss://localhost:*" +
+    ((process.env.NEXT_PUBLIC_API_URL || "").trim() ? ` ${(process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "")}` : ""),
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
