@@ -51,6 +51,41 @@ const (
 	RoleStudent      Role = "student"
 )
 
+// ── Status de acesso do usuário (estende o campo Status já existente) ──
+// Valores possíveis para UserProfile.Status (string livre, mantido por
+// compatibilidade — os novos valores são adicionados como constantes).
+const (
+	StatusPendingApproval = "pending_approval" // cadastro feito (email/senha ou Google), aguardando admin definir role+plano
+	StatusActive          = "active"           // já existia
+	StatusPaused          = "paused"           // já existia
+	StatusInactive        = "inactive"         // já existia
+	StatusRejected        = "rejected"         // admin recusou o cadastro
+)
+
+// ── Planos (pacotes de funcionalidades) ──
+
+// Feature identifica um módulo do app que pode ser ligado/desligado por plano.
+type Feature string
+
+const (
+	FeatureWorkouts  Feature = "workouts"  // treinos
+	FeatureDiet      Feature = "diet"      // dietas
+	FeatureCommunity Feature = "community" // feed social / comunidade
+	FeatureRanking   Feature = "ranking"   // ranking / gamificação
+)
+
+// Plan é um pacote de funcionalidades que o admin cria e atribui a alunos.
+// Documento em plans/{id} no Firestore.
+type Plan struct {
+	ID          string    `json:"id,omitempty"`
+	Name        string    `json:"name"`                  // ex.: "Completo"
+	Description string    `json:"description,omitempty"` // ex.: "Treino + dieta + comunidade"
+	Features    []Feature `json:"features"`               // ex.: ["workouts","diet","community"]
+	Active      bool      `json:"active"`                 // planos inativos não aparecem pra atribuir a novos alunos
+	CreatedAt   time.Time `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
+}
+
 // UserProfile é o documento raiz do usuário no Firestore (users/{uid}).
 type UserProfile struct {
 	ID             string    `json:"id,omitempty"`
@@ -62,8 +97,16 @@ type UserProfile struct {
 	NutritionistID string    `json:"nutritionistID,omitempty"` // preenchido se role=student
 	StartDate      string    `json:"startDate,omitempty"`      // "2026-01-15"
 	EndDate        string    `json:"endDate,omitempty"`        // "2026-04-15"
-	Status         string    `json:"status,omitempty"`         // "active", "inactive", "paused"
+	Status         string    `json:"status,omitempty"`         // "active", "pending_approval", "paused", "inactive", "rejected"
 	CreatedAt      time.Time `json:"createdAt,omitempty"`
+
+	// ── Gestão: aprovação + planos (spec gestao-cadastro-papeis-planos-google.md) ──
+	PlanID         string    `json:"planID,omitempty"`       // plano atualmente atribuído (vazio = nenhum)
+	Features       []Feature `json:"features,omitempty"`     // snapshot das features do plano no momento da atribuição
+	AuthProvider   string    `json:"authProvider,omitempty"` // "password" | "google.com" — de onde veio o login
+	ApprovedBy     string    `json:"approvedBy,omitempty"`   // uid do admin que aprovou
+	ApprovedAt     time.Time `json:"approvedAt,omitempty"`
+	RejectedReason string    `json:"rejectedReason,omitempty"`
 }
 
 // ── Treinos ──
@@ -170,6 +213,25 @@ type WorkoutHistoryEntry struct {
 type DuplicateRequest struct {
 	NewStudentID string `json:"newStudentId"`
 	NewName      string `json:"newName,omitempty"`
+}
+
+// ApproveUserRequest é o payload para aprovar um cadastro pendente.
+// role é obrigatório ("student" | "nutritionist"); planID é opcional e só
+// tem efeito quando role=student (features do plano são snapshotadas no perfil).
+type ApproveUserRequest struct {
+	Role           Role    `json:"role"`
+	PlanID         string  `json:"planID,omitempty"`
+	NutritionistID string  `json:"nutritionistID,omitempty"`
+}
+
+// RejectUserRequest é o payload para recusar um cadastro pendente.
+type RejectUserRequest struct {
+	Reason string `json:"reason,omitempty"`
+}
+
+// AssignPlanRequest é o payload para atribuir/reatribuir um plano a um aluno.
+type AssignPlanRequest struct {
+	PlanID string `json:"planID"`
 }
 
 // CompleteWorkoutRequest é o payload para concluir um treino.

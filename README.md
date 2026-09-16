@@ -25,7 +25,9 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 - **Backend**: API em **Go** no **Cloud Run** — verifica o token do Firebase e
   acessa o Firestore (o usuário nunca fala direto com o banco).
 - **Banco**: **Firestore** (NoSQL) — dados por usuário em `users/{uid}/...`.
-- **Login**: **Firebase Authentication** (e-mail/senha).
+- **Login**: **Firebase Authentication** (e-mail/senha ou **Google**).
+- **Cadastro**: usuário novo precisa da **aprovação do admin** antes de usar o
+  app (papel e plano de acesso definidos pelo admin).
 
 ## Estrutura do projeto
 
@@ -114,7 +116,7 @@ o Firebase de verdade.
 ### Passo 2 — Ativar Authentication (login)
 
 1. No console, menu **Build → Authentication → Get started**.
-2. Na aba **Sign-in method**, habilite **E-mail/Senha** e salve.
+2. Na aba **Sign-in method**, habilite **E-mail/Senha** e **Google** e salve.
 3. (Opcional) Crie um usuário de teste em **Users → Add user**.
 
 ### Passo 3 — Criar o Firestore (banco NoSQL)
@@ -312,6 +314,12 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | PUT    | `/api/me`                     | Cria/atualiza o perfil (setup inicial)      |
 | GET/POST | `/api/users`                | Lista/cria usuários (admin)                 |
 | GET/PUT/DELETE | `/api/users/{id}`    | Edita/exclui usuário (admin)                |
+| GET    | `/api/users/pending`          | Usuários aguardando aprovação (admin)       |
+| POST   | `/api/users/{id}/approve`     | Aprova cadastro (define papel, opcionalmente plano) |
+| POST   | `/api/users/{id}/reject`      | Recusa cadastro (motivo; exclui a conta Firebase) |
+| POST   | `/api/users/{id}/assign-plan` | Atribui plano (snapshot das features no perfil) |
+| GET/POST | `/api/plans`               | Lista/cria planos (admin)                   |
+| GET/PUT/DELETE | `/api/plans/{id}`    | Edita/exclui plano (admin; exclusão bloqueada se em uso) |
 | GET    | `/api/students`               | Alunos do nutricionista                     |
 | GET    | `/api/students/{id}`          | Detalhe de um aluno                         |
 | PUT    | `/api/students/{id}`          | Nutricionista edita dados do próprio aluno  |
@@ -362,15 +370,31 @@ cliente não as acessa direto — as regras em `firestore.rules` negam):
   histórico do nutricionista (aluno, timeline e exportação CSV em Atividades).
 
 **Papéis** (`role`): `admin` (vê tudo), `nutritionist` (só o que criou),
-`student` (só o próprio). O nutricionista gerencia **treinos por dia da
-semana** e dietas com **refeições/alimentos**, além de duplicar treinos e
-dietas para outros alunos.
+`student` (só o próprio). **Status** (`status`): `pending_approval` (aguardando
+admin; fica bloqueado no app atrás da tela PendingApproval), `active`
+(aprovado), `rejected` (recusado — a conta Firebase é excluída, o documento
+fica para auditoria), `inactive`/`paused` (desligado manualmente). O
+nutricionista gerencia **treinos por dia da semana** e dietas com
+**refeições/alimentos**, além de duplicar treinos e dietas para outros alunos.
 
-> **Primeiro acesso (definir papéis):** todo usuário novo nasce como `student`.
-> Para "subir de cargo", edite o perfil dele no console do Firebase
-> (Firestore → `users/{uid}` → campo `role`), ou chame a API com um admin já
-> existente (painel `/admin`). Sugestão: crie o primeiro admin direto no
-> Firestore logo após o primeiro deploy.
+**Planos e features**: o admin cria **planos** (`plans/{id}`) com um pacote de
+**features** (`diet`, `community`, `ranking`, além do treino que é sempre
+liberado). Ao aprovar/atribuir um plano a um aluno, as features são
+**snapshotadas no perfil** (`features` + `planID`) — alterar o plano depois não
+muda quem já está vinculado (re-atribua quando quiser atualizar). O menu do
+aluno é filtrado pelas features do snapshot e o backend valida cada rota
+(`RequireFeature`).
+
+**Fluxo de aprovação**: usuário se cadastra (e-mail ou Google) → informa o
+nome → entra na tela de espera → o admin vê a fila em **“Pendentes”** no
+painel `/admin` → aprova definindo papel/plano (ou recusa com motivo) → o
+aluno passa a acessar o app com as features do plano.
+
+> **Primeiro acesso (definir papéis):** todo usuário novo nasce como
+> `pending_approval`. Para liberar, um **admin** aprova pelo painel `/admin`.
+> Sugestão: crie o primeiro admin direto no console do Firebase
+> (Firestore → `users/{uid}` → campo `role = "admin"`) logo após o primeiro
+> deploy, ou use o botão “Aprovar” em Pendentes com papel `admin`.
 
 ## Comandos úteis
 

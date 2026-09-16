@@ -13,12 +13,13 @@ import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
   signInWithEmailAndPassword,
+  signInWithPopup,
   signOut as fbSignOut,
 } from "firebase/auth";
-import { firebaseAuth, firebaseConfigured } from "./firebase";
+import { firebaseAuth, firebaseConfigured, googleProvider } from "./firebase";
 import { DEMO_MODE } from "./config";
 import { ApiError, getMe as apiGetMe } from "./api";
-import type { Role, UserProfile } from "./types";
+import type { Feature, Role, UserProfile } from "./types";
 
 interface AuthCtx {
   user: User | null;
@@ -26,11 +27,17 @@ interface AuthCtx {
   configured: boolean;
   profile: UserProfile | null;
   role: Role;
+  /** Feature do plano snapshotado no perfil (gate de UI; o backend valida). */
+  features: Feature[];
   /** true quando o usuário logou mas ainda não tem perfil cadastrado. */
   needsProfile: boolean;
+  /** true quando o cadastro está pendente de aprovação ou foi recusado. */
+  needsApproval: boolean;
   refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
   signup: (email: string, password: string) => Promise<User>;
+  /** Login com conta Google (popup). Cadastro novo entra como pending_approval. */
+  loginWithGoogle: () => Promise<User>;
   logout: () => Promise<void>;
   /** ID token atualizado do Firebase Auth (usado no header Authorization). */
   getToken: () => Promise<string>;
@@ -133,6 +140,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return cred.user;
   }, []);
 
+  const loginWithGoogle = useCallback(async () => {
+    if (DEMO_MODE) return DEMO_USER;
+    if (!firebaseAuth || !googleProvider) throw new Error("Firebase não configurado");
+    // Popup de conta Google. O usuário cai no fluxo normal: perfil novo →
+    // GET /api/me devolve needsProfile → criado com status pending_approval.
+    const cred = await signInWithPopup(firebaseAuth, googleProvider);
+    return cred.user;
+  }, []);
+
   const logout = useCallback(async () => {
     if (DEMO_MODE) {
       setUser(null);
@@ -161,7 +177,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     ? (profile?.role ?? "nutritionist")
     : (profile?.role ?? "student");
 
+  // Feature snapshotada no perfil (plano atribuído pelo admin).
+  const features: Feature[] = useMemo(() => profile?.features ?? [], [profile]);
+
   const needsProfile = !DEMO_MODE && !!user && profile !== null && profile.needsProfile === true;
+
+  // Cadastro pendente ou recusado → tela de espera/recusa em vez do app.
+  const needsApproval =
+    !DEMO_MODE &&
+    !!user &&
+    !!profile &&
+    (profile.status === "pending_approval" || profile.status === "rejected");
 
   const value = useMemo<AuthCtx>(
     () => ({
@@ -170,16 +196,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       configured: DEMO_MODE ? true : firebaseConfigured,
       profile,
       role,
+      features,
       needsProfile,
+      needsApproval,
       refreshProfile,
       login,
       signup,
+      loginWithGoogle,
       logout,
       getToken,
       demoAs,
       setDemoAs,
     }),
-    [user, initializing, profile, role, needsProfile, refreshProfile, login, signup, logout, getToken, demoAs]
+    [user, initializing, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, loginWithGoogle, logout, getToken, demoAs]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

@@ -3,8 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { UserProfile } from "@/lib/types";
+import type { Plan, UserProfile } from "@/lib/types";
 import { AdminSkeleton } from "@/components/Skeleton";
+import PendingApprovals from "@/components/admin/PendingApprovals";
+import PlansManager from "@/components/admin/PlansManager";
 
 const emptyUser = (): UserProfile => ({
   id: "",
@@ -12,12 +14,14 @@ const emptyUser = (): UserProfile => ({
   email: "",
   role: "student",
   status: "active",
+  planID: "",
 });
 
 export default function AdminPage() {
   const { getToken } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [nutritionists, setNutritionists] = useState<UserProfile[]>([]);
+  const [plans, setPlans] = useState<Plan[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState<UserProfile>(emptyUser());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -38,6 +42,7 @@ export default function AdminPage() {
       const all = await api.listUsers(token);
       setUsers(all);
       setNutritionists(all.filter((u) => u.role === "nutritionist" || u.role === "admin"));
+      setPlans(await api.listPlans(token));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar usuários");
@@ -56,18 +61,28 @@ export default function AdminPage() {
     setError(null);
     try {
       const token = await getToken();
+      // planID/features são definidos via assignPlan (snapshot validado no
+      // backend) — não podem ir no corpo do create/update, que sobrescreveria
+      // ou limparia o snapshot atual.
+      const payload: UserProfile = { ...form };
+      delete payload.planID;
+      delete payload.features;
+      const targetId = editingId ?? payload.id;
       if (editingId) {
-        const p: UserProfile = { ...form, id: editingId };
-        await api.updateUser(editingId, p, token);
+        await api.updateUser(editingId, { ...payload, id: editingId }, token);
         showToast("✓ Usuário atualizado");
       } else {
-        if (!form.id.trim()) {
+        if (!targetId.trim()) {
           setError("O campo ID (uid do Firebase) é obrigatório");
           setBusy(false);
           return;
         }
-        await api.createUser(form, token);
+        await api.createUser(payload, token);
         showToast("✓ Usuário criado");
+      }
+      // Atribui plano (e snapshot das features) quando o admin escolheu um.
+      if (form.role === "student" && form.planID) {
+        await api.assignPlan(targetId, form.planID, token);
       }
       setForm(emptyUser());
       setEditingId(null);
@@ -118,6 +133,10 @@ export default function AdminPage() {
 
       {error && <div className="err-text">{error}</div>}
       {toast && <div id="toast" className="show">{toast}</div>}
+
+      {/* Fila de aprovação + planos (novos blocos admin) */}
+      <PendingApprovals />
+      <PlansManager />
 
       {/* Formulário criar/editar */}
       <div className="frm-card">
@@ -180,12 +199,34 @@ export default function AdminPage() {
             </select>
           </div>
         )}
+        {form.role === "student" && (
+          <div className="frm-row" style={{ marginTop: 10 }}>
+            <label>Plano (features liberadas)</label>
+            <select
+              value={form.planID ?? ""}
+              onChange={(e) => setForm({ ...form, planID: e.target.value })}
+            >
+              <option value="">— Sem plano —</option>
+              {plans
+                .filter((p) => p.active)
+                .map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.name}
+                    {p.features?.length ? ` (${p.features.join(", ")})` : ""}
+                  </option>
+                ))}
+            </select>
+            <div className="page-sub">
+              O plano é aplicado via atribuição e fixa as features no perfil do aluno.
+            </div>
+          </div>
+        )}
         <div className="frm-row-inline">
           <div className="frm-row">
             <label>Status</label>
             <select
               value={form.status ?? "active"}
-              onChange={(e) => setForm({ ...form, status: e.target.value })}
+              onChange={(e) => setForm({ ...form, status: e.target.value as UserProfile["status"] })}
             >
               <option value="active">Ativo</option>
               <option value="paused">Pausado</option>

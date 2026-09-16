@@ -21,13 +21,20 @@ function friendly(code?: string): string {
       return "Muitas tentativas — aguarde um pouco.";
     case "auth/network-request-failed":
       return "Falha de conexão.";
+    case "auth/popup-closed-by-user":
+    case "auth/cancelled-popup-request":
+      return "Janela fechada antes de concluir o login. Tente novamente.";
+    case "auth/account-exists-with-different-credential":
+      return "Já existe uma conta com este e-mail (senha). Entre com e-mail e senha.";
+    case "auth/popup-blocked":
+      return "O navegador bloqueou o popup do Google. Permita popups e tente novamente.";
     default:
       return "Não foi possível entrar. Tente novamente.";
   }
 }
 
 export default function LoginPage() {
-  const { user, initializing, configured, login, signup } = useAuth();
+  const { user, initializing, configured, login, signup, loginWithGoogle } = useAuth();
   const router = useRouter();
   const [mode, setMode] = useState<"login" | "signup">("login");
   const [email, setEmail] = useState("");
@@ -56,6 +63,18 @@ export default function LoginPage() {
     }
   };
 
+  const handleGoogle = async () => {
+    setError(null);
+    setBusy(true);
+    try {
+      await loginWithGoogle();
+    } catch (err) {
+      setError(friendly((err as { code?: string })?.code));
+    } finally {
+      setBusy(false);
+    }
+  };
+
   return (
     <div className="login-wrap">
       <div className="login-logo">
@@ -76,6 +95,38 @@ export default function LoginPage() {
 
       <form className="login-card" onSubmit={submit}>
         {error && <div className="login-err">{error}</div>}
+        {/* Login com conta Google (cadastro novo já cai no fluxo de aprovação) */}
+        <button
+          type="button"
+          className="btn-google"
+          disabled={busy}
+          onClick={() => void handleGoogle()}
+        >
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true">
+            <path
+              fill="#FFC107"
+              d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"
+            />
+            <path
+              fill="#FF3D00"
+              d="M6.306 14.691l6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"
+            />
+            <path
+              fill="#4CAF50"
+              d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"
+            />
+            <path
+              fill="#1976D2"
+              d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"
+            />
+          </svg>
+          {busy ? "Aguarde…" : "Entrar com Google"}
+        </button>
+
+        <div className="login-divider" role="separator">
+          <span>ou continue com e-mail</span>
+        </div>
+
         <div className="inp-row">
           <label>E-mail</label>
           <input

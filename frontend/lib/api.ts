@@ -4,6 +4,7 @@
 // No modo demo (NEXT_PUBLIC_DEMO=1) simula tudo em localStorage, sem rede.
 import type {
   AppState,
+  ApproveUserRequest,
   CommentRequest,
   CompleteWorkoutRequest,
   CreatePostRequest,
@@ -11,11 +12,13 @@ import type {
   DietDailyLog,
   DuplicateRequest,
   MealCheck,
+  Plan,
   Post,
   PostsPage,
   PRs,
   PublicProfile,
   RankingResponse,
+  RejectUserRequest,
   Role,
   ScoreHistoryEntry,
   SessionData,
@@ -45,6 +48,7 @@ const LS_KEY = {
   dietLogs: "ll_demo_diet_logs",
   scores: "ll_demo_scores",
   scoreHistory: "ll_demo_score_history",
+  plans: "ll_demo_plans",
 };
 
 function getJSON<T>(key: string): T | null {
@@ -71,7 +75,7 @@ function setJSON(key: string, value: unknown) {
 // papel realmente ativo (aluno ou nutricionista), nunca a um id fixo.
 function demoMe(
   token: string
-): { id: string; name: string; email: string; role: Role; nutritionistID?: string; status: string } {
+): { id: string; name: string; email: string; role: Role; nutritionistID?: string; status: UserProfile["status"] } {
   const id = token && token.startsWith("demo:") ? token.slice("demo:".length) : "demo-user";
   if (id === "student-joao") {
     return {
@@ -800,6 +804,140 @@ export function updateUser(id: string, p: UserProfile, token: string): Promise<v
 
 export function deleteUser(id: string, token: string): Promise<void> {
   return request<void>(`/api/users/${id}`, token, { method: "DELETE" });
+}
+
+// ── Aprovação de cadastro + planos (admin) ─────────────────────────────────
+
+// Fila de cadastros aguardando aprovação.
+export function listPendingUsers(token: string): Promise<UserProfile[]> {
+  if (DEMO_MODE) {
+    return Promise.resolve([]);
+  }
+  return request<UserProfile[]>("/api/users/pending", token);
+}
+
+// Aprova um cadastro, define papel e (para aluno) plano com snapshot de features.
+export function approveUser(
+  id: string,
+  req: ApproveUserRequest,
+  token: string
+): Promise<void> {
+  if (DEMO_MODE) {
+    demoApproveLike(id, { ...req, status: "active" });
+    return Promise.resolve();
+  }
+  return request<void>(`/api/users/${id}/approve`, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// Recusa o cadastro (marca rejected e exclui a conta do Firebase Auth).
+export function rejectUser(
+  id: string,
+  req: RejectUserRequest,
+  token: string
+): Promise<void> {
+  if (DEMO_MODE) {
+    demoApproveLike(id, { role: "student", status: "rejected", rejectedReason: req.reason });
+    return Promise.resolve();
+  }
+  return request<void>(`/api/users/${id}/reject`, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// Troca o plano (e o snapshot de features) de um aluno já aprovado.
+export function assignPlan(id: string, planID: string, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const plans = getJSON<Plan[]>(LS_KEY.plans) ?? [];
+    const plan = plans.find((p) => p.id === planID);
+    updateStudent(
+      id,
+      { planID, features: plan?.features ?? [] },
+      "demo-token"
+    );
+    return Promise.resolve();
+  }
+  return request<void>(`/api/users/${id}/assign-plan`, token, {
+    method: "POST",
+    body: JSON.stringify({ planID }),
+  });
+}
+
+// Planos (pacotes de features).
+export function listPlans(token: string): Promise<Plan[]> {
+  if (DEMO_MODE) {
+    let plans = getJSON<Plan[]>(LS_KEY.plans);
+    if (!plans || plans.length === 0) {
+      plans = [
+        {
+          id: "plano-basico",
+          name: "Básico",
+          description: "Somente treinos (tier gratuito)",
+          features: ["workouts"],
+          active: true,
+        },
+        {
+          id: "plano-completo",
+          name: "Completo",
+          description: "Treinos + dietas + comunidade + ranking",
+          features: ["workouts", "diet", "community", "ranking"],
+          active: true,
+        },
+      ];
+      setJSON(LS_KEY.plans, plans);
+    }
+    return Promise.resolve(plans);
+  }
+  return request<Plan[]>("/api/plans", token);
+}
+
+export function createPlan(p: Plan, token: string): Promise<Plan> {
+  if (DEMO_MODE) {
+    const plans = getJSON<Plan[]>(LS_KEY.plans) ?? [];
+    const neu: Plan = { ...p, id: `plano-${Date.now()}` };
+    setJSON(LS_KEY.plans, [neu, ...plans]);
+    return Promise.resolve(neu);
+  }
+  return request<Plan>("/api/plans", token, {
+    method: "POST",
+    body: JSON.stringify(p),
+  });
+}
+
+export function updatePlan(id: string, p: Plan, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const plans = getJSON<Plan[]>(LS_KEY.plans) ?? [];
+    setJSON(
+      LS_KEY.plans,
+      plans.map((x) => (x.id === id ? { ...x, ...p, id } : x))
+    );
+    return Promise.resolve();
+  }
+  return request<void>(`/api/plans/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(p),
+  });
+}
+
+export function deletePlan(id: string, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const plans = getJSON<Plan[]>(LS_KEY.plans) ?? [];
+    setJSON(LS_KEY.plans, plans.filter((x) => x.id !== id));
+    return Promise.resolve();
+  }
+  return request<void>(`/api/plans/${id}`, token, { method: "DELETE" });
+}
+
+// Modo demo: aplica o approve/reject na lista local de alunos (seed).
+function demoApproveLike(id: string, patch: Partial<UserProfile>): void {
+  const students = getJSON<UserProfile[]>(LS_KEY.students) ?? [];
+  const idx = students.findIndex((s) => s.id === id);
+  if (idx === -1) return;
+  students[idx] = { ...students[idx], ...patch, id };
+  setJSON(LS_KEY.students, students);
 }
 
 // ── Treinos ──

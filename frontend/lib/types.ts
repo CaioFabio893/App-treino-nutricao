@@ -59,6 +59,34 @@ export interface Phase {
 
 export type Role = "admin" | "nutritionist" | "student";
 
+/** Situação do cadastro: pendente de aprovação, ativo, pausado, inativo ou recusado. */
+export type Status = "pending_approval" | "active" | "paused" | "inactive" | "rejected";
+
+/** Funcionalidades que um plano pode liberar para o aluno. */
+export type Feature = "workouts" | "diet" | "community" | "ranking";
+
+/** Catálogo de features para o CRUD de planos do admin (checkboxes). */
+export const FEATURES: { value: Feature; label: string; desc: string }[] = [
+  { value: "workouts", label: "Treinos", desc: "Treinos e histórico (tier gratuito)" },
+  { value: "diet", label: "Dietas", desc: "Planos alimentares e dieta diária" },
+  { value: "community", label: "Comunidade", desc: "Feed social com outros alunos" },
+  { value: "ranking", label: "Ranking", desc: "Ranking e perfil público pontuado" },
+];
+
+/**
+ * Plano = pacote de features snapshotado no perfil no momento da atribuição.
+ * O backend aplica o gate pelas features; a UI só esconde por UX.
+ */
+export interface Plan {
+  id?: string;
+  name: string;
+  description?: string;
+  features: Feature[];
+  active: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface UserProfile {
   id: string;
   name: string;
@@ -69,9 +97,34 @@ export interface UserProfile {
   nutritionistID?: string;
   startDate?: string;
   endDate?: string;
-  status?: string;
+  status?: Status;
+  /** Snapshot das features do plano atribuído pelo admin. */
+  features?: Feature[];
+  planID?: string;
+  /** "password" | "google.com" — preenchido no cadastro. */
+  authProvider?: string;
+  approvedBy?: string;
+  approvedAt?: string;
+  rejectedReason?: string;
   createdAt?: string;
+  /** true quando o usuário logou mas ainda não criou o perfil (nome). */
   needsProfile?: boolean;
+  /** true quando o cadastro está pendente de aprovação ou recusado. */
+  needsApproval?: boolean;
+}
+
+export interface ApproveUserRequest {
+  role: Role;
+  planID?: string;
+  nutritionistID?: string;
+}
+
+export interface RejectUserRequest {
+  reason?: string;
+}
+
+export interface AssignPlanRequest {
+  planID: string;
 }
 
 export interface WorkoutExercise {

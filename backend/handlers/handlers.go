@@ -10,6 +10,8 @@ import (
 	"strconv"
 	"time"
 
+	firebaseAuth "firebase.google.com/go/v4/auth"
+
 	"treino-louise/backend/middleware"
 	"treino-louise/backend/models"
 	"treino-louise/backend/repository"
@@ -17,15 +19,18 @@ import (
 )
 
 // Handlers agrupa os casos de uso HTTP. svc concentra as regras de negócio;
-// repo é usado pelos handlers que são CRUD fino (leitura/gravação direta).
+// repo é usado pelos handlers que são CRUD fino (leitura/gravação direta) e
+// auth (Admin SDK) é usado para excluir contas do Firebase Auth quando um
+// cadastro é recusado ou um usuário é excluído.
 type Handlers struct {
 	svc  *service.Service
 	repo repository.Repository
+	auth *firebaseAuth.Client
 }
 
 // New constrói os handlers com as dependências injetadas.
-func New(svc *service.Service, repo repository.Repository) *Handlers {
-	return &Handlers{svc: svc, repo: repo}
+func New(svc *service.Service, repo repository.Repository, auth *firebaseAuth.Client) *Handlers {
+	return &Handlers{svc: svc, repo: repo, auth: auth}
 }
 
 func writeJSON(w http.ResponseWriter, status int, v any) {

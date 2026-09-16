@@ -3,7 +3,7 @@
 // Inicialização do Firebase (lado do cliente).
 // As variáveis NEXT_PUBLIC_FIREBASE_* vêm do arquivo frontend/.env.local.
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
+import { getAuth, GoogleAuthProvider } from "firebase/auth";
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -25,3 +25,7 @@ const app = firebaseConfigured
   : null;
 
 export const firebaseAuth = app ? getAuth(app) : null;
+
+// Provider de login com Google (usuários de telefone). Usado no botão
+// "Entrar com Google" da tela de login e no fluxo de cadastro novo.
+export const googleProvider = app ? new GoogleAuthProvider() : null;

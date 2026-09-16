@@ -16,8 +16,13 @@ import (
 
 type contextKey string
 
-const uidKey contextKey = "uid"
-const roleKey contextKey = "role"
+const (
+	uidKey       contextKey = "uid"
+	roleKey      contextKey = "role"
+	statusKey    contextKey = "status"
+	featuresKey  contextKey = "features"
+	providerKey  contextKey = "authProvider"
+)
 
 // Auth valida o token do Firebase Auth e injeta uid+role no contexto.
 type Auth struct {
@@ -32,7 +37,8 @@ func NewAuth(auth *firebaseAuth.Client, repo repository.Repository) *Auth {
 
 // Require exige um ID token válido do Firebase Auth no header Authorization.
 // O frontend manda "Authorization: Bearer <idToken>" em todas as chamadas.
-// Também carrega o perfil (role) do usuário no contexto, caso exista.
+// Também carrega o perfil (role/status/features/provider) do usuário no
+// contexto, caso exista.
 func (a *Auth) Require(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		raw := r.Header.Get("Authorization")
@@ -50,17 +56,36 @@ func (a *Auth) Require(next http.HandlerFunc) http.HandlerFunc {
 
 		ctx := context.WithValue(r.Context(), uidKey, verified.UID)
 
-		// Carrega o perfil (role) do usuário — se não existir, usa "student".
+		// Carrega o perfil do usuário. Se NÃO existir, o acesso é tratado como
+		// pendente de aprovação (status pending_approval) — nenhuma rota de
+		// negócio libera acesso até o admin aprovar. Perfis antigos sem campo
+		// status (status "") seguem liberados (IsApproved aceita "").
 		profile, err := a.repo.GetUserProfile(r.Context(), verified.UID)
 		if err != nil {
 			http.Error(w, `{"error":"falha ao carregar perfil"}`, http.StatusInternalServerError)
 			return
 		}
-		role := models.RoleStudent
-		if profile != nil && profile.Role != "" {
+
+		status := models.StatusPendingApproval
+		var role models.Role
+		var features []models.Feature
+		provider := ""
+		if profile != nil {
+			status = profile.Status
 			role = profile.Role
+			features = profile.Features
+			provider = profile.AuthProvider
 		}
+		// O provider também pode vir da claim do token Firebase (cadastro novo
+		// que ainda não tem perfil).
+		if provider == "" && verified.Firebase.SignInProvider != "" {
+			provider = verified.Firebase.SignInProvider
+		}
+
 		ctx = context.WithValue(ctx, roleKey, role)
+		ctx = context.WithValue(ctx, statusKey, status)
+		ctx = context.WithValue(ctx, featuresKey, features)
+		ctx = context.WithValue(ctx, providerKey, provider)
 
 		next(w, r.WithContext(ctx))
 	}
@@ -82,6 +107,49 @@ func (a *Auth) Allow(roles ...models.Role) func(http.HandlerFunc) http.HandlerFu
 	}
 }
 
+// RequireApproved bloqueia usuários cujo cadastro ainda não foi aprovado
+// (status pending_approval/rejected) e usuários sem perfil. Envolve todas as
+// rotas de negócio — só GET/PUT /api/me ficam liberadas para pendentes.
+func (a *Auth) RequireApproved(next http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if !IsApproved(r.Context()) {
+			http.Error(w, `{"error":"cadastro pendente de aprovacao"}`, http.StatusForbidden)
+			return
+		}
+		next(w, r)
+	}
+}
+
+// RequireFeature bloqueia alunos cujo plano não inclui a feature dada. Admin e
+// nutricionista sempre passam (gerenciam o conteúdo, não são limitados por plano).
+func (a *Auth) RequireFeature(f models.Feature) func(http.HandlerFunc) http.HandlerFunc {
+	return func(next http.HandlerFunc) http.HandlerFunc {
+		return func(w http.ResponseWriter, r *http.Request) {
+			role := RoleFrom(r.Context())
+			if role == models.RoleAdmin || role == models.RoleNutritionist {
+				next(w, r)
+				return
+			}
+			features, _ := r.Context().Value(featuresKey).([]models.Feature)
+			for _, ft := range features {
+				if ft == f {
+					next(w, r)
+					return
+				}
+			}
+			http.Error(w, `{"error":"recurso nao incluido no seu plano"}`, http.StatusForbidden)
+		}
+	}
+}
+
+// IsApproved devolve true quando o usuário pode acessar rotas de negócio.
+// "" cobre perfis antigos (migrados sem status explícito) — não quebra
+// usuários já ativos hoje.
+func IsApproved(ctx context.Context) bool {
+	status, _ := ctx.Value(statusKey).(string)
+	return status == "" || status == models.StatusActive || status == models.StatusPaused
+}
+
 // UIDFrom devolve o UID do usuário autenticado (definido pelo Require).
 func UIDFrom(ctx context.Context) string {
 	uid, _ := ctx.Value(uidKey).(string)
@@ -95,4 +163,16 @@ func RoleFrom(ctx context.Context) models.Role {
 		return models.RoleStudent
 	}
 	return role
+}
+
+// FeaturesFrom devolve as features snapshotadas no perfil do usuário.
+func FeaturesFrom(ctx context.Context) []models.Feature {
+	features, _ := ctx.Value(featuresKey).([]models.Feature)
+	return features
+}
+
+// AuthProviderFrom devolve o provedor de login ("password" | "google.com").
+func AuthProviderFrom(ctx context.Context) string {
+	provider, _ := ctx.Value(providerKey).(string)
+	return provider
 }

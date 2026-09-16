@@ -11,6 +11,7 @@ import type {
   Diet,
   WorkoutHistoryEntry,
   DietDailyLog,
+  Status,
 } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
 
@@ -245,7 +246,9 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
               <label className="frm-label">Status</label>
               <select
                 value={editForm.status}
-                onChange={(e) => setEditForm({ ...editForm, status: e.target.value })}
+                onChange={(e) =>
+                  setEditForm({ ...editForm, status: e.target.value as Status })
+                }
               >
                 <option value="active">Ativo</option>
                 <option value="inactive">Inativo</option>

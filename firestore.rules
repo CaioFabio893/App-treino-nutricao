@@ -5,21 +5,30 @@
 // caso alguém conecte o Firestore direto pelo cliente no futuro.
 //
 // Regras por coleção:
-//   - users/{uid}/...        → apenas o dono (modo original + perfil)
-//   - posts/{postId}         → leitura p/ autenticados; autor cria/edita/apaga;
-//                              nutricionista/admin podem moderar (editar/apagar)
-//   - dietLogs/{docId}       → dono do log e seu nutricionista leem; aluno/admin
-//                              escrevem (o aluno só o próprio)
+//   - users/{uid}             → dono lê/escreve o próprio perfil, mas campos
+//                               administrativos (role, status, planID, features)
+//                               só mudam via admin; admin também lê e exclui
+//   - users/{uid}/{sub}/...   → apenas o dono (modo original: sessions, prs, state)
+//   - posts/{postId}          → leitura p/ autenticados; autor cria/edita/apaga;
+//                               nutricionista/admin podem moderar (editar/apagar)
+//   - dietLogs/{docId}        → dono do log e seu nutricionista leem; aluno/admin
+//                               escrevem (o aluno só o próprio)
 //   - workouts, diets,
-//     workoutHistory         → NEGADO para clientes (só a API Go acessa)
-//   - scores/{uid}           → leitura p/ autenticados; escrita só API
-//   - scores_history/{uid}   → leitura p/ dono + nutricionista/admin; escrita só API
+//     workoutHistory          → NEGADO para clientes (só a API Go acessa)
+//   - plans/{planId}          → leitura p/ autenticados; escrita só admin
+//   - scores/{uid}            → leitura p/ autenticados; escrita só API
+//   - scores_history/{uid}    → leitura p/ dono + nutricionista/admin; escrita só API
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
+    }
+
+    function isAdmin() {
+      return request.auth != null &&
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
 
     function isModerator() {
@@ -40,7 +49,28 @@ service cloud.firestore {
              (me.role == 'nutritionist' && get(/databases/$(database)/documents/users/$(studentId)).data.nutritionistID == request.auth.uid);
     }
 
-    match /users/{uid}/{document=**} {
+    // Bloqueia que o PRÓPRIO aluno altere campos administrativos escrevendo
+    // direto no Firestore (role/status/planID/features só mudam via admin).
+    // A API Go usa Admin SDK e ignora estas regras — é proteção extra para
+    // acesso direto pelo cliente.
+    function sensitiveChanged() {
+      return resource.data.role != request.resource.data.role ||
+             resource.data.status != request.resource.data.status ||
+             resource.data.planID != request.resource.data.planID ||
+             resource.data.features != request.resource.data.features;
+    }
+
+    // Perfil do usuário: dono lê/escreve dados próprios (SEM campos
+    // administrativos); admin lê, escreve e exclui.
+    match /users/{uid} {
+      allow read: if request.auth != null && (isOwner(uid) || isAdmin());
+      allow create: if isOwner(uid);
+      allow update: if isAdmin() || (isOwner(uid) && !sensitiveChanged());
+      allow delete: if isAdmin();
+    }
+
+    // Modo original (sessions, prs, state): só o dono acessa.
+    match /users/{uid}/{subcollection}/{docId} {
       allow read, write: if isOwner(uid);
     }
 
@@ -71,6 +101,12 @@ service cloud.firestore {
     }
     match /workoutHistory/{document=**} {
       allow read, write: if false;
+    }
+
+    // Planos (pacotes de features): clientes leem; só o admin cria/edita/exclui.
+    match /plans/{planId} {
+      allow read: if request.auth != null;
+      allow write: if isAdmin();
     }
 
     // Nota corrente: todos os autenticados leem (ranking); escrita só da API.

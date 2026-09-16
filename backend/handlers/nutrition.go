@@ -14,6 +14,9 @@ import (
 // ── Perfil do usuário logado ──
 
 // HandleGetMe devolve o perfil do usuário autenticado (com `id` preenchido).
+// Sem perfil, devolve um perfil "virtual" pendente de aprovação: o frontend usa
+// needsProfile (monta o ProfileSetup) e needsApproval (tela de espera) para
+// decidir o próximo passo — o perfil real só é criado no PUT /api/me.
 func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
 	prof, err := h.repo.GetUserProfile(r.Context(), uid)
@@ -23,16 +26,22 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	}
 	if prof == nil {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"id":           uid,
-			"role":         string(models.RoleStudent),
-			"needsProfile": true,
+			"id":            uid,
+			"role":          "",
+			"status":        models.StatusPendingApproval,
+			"authProvider":  middleware.AuthProviderFrom(r.Context()),
+			"needsProfile":  true,
+			"needsApproval": true,
 		})
 		return
 	}
 	writeJSON(w, http.StatusOK, prof)
 }
 
-// HandlePutMe atualiza o perfil do usuário autenticado.
+// HandlePutMe atualiza o perfil do usuário autenticado (só dados de perfil).
+// role/status/planID/features são definidos pelo admin no fluxo de aprovação —
+// o cliente jamais envia esses campos por aqui. Perfil novo é criado como
+// pending_approval (via GetOrCreateProfile).
 func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
 	var p models.UserProfile
@@ -40,8 +49,14 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	// Não permite trocar role por si mesmo via /me (só admin gerencia roles).
-	p.Role = "" // força o default (student) em perfis novos; preserva o existente.
+	// Não permite trocar role/status/plano por si mesmo via /me.
+	p.Role = ""
+	p.Status = ""
+	p.PlanID = ""
+	p.Features = nil
+	if p.AuthProvider == "" {
+		p.AuthProvider = middleware.AuthProviderFrom(r.Context())
+	}
 	if err := h.svc.GetOrCreateProfile(r.Context(), uid, &p); err != nil {
 		http.Error(w, "falha ao salvar perfil", http.StatusInternalServerError)
 		return
@@ -171,11 +186,20 @@ func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{"ok": true})
 }
 
+// HandleDeleteUser exclui o perfil do Firestore e a conta do Firebase Auth
+// (decisão SB-001: exclusão administrativa também derruba o login da pessoa).
 func (h *Handlers) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if err := h.repo.DeleteUserProfile(r.Context(), id); err != nil {
 		http.Error(w, "falha ao excluir usuario", http.StatusInternalServerError)
 		return
+	}
+	if h.auth != nil {
+		if err := h.auth.DeleteUser(r.Context(), id); err != nil {
+			// Perfil já removido; só reporta que a conta externa sobra órfã.
+			http.Error(w, `{"error":"perfil excluido, mas falha ao excluir conta Firebase"}`, http.StatusInternalServerError)
+			return
+		}
 	}
 	w.WriteHeader(http.StatusNoContent)
 }
