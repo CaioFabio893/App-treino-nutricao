@@ -52,80 +52,7 @@ func main() {
 	a := middleware.NewAuth(authClient, db)
 
 	mux := http.NewServeMux()
-	mux.HandleFunc("GET /health", h.HandleHealth)
-
-	// ── Modo original (preservado) — exige cadastro aprovado ──
-	mux.HandleFunc("GET /api/sessions/{week}/{day}", a.RequireApproved(a.Require(h.HandleGetSession)))
-	mux.HandleFunc("PUT /api/sessions/{week}/{day}", a.RequireApproved(a.Require(h.HandlePutSession)))
-	mux.HandleFunc("GET /api/prs", a.RequireApproved(a.Require(h.HandleGetPRs)))
-	mux.HandleFunc("PUT /api/prs", a.RequireApproved(a.Require(h.HandlePutPRs)))
-	mux.HandleFunc("GET /api/state", a.RequireApproved(a.Require(h.HandleGetState)))
-	mux.HandleFunc("PUT /api/state", a.RequireApproved(a.Require(h.HandlePutState)))
-
-	// ── Perfil do usuário logado (livre para pendentes: é aqui que o cadastro começa) ──
-	mux.HandleFunc("GET /api/me", a.Require(h.HandleGetMe))
-	mux.HandleFunc("PUT /api/me", a.Require(h.HandlePutMe))
-
-	// ── Usuários (admin) ──
-	mux.HandleFunc("GET /api/users", a.Allow(models.RoleAdmin)(a.Require(h.HandleListUsers)))
-	mux.HandleFunc("POST /api/users", a.Allow(models.RoleAdmin)(a.Require(h.HandleCreateUser)))
-	mux.HandleFunc("GET /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleGetUser)))
-	mux.HandleFunc("PUT /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleUpdateUser)))
-	mux.HandleFunc("DELETE /api/users/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleDeleteUser)))
-
-	// ── Aprovação de cadastro + atribuição de plano (admin) ──
-	mux.HandleFunc("GET /api/users/pending", a.Allow(models.RoleAdmin)(a.Require(h.HandleListPendingUsers)))
-	mux.HandleFunc("POST /api/users/{id}/approve", a.Allow(models.RoleAdmin)(a.Require(h.HandleApproveUser)))
-	mux.HandleFunc("POST /api/users/{id}/reject", a.Allow(models.RoleAdmin)(a.Require(h.HandleRejectUser)))
-	mux.HandleFunc("POST /api/users/{id}/assign-plan", a.Allow(models.RoleAdmin)(a.Require(h.HandleAssignPlan)))
-
-	// ── Planos (features) — CRUD admin ──
-	mux.HandleFunc("GET /api/plans", a.Allow(models.RoleAdmin)(a.Require(h.HandleListPlans)))
-	mux.HandleFunc("POST /api/plans", a.Allow(models.RoleAdmin)(a.Require(h.HandleCreatePlan)))
-	mux.HandleFunc("PUT /api/plans/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleUpdatePlan)))
-	mux.HandleFunc("DELETE /api/plans/{id}", a.Allow(models.RoleAdmin)(a.Require(h.HandleDeletePlan)))
-
-	// ── Alunos ──
-	mux.HandleFunc("GET /api/students", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleListMyStudents)))
-	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
-	mux.HandleFunc("PUT /api/students/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.Require(h.HandleUpdateStudent)))
-
-	// ── Treinos (free tier — só exige cadastro aprovado) ──
-	mux.HandleFunc("GET /api/workouts", a.RequireApproved(a.Require(h.HandleListWorkouts)))
-	mux.HandleFunc("POST /api/workouts", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleCreateWorkout))))
-	mux.HandleFunc("GET /api/workouts/{id}", a.RequireApproved(a.Require(h.HandleGetWorkout)))
-	mux.HandleFunc("PUT /api/workouts/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleUpdateWorkout))))
-	mux.HandleFunc("DELETE /api/workouts/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleDeleteWorkout))))
-	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleDuplicateWorkout))))
-
-	// ── Dietas (feature diet) ──
-	mux.HandleFunc("GET /api/diets", a.RequireFeature(models.FeatureDiet)(a.RequireApproved(a.Require(h.HandleListDiets))))
-	mux.HandleFunc("POST /api/diets", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleCreateDiet))))
-	mux.HandleFunc("GET /api/diets/{id}", a.RequireFeature(models.FeatureDiet)(a.RequireApproved(a.Require(h.HandleGetDiet))))
-	mux.HandleFunc("PUT /api/diets/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleUpdateDiet))))
-	mux.HandleFunc("DELETE /api/diets/{id}", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleDeleteDiet))))
-	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(a.Require(h.HandleDuplicateDiet))))
-
-	// ── Histórico (free tier) ──
-	mux.HandleFunc("GET /api/workout-history", a.RequireApproved(a.Require(h.HandleListHistory)))
-	mux.HandleFunc("POST /api/workouts/complete", a.RequireApproved(a.Require(h.HandleCompleteWorkout)))
-
-	// ── Rede social (feature community) ──
-	mux.HandleFunc("POST /api/posts", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleCreatePost))))
-	mux.HandleFunc("GET /api/posts", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleListPosts))))
-	mux.HandleFunc("POST /api/posts/{id}/like", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleToggleLike))))
-	mux.HandleFunc("POST /api/posts/{id}/comments", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleAddComment))))
-	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleDeleteComment))))
-	mux.HandleFunc("DELETE /api/posts/{id}", a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(a.Require(h.HandleDeletePost))))
-
-	// ── Dieta diária (dia + refeição) — feature diet ──
-	mux.HandleFunc("GET /api/diet-logs", a.RequireFeature(models.FeatureDiet)(a.RequireApproved(a.Require(h.HandleListDietLogs))))
-	mux.HandleFunc("PUT /api/diet-logs", a.RequireFeature(models.FeatureDiet)(a.RequireApproved(a.Require(h.HandleUpsertDietLog))))
-
-	// ── Ranking / pontuação / perfil público (feature ranking) ──
-	mux.HandleFunc("GET /api/ranking", a.RequireFeature(models.FeatureRanking)(a.RequireApproved(a.Require(h.HandleGetRanking))))
-	mux.HandleFunc("GET /api/scores/history", a.RequireFeature(models.FeatureRanking)(a.RequireApproved(a.Require(h.HandleGetScoreHistory))))
-	mux.HandleFunc("GET /api/public/profile/{id}", a.RequireFeature(models.FeatureRanking)(a.RequireApproved(a.Require(h.HandleGetPublicProfile))))
+	registerRoutes(mux, h, a)
 
 	port := os.Getenv("PORT")
 	if port == "" {
@@ -188,4 +115,104 @@ func main() {
 	if err := firestoreClient.Close(); err != nil {
 		log.Printf("Firestore close: %v", err)
 	}
+}
+
+// ── Registro de rotas + composição da cadeia de autenticação/autorização ──
+//
+// ORDEM OBRIGATÓRIA (causa raiz do 403 em produção — ver diagnóstico):
+//
+//	Firebase ID Token
+//	      ↓
+//	Require                 ← SEMPRE o middleware mais externo (roda primeiro)
+//	      ↓
+//	carrega users/{uid}     ← role/status/features são injetados no contexto
+//	      ↓
+//	Allow / RequireApproved / RequireFeature   ← gates leem o contexto populado
+//	      ↓
+//	handler
+//
+// O http.ServeMux executa o wrapper mais externo primeiro. Então, nas
+// composições abaixo, `a.Require(...)` fica SEMPRE por fora dos gates. A forma
+// errada `Allow(...)(Require(...))` faz o gate rodar ANTES do Require
+// popular o contexto — RoleFrom() devolve "student" e o status lido é ""
+// (aprovado por compatibilidade), quebrando a autorização (403 até para
+// ADMIN, e pendentes passando em rotas de negócio).
+//
+// registerRoutes é separado de main() para que os testes de integração
+// (main_test.go) exercitem exatamente esta composição real, sem Firebase.
+func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth) {
+	mux.HandleFunc("GET /health", h.HandleHealth)
+
+	// ── Modo original (preservado) — exige cadastro aprovado ──
+	mux.HandleFunc("GET /api/sessions/{week}/{day}", a.Require(a.RequireApproved(h.HandleGetSession)))
+	mux.HandleFunc("PUT /api/sessions/{week}/{day}", a.Require(a.RequireApproved(h.HandlePutSession)))
+	mux.HandleFunc("GET /api/prs", a.Require(a.RequireApproved(h.HandleGetPRs)))
+	mux.HandleFunc("PUT /api/prs", a.Require(a.RequireApproved(h.HandlePutPRs)))
+	mux.HandleFunc("GET /api/state", a.Require(a.RequireApproved(h.HandleGetState)))
+	mux.HandleFunc("PUT /api/state", a.Require(a.RequireApproved(h.HandlePutState)))
+
+	// ── Perfil do usuário logado (livre para pendentes: é aqui que o cadastro começa) ──
+	mux.HandleFunc("GET /api/me", a.Require(h.HandleGetMe))
+	mux.HandleFunc("PUT /api/me", a.Require(h.HandlePutMe))
+
+	// ── Usuários (admin) ──
+	mux.HandleFunc("GET /api/users", a.Require(a.Allow(models.RoleAdmin)(h.HandleListUsers)))
+	mux.HandleFunc("POST /api/users", a.Require(a.Allow(models.RoleAdmin)(h.HandleCreateUser)))
+	mux.HandleFunc("GET /api/users/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleGetUser)))
+	mux.HandleFunc("PUT /api/users/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdateUser)))
+	mux.HandleFunc("DELETE /api/users/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleDeleteUser)))
+
+	// ── Aprovação de cadastro + atribuição de plano (admin) ──
+	mux.HandleFunc("GET /api/users/pending", a.Require(a.Allow(models.RoleAdmin)(h.HandleListPendingUsers)))
+	mux.HandleFunc("POST /api/users/{id}/approve", a.Require(a.Allow(models.RoleAdmin)(h.HandleApproveUser)))
+	mux.HandleFunc("POST /api/users/{id}/reject", a.Require(a.Allow(models.RoleAdmin)(h.HandleRejectUser)))
+	mux.HandleFunc("POST /api/users/{id}/assign-plan", a.Require(a.Allow(models.RoleAdmin)(h.HandleAssignPlan)))
+
+	// ── Planos (features) — CRUD admin ──
+	mux.HandleFunc("GET /api/plans", a.Require(a.Allow(models.RoleAdmin)(h.HandleListPlans)))
+	mux.HandleFunc("POST /api/plans", a.Require(a.Allow(models.RoleAdmin)(h.HandleCreatePlan)))
+	mux.HandleFunc("PUT /api/plans/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdatePlan)))
+	mux.HandleFunc("DELETE /api/plans/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleDeletePlan)))
+
+	// ── Alunos ──
+	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(h.HandleListMyStudents)))
+	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
+	mux.HandleFunc("PUT /api/students/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(h.HandleUpdateStudent)))
+
+	// ── Treinos (free tier — só exige cadastro aprovado) ──
+	mux.HandleFunc("GET /api/workouts", a.Require(a.RequireApproved(h.HandleListWorkouts)))
+	mux.HandleFunc("POST /api/workouts", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateWorkout))))
+	mux.HandleFunc("GET /api/workouts/{id}", a.Require(a.RequireApproved(h.HandleGetWorkout)))
+	mux.HandleFunc("PUT /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateWorkout))))
+	mux.HandleFunc("DELETE /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteWorkout))))
+	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateWorkout))))
+
+	// ── Dietas (feature diet) ──
+	mux.HandleFunc("GET /api/diets", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDiets))))
+	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))
+	mux.HandleFunc("GET /api/diets/{id}", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleGetDiet))))
+	mux.HandleFunc("PUT /api/diets/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateDiet))))
+	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
+	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))
+
+	// ── Histórico (free tier) ──
+	mux.HandleFunc("GET /api/workout-history", a.Require(a.RequireApproved(h.HandleListHistory)))
+	mux.HandleFunc("POST /api/workouts/complete", a.Require(a.RequireApproved(h.HandleCompleteWorkout)))
+
+	// ── Rede social (feature community) ──
+	mux.HandleFunc("POST /api/posts", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleCreatePost))))
+	mux.HandleFunc("GET /api/posts", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleListPosts))))
+	mux.HandleFunc("POST /api/posts/{id}/like", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleToggleLike))))
+	mux.HandleFunc("POST /api/posts/{id}/comments", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleAddComment))))
+	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleDeleteComment))))
+	mux.HandleFunc("DELETE /api/posts/{id}", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleDeletePost))))
+
+	// ── Dieta diária (dia + refeição) — feature diet ──
+	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDietLogs))))
+	mux.HandleFunc("PUT /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleUpsertDietLog))))
+
+	// ── Ranking / pontuação / perfil público (feature ranking) ──
+	mux.HandleFunc("GET /api/ranking", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetRanking))))
+	mux.HandleFunc("GET /api/scores/history", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetScoreHistory))))
+	mux.HandleFunc("GET /api/public/profile/{id}", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetPublicProfile))))
 }

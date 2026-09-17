@@ -1,0 +1,419 @@
+package main
+
+// Testes de INTEGRAÇÃO da cadeia real de autenticação/autorização definida em
+// main.go (registerRoutes). Diferente dos testes unitários de middleware, que
+// exercitam cada gate isolado com contexto pré-populado, aqui o teste monta o
+// mux EXATAMENTE como produção (Require → Allow/RequireApproved/RequireFeature
+// → handler) e dispara requests com token fake:
+//
+//	fakeVerifier  → simula VerifyIDToken do Firebase Auth
+//	chainFakeRepo → simula users/{uid} (perfil com role/status/features)
+//
+// A ordem real da composição é o que está em jogo: com a ordem antiga
+// Allow(Require(...))/RequireApproved(Require(...)), os gates rodavam antes do
+// Require popular o contexto e estes testes falhavam (ADMIN 403, pendente 200).
+
+import (
+	"context"
+	"errors"
+	"io"
+	"net/http"
+	"net/http/httptest"
+	"strings"
+	"testing"
+
+	firebaseAuth "firebase.google.com/go/v4/auth"
+
+	"treino-louise/backend/handlers"
+	"treino-louise/backend/middleware"
+	"treino-louise/backend/models"
+	"treino-louise/backend/repository"
+	"treino-louise/backend/service"
+)
+
+const testUID = "uid-integration-test"
+
+// fakeVerifier simula o ID token do Firebase Auth. err != nil ⇒ token inválido
+// (VerifyIDToken falha → Require responde 401).
+type fakeVerifier struct {
+	uid string
+	err error
+}
+
+func (f *fakeVerifier) VerifyIDToken(_ context.Context, _ string) (*firebaseAuth.Token, error) {
+	if f.err != nil {
+		return nil, f.err
+	}
+	return &firebaseAuth.Token{
+		UID:      f.uid,
+		Firebase: firebaseAuth.FirebaseInfo{SignInProvider: "password"},
+	}, nil
+}
+
+// chainFakeRepo emula o repository apenas nos pontos que a cadeia testada
+// alcança. Métodos não sobrescritos ficam no embedded nil — se algum handler
+// tocá-los sem sobrescrita, o teste quebra na hora (prova que nada ficou
+// pendente de fake).
+type chainFakeRepo struct {
+	repository.Repository
+
+	profile *models.UserProfile // perfil devolvido em users/{uid} (usado pelo Require)
+
+	listUsers      []*models.UserProfile
+	listPending    []*models.UserProfile
+	listPlans      []*models.Plan
+	listStudents   []*models.UserProfile
+	listWorkouts   []*models.WorkoutDefine
+	listWorkoutsSt []*models.WorkoutDefine
+	listDiets      []*models.Diet
+	listDietsSt    []*models.Diet
+	plan           *models.Plan
+
+	createdUsers     []*models.UserProfile
+	updateUserCalled bool
+}
+
+func (f *chainFakeRepo) GetUserProfile(_ context.Context, _ string) (*models.UserProfile, error) {
+	return f.profile, nil
+}
+
+func (f *chainFakeRepo) ListUsers(_ context.Context) ([]*models.UserProfile, error) {
+	return f.listUsers, nil
+}
+
+func (f *chainFakeRepo) ListUsersByStatus(_ context.Context, _ string) ([]*models.UserProfile, error) {
+	return f.listPending, nil
+}
+
+func (f *chainFakeRepo) ListPlans(_ context.Context) ([]*models.Plan, error) {
+	return f.listPlans, nil
+}
+
+func (f *chainFakeRepo) ListStudents(_ context.Context, _ string) ([]*models.UserProfile, error) {
+	return f.listStudents, nil
+}
+
+func (f *chainFakeRepo) ListWorkouts(_ context.Context) ([]*models.WorkoutDefine, error) {
+	return f.listWorkouts, nil
+}
+
+func (f *chainFakeRepo) ListWorkoutsForStudent(_ context.Context, _ string) ([]*models.WorkoutDefine, error) {
+	return f.listWorkoutsSt, nil
+}
+
+func (f *chainFakeRepo) ListDiets(_ context.Context) ([]*models.Diet, error) {
+	return f.listDiets, nil
+}
+
+func (f *chainFakeRepo) ListDietsForStudent(_ context.Context, _ string) ([]*models.Diet, error) {
+	return f.listDietsSt, nil
+}
+
+func (f *chainFakeRepo) GetPlan(_ context.Context, _ string) (*models.Plan, error) {
+	return f.plan, nil
+}
+
+func (f *chainFakeRepo) CreateUser(_ context.Context, _ string, p *models.UserProfile) error {
+	f.createdUsers = append(f.createdUsers, p)
+	return nil
+}
+
+func (f *chainFakeRepo) PutUserProfile(_ context.Context, _ string, _ *models.UserProfile) error {
+	f.updateUserCalled = true
+	return nil
+}
+
+// newChainMux monta o mux real de produção (registerRoutes) com fakes.
+func newChainMux(repo *chainFakeRepo) http.Handler {
+	return newChainMuxWithVerifier(repo, &fakeVerifier{uid: testUID})
+}
+
+func newChainMuxWithVerifier(repo *chainFakeRepo, ver *fakeVerifier) http.Handler {
+	a := middleware.NewAuth(ver, repo)
+	h := handlers.New(service.New(repo), repo, nil)
+	mux := http.NewServeMux()
+	registerRoutes(mux, h, a)
+	return mux
+}
+
+// baseRepo devolve um fake com listas vazias (nenhum dado "real" criado).
+func baseRepo(profile *models.UserProfile) *chainFakeRepo {
+	return &chainFakeRepo{
+		profile:      profile,
+		listUsers:    []*models.UserProfile{},
+		listPending:  []*models.UserProfile{},
+		listPlans:    []*models.Plan{},
+		listStudents: []*models.UserProfile{},
+	}
+}
+
+func adminProfile(status string) *models.UserProfile {
+	return &models.UserProfile{ID: testUID, Name: "Admin", Role: models.RoleAdmin, Status: status}
+}
+
+func studentProfile(status string, features []models.Feature) *models.UserProfile {
+	return &models.UserProfile{ID: testUID, Name: "Aluno", Role: models.RoleStudent, Status: status, Features: features}
+}
+
+// doChainRequest dispara um request contra a cadeia real. token vazio = sem
+// header Authorization.
+func doChainRequest(h http.Handler, method, path, body, token string) *httptest.ResponseRecorder {
+	var rd io.Reader
+	if body != "" {
+		rd = strings.NewReader(body)
+	}
+	req := httptest.NewRequest(method, path, rd)
+	if token != "" {
+		req.Header.Set("Authorization", "Bearer "+token)
+	}
+	rr := httptest.NewRecorder()
+	h.ServeHTTP(rr, req)
+	return rr
+}
+
+// ── ADMIN (role=admin, status=active) ──
+//
+// Com a ordem antiga (Allow por fora de Require) estas rotas retornavam 403
+// até para o ADMIN (RoleFrom lia "student" antes do Require popular o
+// contexto). Com `Require(Allow(...))` elas passam.
+func TestChainAdminActiveCanAccessAdminEndpoints(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"GET /api/users", "GET", "/api/users"},
+		{"GET /api/users/pending", "GET", "/api/users/pending"},
+		{"GET /api/plans", "GET", "/api/plans"},
+		{"GET /api/students", "GET", "/api/students"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, c.method, c.path, "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("%s code = %d, want 200 (body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+		})
+	}
+}
+
+// ── ADMIN com status pending_approval/rejected/inactive ──
+//
+// O bypass do RequireApproved (e do RequireFeature) para ADMIN continua
+// funcionando na cadeia real: Require roda primeiro, injeta role=admin no
+// contexto, e os gates deixam o ADMIN passar independente do status.
+func TestChainAdminBypassesRequireApprovedAndFeature(t *testing.T) {
+	statuses := []string{
+		models.StatusPendingApproval,
+		models.StatusRejected,
+		models.StatusInactive,
+		models.StatusActive,
+	}
+	for _, st := range statuses {
+		t.Run("admin_"+st, func(t *testing.T) {
+			repo := baseRepo(adminProfile(st))
+			h := newChainMux(repo)
+
+			// GET /api/workouts: protegida por RequireApproved.
+			rr := doChainRequest(h, "GET", "/api/workouts", "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("workouts code = %d, want 200 (bypass admin)", rr.Code)
+			}
+
+			// GET /api/diets: protegida por RequireFeature(diet) + RequireApproved.
+			rr = doChainRequest(h, "GET", "/api/diets", "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("diets code = %d, want 200 (bypass admin em feature+aprovacao)", rr.Code)
+			}
+		})
+	}
+}
+
+// ── ALUNO PENDENTE (role=student, status=pending_approval) ──
+//
+// Deve continuar BLOQUEADO nas rotas de negócio protegidas por
+// RequireApproved. Com a ordem antiga (RequireApproved por fora de Require) o
+// status lido era "" (aprovado por compatibilidade) e o pendente passava —
+// este teste falha na ordem antiga e passa na corrigida.
+func TestChainStudentPendingBlockedFromBusinessRoutes(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusPendingApproval, nil))
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"GET /api/workouts", "GET", "/api/workouts"},
+		{"GET /api/diets", "GET", "/api/diets"},
+		{"GET /api/sessions/1/ta", "GET", "/api/sessions/1/ta"},
+		{"GET /api/prs", "GET", "/api/prs"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, c.method, c.path, "", "token-valido")
+			if rr.Code != http.StatusForbidden {
+				t.Fatalf("%s code = %d, want 403 (pendente bloqueado; body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+		})
+	}
+}
+
+// ── ALUNO APROVADO (status=active) ──
+//
+// Só o perfil aprovado chega ao handler — o free tier (workouts) abre, e o
+// diet só abre com a feature diet no plano.
+func TestChainStudentApprovedAccessFreeTierWorkouts(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureWorkouts}))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/workouts", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("workouts code = %d, want 200 (aluno ativo tem free tier)", rr.Code)
+	}
+}
+
+func TestChainStudentWithoutDietFeatureBlockedOnDiets(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureWorkouts}))
+	h := newChainMux(repo)
+
+	// feature diet ausente do plano ⇒ RequireFeature bloqueia (403) mesmo com
+	// cadastro ativo.
+	rr := doChainRequest(h, "GET", "/api/diets", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("diets code = %d, want 403 (plan sem diet; body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainStudentWithDietFeatureAllowedOnDiets(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureWorkouts, models.FeatureDiet}))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/diets", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("diets code = %d, want 200 (plano inclui diet)", rr.Code)
+	}
+}
+
+// ── STUDENT em rotas de ADMIN ──
+func TestChainStudentBlockedFromAdminRoutes(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureWorkouts}))
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"GET /api/users", "GET", "/api/users"},
+		{"GET /api/plans", "GET", "/api/plans"},
+		{"GET /api/users/pending", "GET", "/api/users/pending"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, c.method, c.path, "", "token-valido")
+			if rr.Code != http.StatusForbidden {
+				t.Fatalf("%s code = %d, want 403 (student sem role admin; body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+		})
+	}
+}
+
+// ── NÃO AUTENTICADO ──
+//
+// Nenhuma rota protegida pode virar pública: sem token ⇒ 401 em TODAS as
+// cadeias (Require continua obrigatório e é o primeiro elo).
+func TestChainUnauthenticatedNotPublic(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name   string
+		method string
+		path   string
+	}{
+		{"GET /api/users", "GET", "/api/users"},
+		{"GET /api/plans", "GET", "/api/plans"},
+		{"GET /api/workouts", "GET", "/api/workouts"},
+		{"GET /api/me", "GET", "/api/me"},
+		{"GET /api/sessions/1/ta", "GET", "/api/sessions/1/ta"},
+		{"GET /api/diets", "GET", "/api/diets"},
+		{"GET /api/ranking", "GET", "/api/ranking"},
+	}
+	for _, c := range cases {
+		t.Run(c.name+"_sem_token", func(t *testing.T) {
+			rr := doChainRequest(h, c.method, c.path, "", "")
+			if rr.Code != http.StatusUnauthorized {
+				t.Fatalf("%s sem token: code = %d, want 401 (rota nunca publica; body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+		})
+	}
+
+	t.Run("token_invalido", func(t *testing.T) {
+		bad := baseRepo(adminProfile(models.StatusActive))
+		hBad := newChainMuxWithVerifier(bad, &fakeVerifier{uid: testUID, err: errors.New("token invalido")})
+		rr := doChainRequest(hBad, "GET", "/api/plans", "", "token-lixo")
+		if rr.Code != http.StatusUnauthorized {
+			t.Fatalf("token invalido: code = %d, want 401", rr.Code)
+		}
+	})
+}
+
+// ── Validar o cadastro administrativo (item 4) ──
+//
+// Fluxo: ADMIN autenticado → GET /api/users → POST /api/users →
+// POST /api/users/{id}/assign-plan. Usa fakes — nenhum aluno real é criado.
+func TestChainAdminCanCreateStudentFlow(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.plan = &models.Plan{ID: "plan-1", Name: "Completo", Active: true, Features: []models.Feature{models.FeatureWorkouts, models.FeatureDiet}}
+	h := newChainMux(repo)
+
+	// 1) ADMIN lista usuários.
+	rr := doChainRequest(h, "GET", "/api/users", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/users code = %d, want 200", rr.Code)
+	}
+
+	// 2) ADMIN cria um aluno (perfil via POST /api/users).
+	body := `{"id":"student-novo","name":"Aluno Novo","email":"aluno@novo.com","role":"student","status":"pending_approval"}`
+	rr = doChainRequest(h, "POST", "/api/users", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/users code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if len(repo.createdUsers) != 1 {
+		t.Fatalf("createdUsers = %d, want 1", len(repo.createdUsers))
+	}
+	if got := repo.createdUsers[0].Role; got != models.RoleStudent {
+		t.Errorf("role criado = %q, want student", got)
+	}
+
+	// 3) ADMIN atribui plano ao aluno.
+	rr = doChainRequest(h, "POST", "/api/users/student-novo/assign-plan", `{"planID":"plan-1"}`, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("assign-plan code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !repo.updateUserCalled {
+		t.Error("PutUserProfile deveria ter sido chamado no assign-plan")
+	}
+}
+
+// ── Planos vazios (item 6) ──
+//
+// Coleção plans vazia deve aparecer como "0 planos" (200 []) e NUNCA como erro
+// de permissão.
+func TestChainPlansEmptyReturnsZeroNotForbidden(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.listPlans = []*models.Plan{}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/plans", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/plans code = %d, want 200 (0 planos, não erro de permissão; body: %s)", rr.Code, rr.Body.String())
+	}
+	if got := strings.TrimSpace(rr.Body.String()); got != "[]" {
+		t.Errorf("body = %q, want [] (lista vazia)", got)
+	}
+}

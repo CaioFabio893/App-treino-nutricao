@@ -17,21 +17,28 @@ import (
 type contextKey string
 
 const (
-	uidKey       contextKey = "uid"
-	roleKey      contextKey = "role"
-	statusKey    contextKey = "status"
-	featuresKey  contextKey = "features"
-	providerKey  contextKey = "authProvider"
+	uidKey      contextKey = "uid"
+	roleKey     contextKey = "role"
+	statusKey   contextKey = "status"
+	featuresKey contextKey = "features"
+	providerKey contextKey = "authProvider"
 )
+
+// tokenVerifier valida ID tokens do Firebase Auth. O *firebaseAuth.Client do
+// Admin SDK implementa essa interface em produção; testes usam fakes para
+// exercitar a cadeia completa (Require → gates → handler) sem Firebase real.
+type tokenVerifier interface {
+	VerifyIDToken(ctx context.Context, idToken string) (*firebaseAuth.Token, error)
+}
 
 // Auth valida o token do Firebase Auth e injeta uid+role no contexto.
 type Auth struct {
-	auth *firebaseAuth.Client
+	auth tokenVerifier
 	repo repository.Repository
 }
 
 // NewAuth cria o middleware de autenticação.
-func NewAuth(auth *firebaseAuth.Client, repo repository.Repository) *Auth {
+func NewAuth(auth tokenVerifier, repo repository.Repository) *Auth {
 	return &Auth{auth: auth, repo: repo}
 }
 
