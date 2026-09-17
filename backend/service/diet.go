@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"treino-louise/backend/models"
 )
@@ -36,7 +35,7 @@ func (s *Service) ActiveDietForStudent(ctx context.Context, studentID string) (*
 	if err != nil {
 		return nil, err
 	}
-	today := time.Now().Format("2006-01-02")
+	today := Now().Format("2006-01-02")
 	for _, d := range diets {
 		if (d.StartDate == "" || d.StartDate <= today) && (d.EndDate == "" || d.EndDate >= today) {
 			return d, nil

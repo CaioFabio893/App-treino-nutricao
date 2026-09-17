@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"treino-louise/backend/models"
 )
@@ -26,7 +25,7 @@ func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, ro
 	prof.Role = role
 	prof.Status = models.StatusActive
 	prof.ApprovedBy = adminUID
-	prof.ApprovedAt = time.Now()
+	prof.ApprovedAt = Now()
 	prof.RejectedReason = ""
 
 	if role == models.RoleStudent {

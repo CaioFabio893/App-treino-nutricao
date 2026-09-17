@@ -398,15 +398,18 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 	if workout.StudentID == "" {
 		workout.StudentID = existing.StudentID
 	}
-	if workout.NutritionistID == "" {
-		workout.NutritionistID = existing.NutritionistID
-	}
+	// Nutricionista NUNCA pode transferir o treino para outro nutricionista
+	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
 	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
+		workout.NutritionistID = existing.NutritionistID
 		can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, workout.StudentID)
 		if err != nil || !can {
 			http.Error(w, "sem permissao", http.StatusForbidden)
 			return
 		}
+	} else if workout.NutritionistID == "" {
+		// Admin sem nutritionistId no body preserva o vínculo atual.
+		workout.NutritionistID = existing.NutritionistID
 	}
 	service.NormalizeExercises(&workout)
 	if err := h.repo.UpdateWorkout(r.Context(), id, &workout); err != nil {
@@ -605,15 +608,18 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	if d.StudentID == "" {
 		d.StudentID = existing.StudentID
 	}
-	if d.NutritionistID == "" {
-		d.NutritionistID = existing.NutritionistID
-	}
+	// Nutricionista NUNCA pode transferir a dieta para outro nutricionista
+	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
 	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
+		d.NutritionistID = existing.NutritionistID
 		can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, d.StudentID)
 		if err != nil || !can {
 			http.Error(w, "sem permissao", http.StatusForbidden)
 			return
 		}
+	} else if d.NutritionistID == "" {
+		// Admin sem nutritionistId no body preserva o vínculo atual.
+		d.NutritionistID = existing.NutritionistID
 	}
 	service.NormalizeMeals(&d)
 	if err := h.repo.UpdateDiet(r.Context(), id, &d); err != nil {
@@ -815,7 +821,7 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 		WorkoutID:          workout.ID,
 		WorkoutName:        workout.Name,
 		NutritionistID:     workout.NutritionistID,
-		CompletedAt:        time.Now(),
+		CompletedAt:        service.Now(),
 		Duration:           req.Duration,
 		ExercisesCompleted: req.ExercisesCompleted,
 		TotalExercises:     req.TotalExercises,

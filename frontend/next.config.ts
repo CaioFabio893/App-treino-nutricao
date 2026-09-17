@@ -2,8 +2,9 @@ import type { NextConfig } from "next";
 
 // CSP (Content-Security-Policy):
 // - default-src 'self': origem padrão restrita à própria aplicação.
-// - script-src: 'unsafe-eval' necessário para HMR do Next.js em dev;
-//   'unsafe-inline' necessário para scripts injetados pelo React/Next.js.
+// - script-src: 'unsafe-eval' NÃO é incluído em produção (o build do Next.js
+//   não usa eval); 'unsafe-inline' necessário para scripts injetados pelo
+//   React/Next.js.
 // - style-src: 'unsafe-inline' necessário para estilos injetados pelo React/Next.js.
 // - connect-src: Google APIs (Firebase Auth: identitytoolkit, securetoken),
 //   Firebase RTDB, domínio do Cloud Run onde a API Go é publicada
@@ -15,9 +16,12 @@ import type { NextConfig } from "next";
 // Sem esta origem explícita o navegador bloquearia o fetch para a API.
 // - frame-src: YouTube embeds em treinos (TodayWorkout).
 // - frame-ancestors 'none': substitui X-Frame-Options DENY (mais moderno).
+const isProd = process.env.NODE_ENV === "production";
+// 'unsafe-eval' apenas em dev (HMR do Next.js/webpack).
+const scriptSrc = isProd ? "'self' 'unsafe-inline'" : "'self' 'unsafe-eval' 'unsafe-inline'";
 const CSP = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-eval' 'unsafe-inline'",
+  `script-src ${scriptSrc}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self'",

@@ -258,8 +258,16 @@ func (r *firestoreRepo) GetUserProfile(ctx context.Context, uid string) (*models
 	return out, nil
 }
 
-func (r *firestoreRepo) PutUserProfile(ctx context.Context, uid string, p *models.UserProfile) error {
-	_, err := r.fs.Collection("users").Doc(uid).Set(ctx, map[string]any{
+// userProfileData monta o mapa de escrita de users/{uid} (sem o ID, que é a
+// chave do documento). `createdAt` preserva o valor original quando existir
+// (ex.: atualização de perfil — jamais sobrescreve a data de criação) e usa
+// ServerTimestamp apenas na criação de um perfil novo.
+func userProfileData(p *models.UserProfile) map[string]any {
+	createdAt := any(firestore.ServerTimestamp)
+	if !p.CreatedAt.IsZero() {
+		createdAt = p.CreatedAt
+	}
+	return map[string]any{
 		"name":            p.Name,
 		"email":           p.Email,
 		"photoURL":        p.PhotoURL,
@@ -275,33 +283,19 @@ func (r *firestoreRepo) PutUserProfile(ctx context.Context, uid string, p *model
 		"approvedBy":      p.ApprovedBy,
 		"approvedAt":      p.ApprovedAt,
 		"rejectedReason":  p.RejectedReason,
-		"createdAt":       firestore.ServerTimestamp,
+		"createdAt":       createdAt,
 		"updatedAt":       firestore.ServerTimestamp,
-	})
+	}
+}
+
+func (r *firestoreRepo) PutUserProfile(ctx context.Context, uid string, p *models.UserProfile) error {
+	_, err := r.fs.Collection("users").Doc(uid).Set(ctx, userProfileData(p))
 	return err
 }
 
 // CreateUser cria o perfil (mantém o campo role).
 func (r *firestoreRepo) CreateUser(ctx context.Context, uid string, p *models.UserProfile) error {
-	_, err := r.fs.Collection("users").Doc(uid).Set(ctx, map[string]any{
-		"name":           p.Name,
-		"email":          p.Email,
-		"photoURL":       p.PhotoURL,
-		"bio":            p.Bio,
-		"role":           string(p.Role),
-		"nutritionistID": p.NutritionistID,
-		"startDate":      p.StartDate,
-		"endDate":        p.EndDate,
-		"status":         p.Status,
-		"planID":         p.PlanID,
-		"features":       p.Features,
-		"authProvider":   p.AuthProvider,
-		"approvedBy":     p.ApprovedBy,
-		"approvedAt":     p.ApprovedAt,
-		"rejectedReason": p.RejectedReason,
-		"createdAt":      firestore.ServerTimestamp,
-		"updatedAt":      firestore.ServerTimestamp,
-	})
+	_, err := r.fs.Collection("users").Doc(uid).Set(ctx, userProfileData(p))
 	return err
 }
 

@@ -10,6 +10,7 @@ import (
 
 	"treino-louise/backend/middleware"
 	"treino-louise/backend/models"
+	"treino-louise/backend/service"
 )
 
 // canModerate devolve true se o usuário é nutricionista ou admin.
@@ -31,7 +32,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = service.Now().Format("2006-01-02")
 	}
 
 	post := &models.Post{

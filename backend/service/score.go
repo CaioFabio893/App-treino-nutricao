@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"treino-louise/backend/models"
 )
@@ -12,7 +11,7 @@ import (
 // drift. Se o ciclo salvo for de um ciclo anterior, arquiva a nota final em
 // scores_history antes de zerar em scores/{uid}.
 func (s *Service) RecomputeScore(ctx context.Context, studentID, userStart string) error {
-	cycle := cycleFor(time.Now())
+	cycle := cycleFor(Now())
 	start, end := cycle.Start, cycle.End
 
 	hist, err := s.repo.ListHistoryForStudentSince(ctx, studentID, start, end)
@@ -25,7 +24,7 @@ func (s *Service) RecomputeScore(ctx context.Context, studentID, userStart strin
 		if h.CompletedAt.IsZero() {
 			continue
 		}
-		k := h.CompletedAt.Format("2006-01-02")
+		k := h.CompletedAt.In(AppLoc).Format("2006-01-02")
 		if !seen[k] {
 			seen[k] = true
 			workoutDays = append(workoutDays, k)
@@ -42,7 +41,7 @@ func (s *Service) RecomputeScore(ctx context.Context, studentID, userStart strin
 		dietDays[l.Date] = l.Status
 	}
 
-	raw, done, score, denom := cycleScoreFromData(cycle, userStart, time.Now(), workoutDays, dietDays)
+	raw, done, score, denom := cycleScoreFromData(cycle, userStart, Now(), workoutDays, dietDays)
 
 	// Fechamento preguiçoso do ciclo: se havia nota de um ciclo antigo, guarda
 	// no histórico antes de sobrescrever.
@@ -91,7 +90,7 @@ func (s *Service) ComputeStreak(ctx context.Context, uid string) (int, error) {
 	dates := map[string]bool{}
 	for _, h := range hist {
 		if !h.CompletedAt.IsZero() {
-			dates[h.CompletedAt.Format("2006-01-02")] = true
+			dates[h.CompletedAt.In(AppLoc).Format("2006-01-02")] = true
 		}
 	}
 	logs, err := s.repo.ListDietLogsForStudent(ctx, uid, "", "")
@@ -103,7 +102,7 @@ func (s *Service) ComputeStreak(ctx context.Context, uid string) (int, error) {
 			dates[l.Date] = true
 		}
 	}
-	cur := startOfDay(time.Now())
+	cur := startOfDay(Now())
 	if !dates[cur.Format("2006-01-02")] {
 		cur = cur.AddDate(0, 0, -1) // hoje ainda pode estar em andamento
 	}

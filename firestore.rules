@@ -50,21 +50,39 @@ service cloud.firestore {
     }
 
     // Bloqueia que o PRÓPRIO aluno altere campos administrativos escrevendo
-    // direto no Firestore (role/status/planID/features só mudam via admin).
+    // direto no Firestore (role/status/planID/features/nutritionistID e os
+    // campos do fluxo de aprovação só mudam via admin).
     // A API Go usa Admin SDK e ignora estas regras — é proteção extra para
     // acesso direto pelo cliente.
     function sensitiveChanged() {
       return resource.data.role != request.resource.data.role ||
              resource.data.status != request.resource.data.status ||
              resource.data.planID != request.resource.data.planID ||
-             resource.data.features != request.resource.data.features;
+             resource.data.features != request.resource.data.features ||
+             resource.data.nutritionistID != request.resource.data.nutritionistID ||
+             resource.data.approvedBy != request.resource.data.approvedBy ||
+             resource.data.approvedAt != request.resource.data.approvedAt ||
+             resource.data.rejectedReason != request.resource.data.rejectedReason;
+    }
+
+    // Permite apenas a criação do PERFIL PRÓPRIO ainda pendente de aprovação
+    // SEM nenhum campo administrativo (role, planID, features,
+    // nutritionistID, approvedBy, approvedAt, rejectedReason). O backend Go
+    // (Admin SDK) é quem cria perfis com esses campos — o cliente nunca
+    // precisa criar próprios campos privilegiados, então qualquer tentativa de
+    // se auto-declarar admin/ativo/rejeitado via REST é negada.
+    function isPendingSelfProfile() {
+      let keys = request.resource.data.keys();
+      return request.resource.data.status == 'pending_approval' &&
+             !keys.hasAny(['role', 'planID', 'features', 'nutritionistID',
+                           'approvedBy', 'approvedAt', 'rejectedReason']);
     }
 
     // Perfil do usuário: dono lê/escreve dados próprios (SEM campos
     // administrativos); admin lê, escreve e exclui.
     match /users/{uid} {
       allow read: if request.auth != null && (isOwner(uid) || isAdmin());
-      allow create: if isOwner(uid);
+      allow create: if isOwner(uid) && isPendingSelfProfile();
       allow update: if isAdmin() || (isOwner(uid) && !sensitiveChanged());
       allow delete: if isAdmin();
     }

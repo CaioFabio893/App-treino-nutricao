@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"strings"
-	"time"
 
 	"treino-louise/backend/models"
 )
@@ -19,7 +18,7 @@ func defaultPostText(postType models.PostType) string {
 // PublishWorkoutPost cria (uma vez por dia) o post automático de treino
 // concluído. Reaproveita o WorkoutHistoryEntry e a legenda opcional do aluno.
 func (s *Service) PublishWorkoutPost(ctx context.Context, h *models.WorkoutHistoryEntry, caption string) error {
-	existing, err := s.repo.FindAutoPostToday(ctx, h.StudentID, models.PostWorkout, startOfDay(time.Now()))
+	existing, err := s.repo.FindAutoPostToday(ctx, h.StudentID, models.PostWorkout, startOfDay(Now()))
 	if err != nil {
 		return err
 	}
@@ -49,10 +48,10 @@ func (s *Service) PublishWorkoutPost(ctx context.Context, h *models.WorkoutHisto
 		Text:         text,
 		WorkoutID:    h.WorkoutID,
 		WorkoutName:  h.WorkoutName,
-		Date:         h.CompletedAt.Format("2006-01-02"),
+		Date:         h.CompletedAt.In(AppLoc).Format("2006-01-02"),
 		Likes:        map[string]bool{},
 		Comments:     []*models.PostComment{},
-		CreatedAt:    time.Now(),
+		CreatedAt:    Now(),
 	})
 	return err
 }
@@ -63,7 +62,7 @@ func (s *Service) PublishDietPost(ctx context.Context, log *models.DietDailyLog)
 	if log.PostID != "" {
 		return log.PostID, nil
 	}
-	existing, err := s.repo.FindAutoPostToday(ctx, log.StudentID, models.PostDiet, startOfDay(time.Now()))
+	existing, err := s.repo.FindAutoPostToday(ctx, log.StudentID, models.PostDiet, startOfDay(Now()))
 	if err != nil {
 		return "", err
 	}
@@ -96,7 +95,7 @@ func (s *Service) PublishDietPost(ctx context.Context, log *models.DietDailyLog)
 		Date:         log.Date,
 		Likes:        map[string]bool{},
 		Comments:     []*models.PostComment{},
-		CreatedAt:    time.Now(),
+		CreatedAt:    Now(),
 	})
 	if err != nil {
 		return "", err

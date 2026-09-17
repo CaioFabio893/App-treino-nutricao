@@ -51,7 +51,7 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Date == "" {
-		req.Date = time.Now().Format("2006-01-02")
+		req.Date = service.Now().Format("2006-01-02")
 	}
 	if !validDate(req.Date) {
 		http.Error(w, "data invalida (use AAAA-MM-DD)", http.StatusBadRequest)

@@ -30,16 +30,16 @@ func cycleFor(t time.Time) models.Cycle {
 
 // CurrentCycle devolve o ciclo atual (trimestre civil corrente).
 func CurrentCycle() models.Cycle {
-	return cycleFor(time.Now())
+	return cycleFor(Now())
 }
 
-// parseDateYMD converte "2006-01-02" em time.Time (horário local). Retorna a
+// parseDateYMD converte "2006-01-02" em time.Time (horário do app). Retorna a
 // flag ok = false se a string for vazia ou inválida.
 func parseDateYMD(s string) (time.Time, bool) {
 	if s == "" {
 		return time.Time{}, false
 	}
-	t, err := time.ParseInLocation("2006-01-02", s, time.Local)
+	t, err := time.ParseInLocation("2006-01-02", s, AppLoc)
 	if err != nil {
 		return time.Time{}, false
 	}

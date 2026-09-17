@@ -2,7 +2,6 @@ package service
 
 import (
 	"context"
-	"time"
 
 	"treino-louise/backend/models"
 )
@@ -35,7 +34,7 @@ func (s *Service) GetPublicProfile(ctx context.Context, id string) (*models.Publ
 	if prof.Role == models.RoleStudent {
 		// Nota corrente + posição no ranking (global).
 		rec, err := s.repo.GetScoreRecord(ctx, id)
-		if err == nil && rec != nil && rec.CycleID == cycleFor(time.Now()).ID {
+		if err == nil && rec != nil && rec.CycleID == cycleFor(Now()).ID {
 			out.Score = rec.Score
 			out.CycleID = rec.CycleID
 		}

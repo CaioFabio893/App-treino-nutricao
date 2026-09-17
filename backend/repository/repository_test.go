@@ -165,6 +165,42 @@ func TestIterHelpersReturnEmptyArrayWhenCollectionEmpty(t *testing.T) {
 	})
 }
 
+// TestUserProfileDataPreservesCreatedAt — FASE 4 (I1): a escrita de users/{uid}
+// nunca pode sobrescrever `createdAt` de um perfil existente. Se o perfil tiver
+// CreatedAt preenchido, o mapa de escrita deve conter ESSE valor; só perfil novo
+// (CreatedAt zero) usa ServerTimestamp.
+func TestUserProfileDataPreservesCreatedAt(t *testing.T) {
+	past := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+	p := &models.UserProfile{ID: "u1", Name: "Ana", CreatedAt: past}
+
+	m := userProfileData(p)
+	createdAt, ok := m["createdAt"]
+	if !ok {
+		t.Fatal("mapa sem chave createdAt")
+	}
+	tv, ok := createdAt.(time.Time)
+	if !ok {
+		t.Fatalf("createdAt = %T (%v), want time.Time preservado (atualização de perfil)", createdAt, createdAt)
+	}
+	if !tv.Equal(past) {
+		t.Errorf("createdAt = %v, want %v (data de criação preservada)", tv, past)
+	}
+}
+
+func TestUserProfileDataUsesServerTimestampOnCreate(t *testing.T) {
+	// Pré-condição: create novo (CreatedAt zero) deve usar o sentinela
+	// firestore.ServerTimestamp (o servidor preenche), nunca um valor fixo.
+	fresh := &models.UserProfile{ID: "u2", Name: "Bia"}
+	m := userProfileData(fresh)
+	createdAt, ok := m["createdAt"]
+	if !ok {
+		t.Fatal("mapa sem chave createdAt")
+	}
+	if got := createdAt; got != firestore.ServerTimestamp {
+		t.Errorf("createdAt = %v, want firestore.ServerTimestamp (perfil novo)", got)
+	}
+}
+
 // ── Testes pré-existentes (preservados) ──
 
 func TestDocKey(t *testing.T) {

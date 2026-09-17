@@ -73,10 +73,48 @@ type chainFakeRepo struct {
 	createdUsers               []*models.UserProfile
 	updateUserCalled           bool
 	lastStudentsNutritionistID string // uid filtrado em ListStudents (escopo do nutricionista)
+
+	// FASE 5 (I2): treinos/dietas para os handlers de UPDATE.
+	studentsByID   map[string]*models.UserProfile // GetUserProfile por UID (alunos reais do nutri)
+	workout        *models.WorkoutDefine
+	diet           *models.Diet
+	updatedWorkout *models.WorkoutDefine
+	updatedDiet    *models.Diet
 }
 
-func (f *chainFakeRepo) GetUserProfile(_ context.Context, _ string) (*models.UserProfile, error) {
+func (f *chainFakeRepo) GetUserProfile(_ context.Context, uid string) (*models.UserProfile, error) {
+	if f.studentsByID != nil {
+		if p, ok := f.studentsByID[uid]; ok {
+			return p, nil
+		}
+	}
 	return f.profile, nil
+}
+
+func (f *chainFakeRepo) GetWorkout(_ context.Context, _ string) (*models.WorkoutDefine, error) {
+	if f.workout == nil {
+		return nil, nil
+	}
+	w := *f.workout
+	return &w, nil
+}
+
+func (f *chainFakeRepo) UpdateWorkout(_ context.Context, _ string, w *models.WorkoutDefine) error {
+	f.updatedWorkout = w
+	return nil
+}
+
+func (f *chainFakeRepo) GetDiet(_ context.Context, _ string) (*models.Diet, error) {
+	if f.diet == nil {
+		return nil, nil
+	}
+	d := *f.diet
+	return &d, nil
+}
+
+func (f *chainFakeRepo) UpdateDiet(_ context.Context, _ string, d *models.Diet) error {
+	f.updatedDiet = d
+	return nil
 }
 
 func (f *chainFakeRepo) ListUsers(_ context.Context) ([]*models.UserProfile, error) {
@@ -632,5 +670,115 @@ func TestChainStudentsRouteAuthzUnchanged(t *testing.T) {
 	rr = doChainRequest(hN, "GET", "/api/students", "", "token-valido")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("nutritionist: code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// ── FASE 5 (I2): vínculo nutricionista nunca é transferido ──
+//
+// Nutricionista que edita um treino/dieta dos próprios alunos NÃO pode
+// transferi-lo para outro nutricionista — mesmo que o body envie um
+// nutritionistId diferente. O handler sobrescreve com o vínculo do registro.
+func TestChainNutritionistCannotTransferWorkout(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "student-1",
+		NutritionistID: testUID,
+		Name:           "Treino A",
+	}
+	// studentsByID ⇒ CanAccessStudent resolve o aluno como vinculado ao nutri.
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	// Nutricionista tenta "transferir" o treino para outro nutricionista.
+	body := `{"name":"Treino A editado","studentId":"student-1","nutritionistId":"outro-nutri"}`
+	rr := doChainRequest(h, "PUT", "/api/workouts/w-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/workouts/w-1 code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedWorkout == nil {
+		t.Fatal("UpdateWorkout não foi chamado")
+	}
+	if got := repo.updatedWorkout.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q (transferência bloqueada)", got, testUID)
+	}
+	if got := repo.updatedWorkout.Name; got != "Treino A editado" {
+		t.Errorf("name = %q, want edição aplicada", got)
+	}
+}
+
+func TestChainNutritionistCannotTransferDiet(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "student-1",
+		NutritionistID: testUID,
+		Name:           "Dieta A",
+	}
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta A editada","studentId":"student-1","nutritionistId":"outro-nutri"}`
+	rr := doChainRequest(h, "PUT", "/api/diets/d-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/diets/d-1 code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedDiet == nil {
+		t.Fatal("UpdateDiet não foi chamado")
+	}
+	if got := repo.updatedDiet.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q (transferência bloqueada)", got, testUID)
+	}
+}
+
+// ADMIN que edita um treino/dieta sem enviar nutritionistId no body preserva o
+// vínculo atual do registro (não zera nem inventa outro).
+func TestChainAdminPreservesWorkoutLinkWhenBodyOmitsNutritionist(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "student-1",
+		NutritionistID: "nutri-atual",
+		Name:           "Treino A",
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino A editado","studentId":"student-1"}`
+	rr := doChainRequest(h, "PUT", "/api/workouts/w-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/workouts/w-1 code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedWorkout == nil {
+		t.Fatal("UpdateWorkout não foi chamado")
+	}
+	if got := repo.updatedWorkout.NutritionistID; got != "nutri-atual" {
+		t.Errorf("nutritionistId gravado = %q, want nutri-atual (preservado sem body)", got)
+	}
+}
+
+func TestChainAdminPreservesDietLinkWhenBodyOmitsNutritionist(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "student-1",
+		NutritionistID: "nutri-atual",
+		Name:           "Dieta A",
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta A editada","studentId":"student-1"}`
+	rr := doChainRequest(h, "PUT", "/api/diets/d-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/diets/d-1 code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedDiet == nil {
+		t.Fatal("UpdateDiet não foi chamado")
+	}
+	if got := repo.updatedDiet.NutritionistID; got != "nutri-atual" {
+		t.Errorf("nutritionistId gravado = %q, want nutri-atual (preservado sem body)", got)
 	}
 }
