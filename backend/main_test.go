@@ -514,6 +514,37 @@ func TestChainCollectionEndpointsKeepRecords(t *testing.T) {
 	}
 }
 
+// ── Regressão: GetUserProfile deve devolver o `id` no JSON ──
+//
+// GET /api/students/{id} e GET /api/me consomem GetUserProfile. O documento
+// é users/{uid}, então o perfil devolvido precisa serializar "id":"<UID>"
+// (sem omitempty): sem isso o frontend monta links com student=undefined.
+func TestChainProfileEndpointsSerializeID(t *testing.T) {
+	// Perfil com ID preenchido (o que GetUserProfile deve garantir).
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.profile.ID = testUID
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"GET /api/students/{id}", "/api/students/uid-integration-test"},
+		{"GET /api/me", "/api/me"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, "GET", c.path, "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("%s code = %d, want 200 (body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+			if !strings.Contains(rr.Body.String(), `"id":"uid-integration-test"`) {
+				t.Errorf("%s body = %q, deveria conter \"id\":\"uid-integration-test\"", c.name, rr.Body.String())
+			}
+		})
+	}
+}
+
 // ── ADMIN lista alunos SEM plano e SEM nutricionista ──
 //
 // Aluno aprovado com NutritionistID == "" não pode ficar invisível na Gestão:

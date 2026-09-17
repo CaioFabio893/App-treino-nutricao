@@ -250,6 +250,11 @@ func (r *firestoreRepo) GetUserProfile(ctx context.Context, uid string) (*models
 	if err := doc.DataTo(out); err != nil {
 		return nil, err
 	}
+	// O documento é users/{uid}: o ID do perfil é o próprio UID. Sem isso o
+	// campo `id` é omitido do JSON (omitempty) e o frontend perde o vínculo
+	// (ex.: GET /api/students/{id} e GET /api/me) — mesmo mapeamento que
+	// profilesFromIter faz nas listagens.
+	out.ID = doc.Ref.ID
 	return out, nil
 }
 
