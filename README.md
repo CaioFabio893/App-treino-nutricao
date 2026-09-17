@@ -155,27 +155,45 @@ Troque `SEU_PROJECT_ID` pelo id do projeto (o mesmo do Firebase). Depois:
 cd backend
 
 # Via gcloud build (não precisa de Docker local):
-gcloud builds submit --tag gcr.io/SEU_PROJECT_ID/treino-api
+gcloud builds submit --tag southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-api/treino-api
 
 # Publica no Cloud Run (cota gratuita):
 # ⚠️ PRODUÇÃO DEVE definir ALLOWED_ORIGIN com a origem EXATA do frontend
-#    (ex.: https://treino-web-xxxxx-uc.a.run.app, ou o domínio próprio).
+#    (ex.: https://treino-web-XXXXX-southamerica-east1.a.run.app, ou o domínio próprio).
 #    Sem essa variável o backend responde com CORS "*" (permissivo) —
 #    aceitável em dev, não recomendado em produção. NUNCA use "*".
 gcloud run deploy treino-api \
-  --image gcr.io/SEU_PROJECT_ID/treino-api \
-  --region us-central1 \
+  --image southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-api/treino-api \
+  --region southamerica-east1 \
   --platform managed \
   --allow-unauthenticated \
   --max-instances 1 \
   --memory 128Mi \
-  --set-env-vars "ALLOWED_ORIGIN=https://treino-web-xxxxx-uc.a.run.app"
+  --set-env-vars "ALLOWED_ORIGIN=https://treino-web-XXXXX-southamerica-east1.a.run.app" \
+  --update-env-vars "RATE_LIMIT=120"
 ```
+
+> **Índice do Firestore para diet-logs (obrigatório):** `GET /api/diet-logs`
+> (calendário/adesão à dieta) consulta a coleção `dietLogs` com
+> `studentId == X ORDER BY date DESC`, o que exige um **índice composto**.
+> Sem ele a query falha com `FAILED_PRECONDITION: the query requires an index`
+> e o endpoint responde `500`:
+>
+> ```bash
+> gcloud firestore indexes composite create \
+>   --project SEU_PROJECT_ID \
+>   --collection-group=dietLogs \
+>   --field-config=field-path=studentId,order=ASCENDING \
+>   --field-config=field-path=date,order=DESCENDING
+> ```
+>
+> Aguarde o estado do índice ficar `READY` antes de usar a página de detalhes
+> do aluno (o calendário chama esse endpoint ao carregar).
 
 O comando no final mostra a **URL da sua API**. Copie para o `.env.local`:
 
 ```bash
-NEXT_PUBLIC_API_URL=https://treino-api-XXX-uc.a.run.app
+NEXT_PUBLIC_API_URL=https://treino-api-XXXXX-southamerica-east1.a.run.app
 ```
 
 > Como o backend roda com a identidade do Cloud Run (Service Account padrão),
@@ -232,10 +250,10 @@ segredos; **nunca** passe chaves de serviço/private keys aqui):
 
 ```bash
 # Publica no Cloud Run com o build na nuvem:
-#   REPLACE_ME_API_URL  → URL da API (Passo 5), ex. https://treino-api-XXX-uc.a.run.app
+#   REPLACE_ME_API_URL  → URL da API (Passo 5), ex. https://treino-api-XXXXX-southamerica-east1.a.run.app
 #   REPLACE_ME_*        → valores de NEXT_PUBLIC_FIREBASE_* do console Firebase
 gcloud builds submit frontend \
-  --tag gcr.io/SEU_PROJECT_ID/treino-web \
+  --tag southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-web/treino-web \
   --build-arg NEXT_PUBLIC_API_URL=REPLACE_ME_API_URL \
   --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=REPLACE_ME_FIREBASE_API_KEY \
   --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=REPLACE_ME_AUTH_DOMAIN \
@@ -245,8 +263,8 @@ gcloud builds submit frontend \
   --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=REPLACE_ME_APP_ID
 
 gcloud run deploy treino-web \
-  --image gcr.io/SEU_PROJECT_ID/treino-web \
-  --region us-central1 \
+  --image southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-web/treino-web \
+  --region southamerica-east1 \
   --platform managed \
   --allow-unauthenticated \
   --max-instances 1 \
@@ -256,7 +274,7 @@ gcloud run deploy treino-web \
 > **NEXT_PUBLIC_DEMO** fica de fora de propósito: em produção o modo demo deve
 > estar desligado, e o `.env.local` que o ativa não entra na imagem.
 
-O link final fica em `https://treino-web-XXX-uc.a.run.app`.
+O link final fica em `https://treino-web-XXXXX-southamerica-east1.a.run.app`.
 
 > **Atualização do app:** publique novas versões com `gcloud run deploy treino-web`
 > usando o mesmo nome de imagem (o Cloud Run atualiza a instância).
@@ -320,7 +338,7 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | POST   | `/api/users/{id}/assign-plan` | Atribui plano (snapshot das features no perfil) |
 | GET/POST | `/api/plans`               | Lista/cria planos (admin)                   |
 | GET/PUT/DELETE | `/api/plans/{id}`    | Edita/exclui plano (admin; exclusão bloqueada se em uso) |
-| GET    | `/api/students`               | Alunos do nutricionista                     |
+| GET    | `/api/students`               | Alunos (nutricionista: os dele; admin: todos, inclusive sem nutricionista/plano) |
 | GET    | `/api/students/{id}`          | Detalhe de um aluno                         |
 | PUT    | `/api/students/{id}`          | Nutricionista edita dados do próprio aluno  |
 | GET/POST | `/api/workouts`             | Lista/cria treinos                          |
@@ -336,7 +354,7 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | POST   | `/api/posts/{id}/comments`     | Comentar uma publicação                     |
 | DELETE | `/api/posts/{id}/comments/{cid}` | Remove um comentário                      |
 | DELETE | `/api/posts/{id}`              | Exclui uma publicação                       |
-| GET/PUT | `/api/diet-logs`             | Cheque de dieta: lê/atualiza o dia          |
+| GET/PUT | `/api/diet-logs`             | Cheque de dieta: lê/atualiza o dia (GET exige o índice composto da coleção `dietLogs` — ver Passo 5) |
 | GET    | `/api/ranking`                 | Ranking de adesão                           |
 | GET    | `/api/scores/history`          | Histórico de pontuação                      |
 | GET    | `/api/public/profile/{id}`     | Perfil público (feed/ranking)               |
@@ -407,9 +425,9 @@ cd frontend && npm run build   # build server (standalone)
 cd backend && go run .
 cd backend && go test ./...   # testes (handlers, repository, service)
 
-# Deploy
-# frontend: gcloud builds submit frontend --tag gcr.io/SEU_PROJETO/treino-web
-#          gcloud run deploy treino-web --image gcr.io/SEU_PROJETO/treino-web ...
-# backend:  gcloud run deploy treino-api
+# Deploy (região padrão usada no projeto: southamerica-east1)
+# frontend: gcloud builds submit frontend --tag southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web
+#          gcloud run deploy treino-web --image southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web --region southamerica-east1 ...
+# backend:  gcloud run deploy treino-api --region southamerica-east1
 firebase deploy --only firestore
 ```
