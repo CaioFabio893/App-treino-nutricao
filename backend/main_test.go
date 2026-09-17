@@ -59,18 +59,20 @@ type chainFakeRepo struct {
 
 	profile *models.UserProfile // perfil devolvido em users/{uid} (usado pelo Require)
 
-	listUsers      []*models.UserProfile
-	listPending    []*models.UserProfile
-	listPlans      []*models.Plan
-	listStudents   []*models.UserProfile
-	listWorkouts   []*models.WorkoutDefine
-	listWorkoutsSt []*models.WorkoutDefine
-	listDiets      []*models.Diet
-	listDietsSt    []*models.Diet
-	plan           *models.Plan
+	listUsers       []*models.UserProfile
+	listPending     []*models.UserProfile
+	listPlans       []*models.Plan
+	listStudents    []*models.UserProfile
+	listStudentsAll []*models.UserProfile
+	listWorkouts    []*models.WorkoutDefine
+	listWorkoutsSt  []*models.WorkoutDefine
+	listDiets       []*models.Diet
+	listDietsSt     []*models.Diet
+	plan            *models.Plan
 
-	createdUsers     []*models.UserProfile
-	updateUserCalled bool
+	createdUsers               []*models.UserProfile
+	updateUserCalled           bool
+	lastStudentsNutritionistID string // uid filtrado em ListStudents (escopo do nutricionista)
 }
 
 func (f *chainFakeRepo) GetUserProfile(_ context.Context, _ string) (*models.UserProfile, error) {
@@ -89,8 +91,22 @@ func (f *chainFakeRepo) ListPlans(_ context.Context) ([]*models.Plan, error) {
 	return f.listPlans, nil
 }
 
-func (f *chainFakeRepo) ListStudents(_ context.Context, _ string) ([]*models.UserProfile, error) {
-	return f.listStudents, nil
+// ListStudents espelha o filtro real do repository (role=student + vínculo
+// com o nutricionista) e registra o nutritionistID consultado para o teste
+// provar o escopo correto.
+func (f *chainFakeRepo) ListStudents(_ context.Context, nutritionistID string) ([]*models.UserProfile, error) {
+	f.lastStudentsNutritionistID = nutritionistID
+	out := []*models.UserProfile{}
+	for _, s := range f.listStudents {
+		if s.NutritionistID == nutritionistID {
+			out = append(out, s)
+		}
+	}
+	return out, nil
+}
+
+func (f *chainFakeRepo) ListStudentsAll(_ context.Context) ([]*models.UserProfile, error) {
+	return f.listStudentsAll, nil
 }
 
 func (f *chainFakeRepo) ListWorkouts(_ context.Context) ([]*models.WorkoutDefine, error) {
@@ -139,11 +155,12 @@ func newChainMuxWithVerifier(repo *chainFakeRepo, ver *fakeVerifier) http.Handle
 // baseRepo devolve um fake com listas vazias (nenhum dado "real" criado).
 func baseRepo(profile *models.UserProfile) *chainFakeRepo {
 	return &chainFakeRepo{
-		profile:      profile,
-		listUsers:    []*models.UserProfile{},
-		listPending:  []*models.UserProfile{},
-		listPlans:    []*models.Plan{},
-		listStudents: []*models.UserProfile{},
+		profile:         profile,
+		listUsers:       []*models.UserProfile{},
+		listPending:     []*models.UserProfile{},
+		listPlans:       []*models.Plan{},
+		listStudents:    []*models.UserProfile{},
+		listStudentsAll: []*models.UserProfile{},
 	}
 }
 
@@ -153,6 +170,10 @@ func adminProfile(status string) *models.UserProfile {
 
 func studentProfile(status string, features []models.Feature) *models.UserProfile {
 	return &models.UserProfile{ID: testUID, Name: "Aluno", Role: models.RoleStudent, Status: status, Features: features}
+}
+
+func nutritionistProfile(status string) *models.UserProfile {
+	return &models.UserProfile{ID: testUID, Name: "Nutricionista", Role: models.RoleNutritionist, Status: status}
 }
 
 // doChainRequest dispara um request contra a cadeia real. token vazio = sem
@@ -462,7 +483,8 @@ func TestChainCollectionEndpointsKeepRecords(t *testing.T) {
 	repo.listPlans = []*models.Plan{{ID: "plan-1", Name: "Premium", Active: true}}
 	repo.listWorkouts = []*models.WorkoutDefine{{ID: "w-1", Name: "Treino A"}}
 	repo.listDiets = []*models.Diet{{ID: "d-1", Name: "Dieta A"}}
-	repo.listStudents = []*models.UserProfile{{ID: "s-1", Name: "Aluno", Role: models.RoleStudent}}
+	// GET /api/students é chamado por ADMIN aqui ⇒ a rota usa ListStudentsAll.
+	repo.listStudentsAll = []*models.UserProfile{{ID: "s-1", Name: "Aluno", Role: models.RoleStudent}}
 	h := newChainMux(repo)
 
 	cases := []struct {
@@ -489,5 +511,95 @@ func TestChainCollectionEndpointsKeepRecords(t *testing.T) {
 				t.Errorf("%s body = %q, should contain %s", c.name, body, c.needle)
 			}
 		})
+	}
+}
+
+// ── ADMIN lista alunos SEM plano e SEM nutricionista ──
+//
+// Aluno aprovado com NutritionistID == "" não pode ficar invisível na Gestão:
+// ADMIN deve usar ListStudentsAll (todos os alunos), em vez do filtro por
+// nutricionista, e o aluno sem plano (PlanID == "") continua sendo retornado.
+func TestChainAdminListsStudentWithoutPlanOrNutritionist(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.listStudentsAll = []*models.UserProfile{
+		{
+			ID:             "s-sem-plano",
+			Name:           "Teste",
+			Role:           models.RoleStudent,
+			Status:         models.StatusActive,
+			PlanID:         "",
+			NutritionistID: "",
+		},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/students", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/students code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), `"id":"s-sem-plano"`) {
+		t.Errorf("body = %q, deveria conter o aluno sem plano/sem nutricionista", rr.Body.String())
+	}
+	// ADMIN não pode passar pelo filtro por nutricionista.
+	if repo.lastStudentsNutritionistID != "" {
+		t.Errorf("ListStudents foi chamado com %q; ADMIN deve usar ListStudentsAll", repo.lastStudentsNutritionistID)
+	}
+}
+
+// ── Nutricionista continua vendo SÓ os próprios alunos ──
+//
+// A mudança não amplia o escopo do nutricionista: o handler continua
+// repassando o UID autenticado ao ListStudents (que filtra os vínculos) e o
+// aluno sem plano continua retornado na lista do responsável.
+func TestChainNutritionistListStudentsRemainsScopedToOwn(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.listStudents = []*models.UserProfile{
+		{ID: "meu-aluno", Name: "Meu Aluno", Role: models.RoleStudent, Status: models.StatusActive, PlanID: "", NutritionistID: testUID},
+		{ID: "aluno-outro-nutri", Name: "Outro", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: "outro-nutri"},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/students", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/students code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.lastStudentsNutritionistID != testUID {
+		t.Errorf("ListStudents filtrou por %q, want %q (uid autenticado)", repo.lastStudentsNutritionistID, testUID)
+	}
+	if !strings.Contains(rr.Body.String(), `"id":"meu-aluno"`) {
+		t.Errorf("body = %q, deveria conter o aluno vinculado ao nutricionista", rr.Body.String())
+	}
+	if strings.Contains(rr.Body.String(), `"id":"aluno-outro-nutri"`) {
+		t.Errorf("body = %q, NÃO deveria conter aluno de outro nutricionista", rr.Body.String())
+	}
+}
+
+// ── Autorização de GET /api/students permanece intacta ──
+//
+// Sem token ⇒ 401; aluno autenticado (role=student) ⇒ 403; admin e
+// nutricionista ⇒ 200.
+func TestChainStudentsRouteAuthzUnchanged(t *testing.T) {
+	// Sem token ⇒ 401.
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+	rr := doChainRequest(h, "GET", "/api/students", "", "")
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("sem token: code = %d, want 401", rr.Code)
+	}
+
+	// Aluno autenticado ⇒ 403 (rota exclusiva admin/nutricionista).
+	repoSt := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureWorkouts}))
+	hSt := newChainMux(repoSt)
+	rr = doChainRequest(hSt, "GET", "/api/students", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("aluno: code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+
+	// Nutricionista ativo ⇒ 200 (escopo mantido).
+	repoN := baseRepo(nutritionistProfile(models.StatusActive))
+	hN := newChainMux(repoN)
+	rr = doChainRequest(hN, "GET", "/api/students", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("nutritionist: code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
 	}
 }

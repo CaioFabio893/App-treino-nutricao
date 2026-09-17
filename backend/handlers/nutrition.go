@@ -240,9 +240,28 @@ func (h *Handlers) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 
 // ── Alunos do nutricionista ──
 
+// HandleListMyStudents lista alunos. Nutricionista vê somente os alunos
+// vinculados a ele; ADMIN vê todos os alunos (mesmo os aprovados SEM
+// nutricionista e SEM plano — casos válidos que não podem ficar invisíveis) —
+// mesmo padrão de escopo de ListWorkouts/ListDiets/ListHistory.
+// A rota exige role admin|nutritionist (Allow no main.go), então os demais
+// papéis nem chegam aqui; o default preserva o escopo atual por nutricionista.
 func (h *Handlers) HandleListMyStudents(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
-	students, err := h.repo.ListStudents(r.Context(), uid)
+	role := middleware.RoleFrom(r.Context())
+
+	var (
+		students []*models.UserProfile
+		err      error
+	)
+	switch role {
+	case models.RoleAdmin:
+		students, err = h.repo.ListStudentsAll(r.Context())
+	case models.RoleNutritionist:
+		students, err = h.repo.ListStudents(r.Context(), uid)
+	default:
+		students, err = h.repo.ListStudents(r.Context(), uid)
+	}
 	if err != nil {
 		http.Error(w, "falha ao listar alunos", http.StatusInternalServerError)
 		return
