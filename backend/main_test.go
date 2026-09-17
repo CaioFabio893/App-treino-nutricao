@@ -417,3 +417,77 @@ func TestChainPlansEmptyReturnsZeroNotForbidden(t *testing.T) {
 		t.Errorf("body = %q, want [] (lista vazia)", got)
 	}
 }
+
+// ── Contrato JSON de coleções: null → [] ──
+//
+// Todo endpoint de listagem deve serializar coleção vazia como `[]`, nunca
+// `null`. A normalização de slice nil vive no repository (ver
+// repository_test.go); estes testes garantem, pela cadeia HTTP real, que o
+// endpoint entrega o contrato esperado pelo frontend.
+func TestChainCollectionEndpointsSerializeEmptyAsArray(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	// baseRepo já inicializa users/pending/plans/students; workouts/diets aqui.
+	repo.listWorkouts = []*models.WorkoutDefine{}
+	repo.listDiets = []*models.Diet{}
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name string
+		path string
+	}{
+		{"GET /api/users", "/api/users"},
+		{"GET /api/users/pending", "/api/users/pending"},
+		{"GET /api/plans", "/api/plans"},
+		{"GET /api/students", "/api/students"},
+		{"GET /api/workouts", "/api/workouts"},
+		{"GET /api/diets", "/api/diets"},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, "GET", c.path, "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("%s code = %d, want 200 (body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+			if got := strings.TrimSpace(rr.Body.String()); got != "[]" {
+				t.Errorf("%s body = %q, want [] (nunca null)", c.name, got)
+			}
+		})
+	}
+}
+
+// TestChainCollectionEndpointsKeepRecords garante que a normalização não
+// esvazia coleções com conteúdo: os registros continuam presentes no array.
+func TestChainCollectionEndpointsKeepRecords(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.listPlans = []*models.Plan{{ID: "plan-1", Name: "Premium", Active: true}}
+	repo.listWorkouts = []*models.WorkoutDefine{{ID: "w-1", Name: "Treino A"}}
+	repo.listDiets = []*models.Diet{{ID: "d-1", Name: "Dieta A"}}
+	repo.listStudents = []*models.UserProfile{{ID: "s-1", Name: "Aluno", Role: models.RoleStudent}}
+	h := newChainMux(repo)
+
+	cases := []struct {
+		name   string
+		path   string
+		needle string
+	}{
+		{"GET /api/plans", "/api/plans", `"id":"plan-1"`},
+		{"GET /api/workouts", "/api/workouts", `"id":"w-1"`},
+		{"GET /api/diets", "/api/diets", `"id":"d-1"`},
+		{"GET /api/students", "/api/students", `"id":"s-1"`},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			rr := doChainRequest(h, "GET", c.path, "", "token-valido")
+			if rr.Code != http.StatusOK {
+				t.Fatalf("%s code = %d, want 200 (body: %s)", c.name, rr.Code, rr.Body.String())
+			}
+			body := strings.TrimSpace(rr.Body.String())
+			if !strings.HasPrefix(body, "[") {
+				t.Errorf("%s body = %q, want array", c.name, body)
+			}
+			if !strings.Contains(body, c.needle) {
+				t.Errorf("%s body = %q, should contain %s", c.name, body, c.needle)
+			}
+		})
+	}
+}

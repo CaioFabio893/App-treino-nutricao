@@ -134,6 +134,25 @@ func isNotFound(err error) bool {
 	return err != nil && status.Code(err) == codes.NotFound
 }
 
+// docIterator abstrai *firestore.DocumentIterator para permitir testar os
+// coletores de lista sem um emulador do Firestore (ver repository_test.go).
+// *firestore.DocumentIterator satisfaz esta interface.
+type docIterator interface {
+	Next() (*firestore.DocumentSnapshot, error)
+	Stop()
+}
+
+// ensureNonNilSlice garante o contrato JSON de coleções: o encoding/json
+// serializa um slice nil como "null", enquanto o frontend espera um array.
+// Normalizamos para um slice vazio (não-nil) para que a resposta seja sempre
+// "[]" quando a coleção não tiver registros — nunca `null`.
+func ensureNonNilSlice[T any](s []T) []T {
+	if s == nil {
+		return []T{}
+	}
+	return s
+}
+
 // ── Sessions (modo original) ──
 
 func (r *firestoreRepo) GetSession(ctx context.Context, uid string, week int, day string) (*models.Session, error) {
@@ -369,7 +388,7 @@ func (r *firestoreRepo) ListPlans(ctx context.Context) ([]*models.Plan, error) {
 		p.ID = doc.Ref.ID
 		out = append(out, p)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 func (r *firestoreRepo) UpdatePlan(ctx context.Context, id string, p *models.Plan) error {
@@ -409,7 +428,7 @@ func (r *firestoreRepo) CountStudentsWithPlan(ctx context.Context, planID string
 	return n, nil
 }
 
-func profilesFromIter(iter *firestore.DocumentIterator) ([]*models.UserProfile, error) {
+func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {
 	defer iter.Stop()
 	var out []*models.UserProfile
 	for {
@@ -427,7 +446,7 @@ func profilesFromIter(iter *firestore.DocumentIterator) ([]*models.UserProfile, 
 		p.ID = doc.Ref.ID
 		out = append(out, p)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 // ── Treinos (exercícios embutidos no documento) ──
@@ -488,7 +507,7 @@ func (r *firestoreRepo) ListWorkouts(ctx context.Context) ([]*models.WorkoutDefi
 	return workoutsFromIter(iter)
 }
 
-func workoutsFromIter(iter *firestore.DocumentIterator) ([]*models.WorkoutDefine, error) {
+func workoutsFromIter(iter docIterator) ([]*models.WorkoutDefine, error) {
 	defer iter.Stop()
 	var out []*models.WorkoutDefine
 	for {
@@ -506,7 +525,7 @@ func workoutsFromIter(iter *firestore.DocumentIterator) ([]*models.WorkoutDefine
 		w.ID = doc.Ref.ID
 		out = append(out, w)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 func (r *firestoreRepo) UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error {
@@ -586,7 +605,7 @@ func (r *firestoreRepo) ListDiets(ctx context.Context) ([]*models.Diet, error) {
 	return dietsFromIter(iter)
 }
 
-func dietsFromIter(iter *firestore.DocumentIterator) ([]*models.Diet, error) {
+func dietsFromIter(iter docIterator) ([]*models.Diet, error) {
 	defer iter.Stop()
 	var out []*models.Diet
 	for {
@@ -604,7 +623,7 @@ func dietsFromIter(iter *firestore.DocumentIterator) ([]*models.Diet, error) {
 		d.ID = doc.Ref.ID
 		out = append(out, d)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 func (r *firestoreRepo) UpdateDiet(ctx context.Context, id string, d *models.Diet) error {
@@ -804,7 +823,7 @@ func (r *firestoreRepo) ListPosts(ctx context.Context, limit int, cursor string)
 	if last != nil {
 		next = encodeCursor(last)
 	}
-	return out, next, nil
+	return ensureNonNilSlice(out), next, nil
 }
 
 // parseCursor decodifica "<milli>,<id>".
@@ -953,7 +972,7 @@ func (r *firestoreRepo) ListDietLogsForStudent(ctx context.Context, studentID, f
 		d.ID = doc.Ref.ID
 		out = append(out, d)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 // ── Ranking / pontuação ──
@@ -1006,7 +1025,7 @@ func (r *firestoreRepo) ListScoreRecords(ctx context.Context) ([]*models.ScoreRe
 		rec.StudentID = doc.Ref.ID
 		out = append(out, rec)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
 
 // PutScoreHistory guarda a nota final de um ciclo fechado.
@@ -1044,5 +1063,5 @@ func (r *firestoreRepo) ListScoreHistory(ctx context.Context, uid string) ([]*mo
 		}
 		out = append(out, h)
 	}
-	return out, nil
+	return ensureNonNilSlice(out), nil
 }
