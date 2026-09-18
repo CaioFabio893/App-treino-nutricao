@@ -2,10 +2,14 @@
 # As variaveis NEXT_PUBLIC_* sao PUBLICAS (config do Firebase Client Web) e
 # sao embutidas no bundle durante o build. Nunca passe secrets aqui.
 #
-# Executar a partir da raiz deste repo:
+# Executar a partir da raiz deste repo (use o separador PADRAO, virgula):
 #   gcloud builds submit frontend \
 #     --config frontend/cloudbuild.yaml \
-#     --substitutions ^:^_API_URL=https://...:_API_KEY=...:_AUTH_DOMAIN=...:_FIREBASE_PROJECT_ID=...:_STORAGE_BUCKET=...:_SENDER_ID=...:_APP_ID=...
+#     --substitutions "_API_URL=https://...,_API_KEY=...,_AUTH_DOMAIN=...,_FIREBASE_PROJECT_ID=...,_STORAGE_BUCKET=...,_SENDER_ID=...,_APP_ID=..."
+#
+# ATENCAO: NAO use separador customizado ^:^ — os valores contem ":" (URL
+# https:// e o appId 1:...:web:...), e o parse falha com
+# "Bad syntax for dict arg". Com a virgula, ":" dentro dos valores e aceito.
 #
 # Regiao do repositorio de imagem: southamerica-east1 (mesma da API Go).
 steps:

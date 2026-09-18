@@ -243,28 +243,25 @@ cd ..
 
 **IMPORTANTE — variáveis no build do container:** o `.env.local` **não** vai
 para o contexto docker (está no `.dockerignore`). O `frontend/Dockerfile`
-recebe os valores públicos como **build args** (`NEXT_PUBLIC_*`). Forneça
-todos os valores do seu `.env.local` no `gcloud builds submit` (troque os
-placeholders pelos valores reais — são dados públicos do cliente, não
-segredos; **nunca** passe chaves de serviço/private keys aqui):
+recebe os valores públicos como **build args** (`NEXT_PUBLIC_*`), e quem os
+repassa é o arquivo versionado [`frontend/cloudbuild.yaml`](frontend/cloudbuild.yaml)
+via `--substitutions` (são dados públicos do cliente — **nunca** passe chaves de
+serviço/private keys aqui). O guia completo e validado está na seção
+[Deploy do Frontend](#deploy-do-frontend).
 
 ```bash
-# Publica no Cloud Run com o build na nuvem:
-#   REPLACE_ME_API_URL  → URL da API (Passo 5), ex. https://treino-api-XXXXX-southamerica-east1.a.run.app
-#   REPLACE_ME_*        → valores de NEXT_PUBLIC_FIREBASE_* do console Firebase
+# 1) Build da imagem no Cloud Build (valores públicos via placeholders)
+#    Use SEMPRE o cloudbuild.yaml versionado: ele passa os --build-arg corretos.
 gcloud builds submit frontend \
-  --tag southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-web/treino-web \
-  --build-arg NEXT_PUBLIC_API_URL=REPLACE_ME_API_URL \
-  --build-arg NEXT_PUBLIC_FIREBASE_API_KEY=REPLACE_ME_FIREBASE_API_KEY \
-  --build-arg NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=REPLACE_ME_AUTH_DOMAIN \
-  --build-arg NEXT_PUBLIC_FIREBASE_PROJECT_ID=REPLACE_ME_PROJECT_ID \
-  --build-arg NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=REPLACE_ME_STORAGE_BUCKET \
-  --build-arg NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=REPLACE_ME_MESSAGING_SENDER_ID \
-  --build-arg NEXT_PUBLIC_FIREBASE_APP_ID=REPLACE_ME_APP_ID
+  --config frontend/cloudbuild.yaml \
+  --project treino-louise \
+  --substitutions "_API_URL=REPLACE_ME_API_URL,_API_KEY=REPLACE_ME_FIREBASE_API_KEY,_AUTH_DOMAIN=REPLACE_ME_AUTH_DOMAIN,_FIREBASE_PROJECT_ID=REPLACE_ME_PROJECT_ID,_STORAGE_BUCKET=REPLACE_ME_STORAGE_BUCKET,_SENDER_ID=REPLACE_ME_SENDER_ID,_APP_ID=REPLACE_ME_APP_ID"
 
+# 2) Publica a imagem no Cloud Run (nova revisão)
 gcloud run deploy treino-web \
-  --image southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-web/treino-web \
+  --image southamerica-east1-docker.pkg.dev/treino-louise/treino-web/treino-web:latest \
   --region southamerica-east1 \
+  --project treino-louise \
   --platform managed \
   --allow-unauthenticated \
   --max-instances 1 \
@@ -274,16 +271,150 @@ gcloud run deploy treino-web \
 > **NEXT_PUBLIC_DEMO** fica de fora de propósito: em produção o modo demo deve
 > estar desligado, e o `.env.local` que o ativa não entra na imagem.
 
-O link final fica em `https://treino-web-XXXXX-southamerica-east1.a.run.app`.
+O link final fica em `https://treino-web-834622951375.southamerica-east1.run.app`
+(ou no domínio próprio configurado).
 
-> **Atualização do app:** publique novas versões com `gcloud run deploy treino-web`
-> usando o mesmo nome de imagem (o Cloud Run atualiza a instância).
+> **Atualização do app:** repita os dois comandos acima — a tag `:latest` é
+> sobrescrita e o Cloud Run cria uma nova revisão.
 
 ### Passo 8 — Propagar as regras do Firestore
 
 ```bash
 firebase deploy --only firestore
 ```
+
+---
+
+## Deploy do Frontend
+
+Referência do build/deploy do serviço `treino-web` (Cloud Run + Cloud Build).
+Este é o fluxo **validado** com o Google Cloud SDK atual (linha 58x); siga-o
+em vez de `gcloud run deploy --source`.
+
+### 1. Pré-requisitos
+
+- `gcloud` autenticado e projeto selecionado:
+  ```bash
+  gcloud auth login
+  gcloud config set project treino-louise
+  ```
+- Permissões de **Cloud Build**, **Artifact Registry** e **Cloud Run** no projeto.
+- Docker **não** é necessário na máquina: o build roda no Cloud Build.
+
+### 2. Projeto, região e serviço
+
+| Item | Valor |
+|------|-------|
+| Projeto GCP | `treino-louise` |
+| Região | `southamerica-east1` |
+| Serviço Cloud Run | `treino-web` |
+| Repositório de imagem | `southamerica-east1-docker.pkg.dev/treino-louise/treino-web/treino-web` |
+| Arquivo de build | [`frontend/cloudbuild.yaml`](frontend/cloudbuild.yaml) |
+
+### 3. Como os `NEXT_PUBLIC_*` entram no build
+
+Fluxo real (o que produz a imagem):
+
+```text
+gcloud builds submit frontend --config frontend/cloudbuild.yaml --substitutions ...
+        │  (valores PÚBLICOS: API URL + firebaseConfig do app Web)
+        ▼
+Cloud Build executa os steps do frontend/cloudbuild.yaml
+        │  docker build --build-arg NEXT_PUBLIC_* ...
+        ▼
+frontend/Dockerfile  (ARG NEXT_PUBLIC_* → ENV NEXT_PUBLIC_*)
+        │
+        ▼
+npm run build  ← Next.js embute as NEXT_PUBLIC_* no bundle do navegador
+        │
+        ▼
+imagem publicada no Artifact Registry (tag :latest)
+        │
+        ▼
+gcloud run deploy treino-web --image ...  → nova revisão, 100% do tráfego
+```
+
+O `.env.local` **não** entra no contexto docker (`.dockerignore`), por isso os
+valores vão como `--build-arg` repassados pelo `cloudbuild.yaml`. São **dados
+públicos do cliente** (ficam visíveis no bundle do navegador). Use sempre
+placeholders no lugar de valores reais e nunca coloque secrets aqui.
+
+### 4. Build (Cloud Build)
+
+```bash
+gcloud builds submit frontend \
+  --config frontend/cloudbuild.yaml \
+  --project treino-louise \
+  --substitutions "_API_URL=REPLACE_ME_API_URL,_API_KEY=REPLACE_ME_FIREBASE_API_KEY,_AUTH_DOMAIN=REPLACE_ME_AUTH_DOMAIN,_FIREBASE_PROJECT_ID=REPLACE_ME_PROJECT_ID,_STORAGE_BUCKET=REPLACE_ME_STORAGE_BUCKET,_SENDER_ID=REPLACE_ME_SENDER_ID,_APP_ID=REPLACE_ME_APP_ID"
+```
+
+- Use o **separador padrão (vírgula)** entre as substituições. **Não** use
+  separador customizado `^:^`: os valores contêm `:` (URL `https://…` e o
+  `appId` `1:…:web:…`) e o parse quebra (`Bad syntax for dict arg`).
+  Validado com `gcloud builds submit --substitutions` nesta versão do SDK.
+- Os nomes das substituições (`_API_URL`, `_API_KEY`, …) são exatamente os que o
+  `frontend/cloudbuild.yaml` espera.
+
+### 5. Deploy (Cloud Run)
+
+```bash
+gcloud run deploy treino-web \
+  --image southamerica-east1-docker.pkg.dev/treino-louise/treino-web/treino-web:latest \
+  --region southamerica-east1 \
+  --project treino-louise \
+  --platform managed \
+  --allow-unauthenticated \
+  --max-instances 1 \
+  --memory 512Mi
+```
+
+### 6. Validar a revisão e o tráfego (100%)
+
+```bash
+# Lista as revisões (mais recente no topo)
+gcloud run revisions list --service treino-web \
+  --region southamerica-east1 --project treino-louise
+
+# Revisão ativa + URL do serviço
+gcloud run services describe treino-web \
+  --region southamerica-east1 --project treino-louise \
+  --format="value(status.latestReadyRevisionName,status.url)"
+
+# Páginas principais devem responder 200 (5xx = problema)
+curl -s -o /dev/null -w "%{http_code}\n" https://treino-web-834622951375.southamerica-east1.run.app/
+curl -s -o /dev/null -w "%{http_code}\n" https://treino-web-834622951375.southamerica-east1.run.app/login
+```
+
+> O serviço responde tanto pela URL nova
+> (`https://treino-web-834622951375.southamerica-east1.run.app`) quanto pelo
+> alias antigo (`https://treino-web-jn4epizxfq-rj.a.run.app`) — os dois apontam
+> para a mesma revisão. O `status.url` do comando acima pode mostrar o alias
+> antigo; use a URL do console/DNS que o app consome.
+
+### 7. Validar o CSP (produção sem `unsafe-eval`)
+
+```bash
+# Linux/macOS
+curl -sI https://treino-web-834622951375.southamerica-east1.run.app/ | grep -i content-security-policy
+# Windows (PowerShell)
+# (Invoke-WebRequest https://treino-web-834622951375.southamerica-east1.run.app/).Headers["Content-Security-Policy"]
+```
+
+Esperado: `script-src 'self' 'unsafe-inline'` — **sem** `'unsafe-eval'`
+(em dev o `frontend/next.config.ts` libera `unsafe-eval` só para o HMR).
+
+### 8. ⚠️ O que NÃO usar no SDK atual
+
+- `gcloud run deploy --source ... --build-arg ...` → o `--build-arg` **não
+  existe** nessa variante (foi removido nas versões recentes do SDK).
+- `gcloud run deploy --source ... --set-build-env-vars ...` → **não** alimenta
+  os `ARG` do `frontend/Dockerfile`; o build sai com as `NEXT_PUBLIC_*` vazias
+  (foi exatamente o que gerou uma revisão com o Firebase client config vazio).
+- Para builds que usam `ARG`, use **sempre** o fluxo
+  `gcloud builds submit --config frontend/cloudbuild.yaml`.
+
+> A tag `:latest` é sobrescrita a cada build. Para rollback, publique a imagem
+> por digest (`--image <repo>@sha256:...`) de uma revisão anterior.
 
 ---
 
