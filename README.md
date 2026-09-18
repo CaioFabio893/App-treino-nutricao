@@ -3,6 +3,23 @@
 Migração do app de treino da **Louise Lima** para uma arquitetura profissional
 com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Cloud.
 
+## 📸 Screenshots
+
+Capturas reais da aplicação (modo demo, dados de exemplo):
+
+- **Dashboard do aluno** — visão geral da rotina e funcionalidades disponíveis.
+- **Treinos** — gerenciamento e visualização dos treinos.
+- **Dietas** — acompanhamento do plano alimentar.
+- **Área administrativa** — gerenciamento dos alunos e conteúdos.
+
+![Dashboard do aluno](docs/screenshots/student-dashboard.png)
+
+![Treinos](docs/screenshots/student-treinos.png)
+
+![Dietas](docs/screenshots/student-dietas.png)
+
+![Painel do nutricionista](docs/screenshots/nutritionist-dashboard.png)
+
 ## O que cada parte faz
 
 ```
