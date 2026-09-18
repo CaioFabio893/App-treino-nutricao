@@ -338,24 +338,25 @@ func (h *Handlers) HandleCreateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	if workout.Name == "" || workout.StudentID == "" {
-		http.Error(w, "nome e aluno sao obrigatorios", http.StatusBadRequest)
+	if workout.Name == "" {
+		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
 	}
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
 	if role == models.RoleNutritionist {
+		// Treino de biblioteca (sem aluno) é válido: o aluno pode ser
+		// atribuído depois via edição (studentId) — mecanismo existente.
 		workout.NutritionistID = uid
-		can, err := h.svc.CanAccessStudent(r.Context(), uid, role, workout.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if workout.StudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, workout.StudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	} else if role == models.RoleAdmin {
-		if workout.NutritionistID == "" {
-			http.Error(w, "nutritionistId obrigatorio (ou use role de nutricionista)", http.StatusBadRequest)
-			return
-		}
+		// Admin cria treino (com aluno ou como template sem nutritionistId).
 	} else {
 		http.Error(w, "sem permissao para criar treino", http.StatusForbidden)
 		return
@@ -402,10 +403,12 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
 	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
 		workout.NutritionistID = existing.NutritionistID
-		can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, workout.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if workout.StudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, workout.StudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	} else if workout.NutritionistID == "" {
 		// Admin sem nutritionistId no body preserva o vínculo atual.
@@ -469,10 +472,12 @@ func (h *Handlers) HandleDuplicateWorkout(w http.ResponseWriter, r *http.Request
 		newStudentID = existing.StudentID
 	}
 	if role == models.RoleNutritionist {
-		can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if newStudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	}
 
@@ -549,24 +554,25 @@ func (h *Handlers) HandleCreateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	if d.Name == "" || d.StudentID == "" {
-		http.Error(w, "nome e aluno sao obrigatorios", http.StatusBadRequest)
+	if d.Name == "" {
+		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
 	}
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
 	if role == models.RoleNutritionist {
+		// Dieta de biblioteca (sem aluno) é válida: o aluno pode ser
+		// atribuído depois via edição (studentId) — mecanismo existente.
 		d.NutritionistID = uid
-		can, err := h.svc.CanAccessStudent(r.Context(), uid, role, d.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if d.StudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, d.StudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	} else if role == models.RoleAdmin {
-		if d.NutritionistID == "" {
-			http.Error(w, "nutritionistId obrigatorio", http.StatusBadRequest)
-			return
-		}
+		// Admin cria dieta (com aluno ou como template sem nutritionistId).
 	} else {
 		http.Error(w, "sem permissao para criar dieta", http.StatusForbidden)
 		return
@@ -612,10 +618,12 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
 	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
 		d.NutritionistID = existing.NutritionistID
-		can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, d.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if d.StudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, d.StudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	} else if d.NutritionistID == "" {
 		// Admin sem nutritionistId no body preserva o vínculo atual.
@@ -679,10 +687,12 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 		newStudentID = existing.StudentID
 	}
 	if role == models.RoleNutritionist {
-		can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
+		if newStudentID != "" {
+			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
+			if err != nil || !can {
+				http.Error(w, "sem permissao", http.StatusForbidden)
+				return
+			}
 		}
 	}
 

@@ -51,8 +51,8 @@ function DietsInner() {
     void load();
   }, [load]);
 
-  const studentName = (id: string) =>
-    students.find((s) => s.id === id)?.name || id.slice(0, 8);
+  const studentName = (id?: string) =>
+    !id ? "Sem aluno (biblioteca)" : students.find((s) => s.id === id)?.name || id.slice(0, 8);
 
   const editing = useMemo(
     () => (editId ? diets.find((d) => d.id === editId) ?? null : null),

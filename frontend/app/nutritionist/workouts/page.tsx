@@ -62,8 +62,8 @@ function WorkoutsInner() {
     void load();
   }, [load]);
 
-  const studentName = (id: string) =>
-    students.find((s) => s.id === id)?.name || id.slice(0, 8);
+  const studentName = (id?: string) =>
+    !id ? "Sem aluno (biblioteca)" : students.find((s) => s.id === id)?.name || id.slice(0, 8);
 
   const editing = useMemo(
     () => (editId ? workouts.find((w) => w.id === editId) ?? null : null),

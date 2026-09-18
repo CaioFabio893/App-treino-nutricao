@@ -80,6 +80,8 @@ type chainFakeRepo struct {
 	diet           *models.Diet
 	updatedWorkout *models.WorkoutDefine
 	updatedDiet    *models.Diet
+	createdDiet    *models.Diet
+	createdWorkout *models.WorkoutDefine
 }
 
 func (f *chainFakeRepo) GetUserProfile(_ context.Context, uid string) (*models.UserProfile, error) {
@@ -115,6 +117,28 @@ func (f *chainFakeRepo) GetDiet(_ context.Context, _ string) (*models.Diet, erro
 func (f *chainFakeRepo) UpdateDiet(_ context.Context, _ string, d *models.Diet) error {
 	f.updatedDiet = d
 	return nil
+}
+
+// Criação: captura o que o handler pediu para gravar (FASE 5 — dieta/treino
+// de biblioteca sem aluno, admin sem nutritionistId).
+func (f *chainFakeRepo) CreateDiet(_ context.Context, d *models.Diet) (*models.Diet, error) {
+	f.createdDiet = d
+	d.ID = "d-novo"
+	return d, nil
+}
+
+func (f *chainFakeRepo) CreateWorkout(_ context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error) {
+	f.createdWorkout = w
+	w.ID = "w-novo"
+	return w, nil
+}
+
+func (f *chainFakeRepo) ListDietsForNutritionist(_ context.Context, _ string) ([]*models.Diet, error) {
+	return f.listDiets, nil
+}
+
+func (f *chainFakeRepo) ListWorkoutsForNutritionist(_ context.Context, _ string) ([]*models.WorkoutDefine, error) {
+	return f.listWorkouts, nil
 }
 
 func (f *chainFakeRepo) ListUsers(_ context.Context) ([]*models.UserProfile, error) {
@@ -780,5 +804,267 @@ func TestChainAdminPreservesDietLinkWhenBodyOmitsNutritionist(t *testing.T) {
 	}
 	if got := repo.updatedDiet.NutritionistID; got != "nutri-atual" {
 		t.Errorf("nutritionistId gravado = %q, want nutri-atual (preservado sem body)", got)
+	}
+}
+
+// ── FASE 5: dieta/treino de biblioteca sem aluno, admin sem nutritionistId ──
+
+// Nutricionista cria TREINO sem aluno (biblioteca) — antes: 400 "nome e aluno
+// sao obrigatorios".
+func TestChainNutritionistCreatesWorkoutWithoutStudent(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino full body","exercises":[]}`
+	rr := doChainRequest(h, "POST", "/api/workouts", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/workouts code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdWorkout == nil {
+		t.Fatal("CreateWorkout não foi chamado")
+	}
+	if got := repo.createdWorkout.StudentID; got != "" {
+		t.Errorf("studentId gravado = %q, want \"\" (biblioteca)", got)
+	}
+	if got := repo.createdWorkout.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q", got, testUID)
+	}
+}
+
+// Nutricionista cria DIETA sem aluno (biblioteca) — antes: 400.
+func TestChainNutritionistCreatesDietWithoutStudent(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta 2000 kcal","meals":[]}`
+	rr := doChainRequest(h, "POST", "/api/diets", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/diets code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdDiet == nil {
+		t.Fatal("CreateDiet não foi chamado")
+	}
+	if got := repo.createdDiet.StudentID; got != "" {
+		t.Errorf("studentId gravado = %q, want \"\" (biblioteca)", got)
+	}
+	if got := repo.createdDiet.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q", got, testUID)
+	}
+}
+
+// Admin cria TREINO como template sem nutritionistId — antes: 400
+// "nutritionistId obrigatorio (ou use role de nutricionista)".
+func TestChainAdminCreatesWorkoutTemplate(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino padrão da academia","exercises":[]}`
+	rr := doChainRequest(h, "POST", "/api/workouts", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/workouts (admin) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdWorkout == nil {
+		t.Fatal("CreateWorkout não foi chamado")
+	}
+	if got := repo.createdWorkout.NutritionistID; got != "" {
+		t.Errorf("nutritionistId gravado = %q, want \"\" (template admin)", got)
+	}
+}
+
+// Admin cria DIETA como template sem nutritionistId — antes: 400.
+func TestChainAdminCreatesDietTemplate(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta padrão da academia","meals":[]}`
+	rr := doChainRequest(h, "POST", "/api/diets", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/diets (admin) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdDiet == nil {
+		t.Fatal("CreateDiet não foi chamado")
+	}
+	if got := repo.createdDiet.NutritionistID; got != "" {
+		t.Errorf("nutritionistId gravado = %q, want \"\" (template admin)", got)
+	}
+}
+
+// Nutricionista edita TREINO ainda não atribuído (biblioteca) e preserva o
+// vínculo vazio — antes: 403 (CanAccessStudent com studentId "").
+func TestChainNutritionistEditsUnassignedWorkout(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "",
+		NutritionistID: testUID,
+		Name:           "Treino A",
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino A editado"}`
+	rr := doChainRequest(h, "PUT", "/api/workouts/w-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/workouts/w-1 (biblioteca) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedWorkout == nil {
+		t.Fatal("UpdateWorkout não foi chamado")
+	}
+	if got := repo.updatedWorkout.StudentID; got != "" {
+		t.Errorf("studentId gravado = %q, want \"\" (continua biblioteca)", got)
+	}
+	if got := repo.updatedWorkout.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q", got, testUID)
+	}
+}
+
+// Nutricionista edita DIETA ainda não atribuída e preserva o vínculo vazio.
+func TestChainNutritionistEditsUnassignedDiet(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "",
+		NutritionistID: testUID,
+		Name:           "Dieta A",
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta A editada"}`
+	rr := doChainRequest(h, "PUT", "/api/diets/d-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/diets/d-1 (biblioteca) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedDiet == nil {
+		t.Fatal("UpdateDiet não foi chamado")
+	}
+	if got := repo.updatedDiet.StudentID; got != "" {
+		t.Errorf("studentId gravado = %q, want \"\" (continua biblioteca)", got)
+	}
+	if got := repo.updatedDiet.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q", got, testUID)
+	}
+}
+
+// ATRIBUIÇÃO: nutricionista atribui dieta existente (biblioteca) ao aluno via
+// edição — mecanismo existente (diets.studentId), sem duplicar.
+func TestChainNutritionistAssignsLibraryDietToStudent(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "",
+		NutritionistID: testUID,
+		Name:           "Dieta A",
+	}
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Dieta A","studentId":"student-1"}`
+	rr := doChainRequest(h, "PUT", "/api/diets/d-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/diets/d-1 (atribuir) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedDiet == nil {
+		t.Fatal("UpdateDiet não foi chamado")
+	}
+	if got := repo.updatedDiet.StudentID; got != "student-1" {
+		t.Errorf("studentId gravado = %q, want student-1 (atribuição)", got)
+	}
+	if got := repo.updatedDiet.NutritionistID; got != testUID {
+		t.Errorf("nutritionistId gravado = %q, want %q", got, testUID)
+	}
+}
+
+// ATRIBUIÇÃO: nutricionista atribui treino existente (biblioteca) ao aluno.
+func TestChainNutritionistAssignsLibraryWorkoutToStudent(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "",
+		NutritionistID: testUID,
+		Name:           "Treino A",
+	}
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino A","studentId":"student-1"}`
+	rr := doChainRequest(h, "PUT", "/api/workouts/w-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/workouts/w-1 (atribuir) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedWorkout == nil {
+		t.Fatal("UpdateWorkout não foi chamado")
+	}
+	if got := repo.updatedWorkout.StudentID; got != "student-1" {
+		t.Errorf("studentId gravado = %q, want student-1 (atribuição)", got)
+	}
+}
+
+// Segurança: aluno NÃO enxerga dieta de biblioteca (sem studentId) — não é
+// dele nem o vínculo é seu.
+func TestChainStudentCannotReadUnassignedDiet(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureDiet}))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "",
+		NutritionistID: "nutri-1",
+		Name:           "Dieta da biblioteca",
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/diets/d-1", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("GET /api/diets/d-1 (aluno, biblioteca) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Segurança: aluno NÃO enxerga treino de biblioteca.
+func TestChainStudentCannotReadUnassignedWorkout(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "",
+		NutritionistID: "nutri-1",
+		Name:           "Treino da biblioteca",
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/workouts/w-1", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("GET /api/workouts/w-1 (aluno, biblioteca) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// O nutricionista dono acessa normalmente a própria dieta de biblioteca.
+func TestChainNutritionistReadsOwnUnassignedDiet(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "",
+		NutritionistID: testUID,
+		Name:           "Dieta da biblioteca",
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/diets/d-1", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/diets/d-1 (nutri, biblioteca) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Segurança: aluno não cria dieta nem treino (Allow só libera nutri/admin).
+func TestChainStudentCannotCreateDietOrWorkout(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureDiet}))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/diets", `{"name":"X","meals":[]}`, "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("POST /api/diets (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+	rr = doChainRequest(h, "POST", "/api/workouts", `{"name":"X","exercises":[]}`, "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("POST /api/workouts (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
 	}
 }

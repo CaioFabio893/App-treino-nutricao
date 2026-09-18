@@ -142,7 +142,8 @@ export interface WorkoutExercise {
 
 export interface WorkoutDefine {
   id?: string;
-  studentId: string;
+  // Vazio/ausente = treino de biblioteca (ainda não atribuído a aluno).
+  studentId?: string;
   nutritionistId: string;
   name: string;
   description?: string;
@@ -172,7 +173,9 @@ export interface Meal {
 
 export interface Diet {
   id?: string;
-  studentId: string;
+  // Vazio/ausente = dieta de biblioteca; o aluno pode ser atribuído depois
+  // via edição (mecanismo existente: diets.studentId).
+  studentId?: string;
   nutritionistId: string;
   name: string;
   description?: string;

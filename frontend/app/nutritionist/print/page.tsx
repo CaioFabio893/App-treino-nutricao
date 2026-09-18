@@ -77,13 +77,17 @@ function PrintInner() {
       } else if (workoutId) {
         const w = await api.getWorkout(workoutId, token);
         setWorkout(w);
-        const s = await api.getStudent(w.studentId, token);
-        setStudent(s);
+        if (w.studentId) {
+          const s = await api.getStudent(w.studentId, token);
+          setStudent(s);
+        }
       } else if (dietId) {
         const d = await api.getDiet(dietId, token);
         setDiet(d);
-        const s = await api.getStudent(d.studentId, token);
-        setStudent(s);
+        if (d.studentId) {
+          const s = await api.getStudent(d.studentId, token);
+          setStudent(s);
+        }
       }
       setError(null);
     } catch (e) {
@@ -140,7 +144,7 @@ function PrintInner() {
               <div className="print-sub">Objetivo: {workout.objective}</div>
             )}
             <div className="print-meta">
-              Aluno: <b>{student?.name || workout.studentId}</b>
+              Aluno: <b>{student?.name || workout.studentId || "—"}</b>
               {workout.dayOfWeek
                 ? ` · Dia: ${WEEK_DAY_LABEL[workout.dayOfWeek] || workout.dayOfWeek}`
                 : ""}
@@ -161,7 +165,7 @@ function PrintInner() {
             <div className="print-title">{diet.name}</div>
             {diet.description && <div className="print-sub">{diet.description}</div>}
             <div className="print-meta">
-              Aluno: <b>{student?.name || diet.studentId}</b>
+              Aluno: <b>{student?.name || diet.studentId || "—"}</b>
               {diet.startDate
                 ? ` · ${diet.startDate} → ${diet.endDate || "..."}`
                 : ""}

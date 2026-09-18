@@ -131,7 +131,9 @@ export default function WorkoutForm({
     setDragIndex(null);
   };
 
-  const canSave = Boolean(name.trim()) && Boolean(studentId);
+  // Aluno é opcional: sem aluno o treino fica na biblioteca e pode ser
+  // atribuído depois (mecanismo existente: workouts.studentId).
+  const canSave = Boolean(name.trim());
 
   const save = async () => {
     if (!canSave || busy) return;
@@ -178,7 +180,9 @@ export default function WorkoutForm({
         <div>
           <h1>{initial?.id ? "Editar treino" : "Novo treino"}</h1>
           <div className="page-sub">
-            {initial?.id ? "Altere os campos e salve." : "Monte o treino do aluno."}
+            {initial?.id
+              ? "Altere os campos e salve."
+              : "Monte o treino. O aluno é opcional e pode ser atribuído depois."}
           </div>
         </div>
       </div>
@@ -218,7 +222,7 @@ export default function WorkoutForm({
         <div className="frm-row">
           <label>Aluno</label>
           <select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
-            <option value="">Selecione o aluno…</option>
+            <option value="">Sem aluno (biblioteca)</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
                 {s.name || s.id}

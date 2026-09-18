@@ -36,10 +36,17 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
 
   const [workouts, setWorkouts] = useState<WorkoutDefine[]>([]);
   const [diets, setDiets] = useState<Diet[]>([]);
+  // Listas completas (incluem itens de biblioteca sem aluno) para permitir a
+  // ATRIBUIÇÃO de treino/dieta existente a este aluno sem duplicar.
+  const [allWorkouts, setAllWorkouts] = useState<WorkoutDefine[]>([]);
+  const [allDiets, setAllDiets] = useState<Diet[]>([]);
   const [history, setHistory] = useState<WorkoutHistoryEntry[]>([]);
   const [dietLogs, setDietLogs] = useState<DietDailyLog[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Atribuição de treino/dieta de biblioteca.
+  const [assigning, setAssigning] = useState(false);
+  const [assignMsg, setAssignMsg] = useState<string | null>(null);
 
   // Edição dos dados do aluno (foto, nome, status, datas, bio).
   const [editing, setEditing] = useState(false);
@@ -63,6 +70,8 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         api.listHistory(token),
         api.listDietLogs(student.id, token),
       ]);
+      setAllWorkouts(w);
+      setAllDiets(d);
       setWorkouts(w.filter((x) => x.studentId === student.id));
       setDiets(d.filter((x) => x.studentId === student.id));
       setHistory(h.filter((x) => x.studentId === student.id));
@@ -179,6 +188,53 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
     }
   };
 
+  // Itens de biblioteca (sem aluno) disponíveis para atribuir a este aluno.
+  // Não listamos treinos/dietas de OUTROS alunos para evitar transferência.
+  const assignableWorkouts = useMemo(
+    () => allWorkouts.filter((w) => !w.studentId),
+    [allWorkouts]
+  );
+  const assignableDiets = useMemo(
+    () => allDiets.filter((d) => !d.studentId),
+    [allDiets]
+  );
+
+  // ATRIBUIÇÃO: vincula um treino/dieta existente (biblioteca) a este aluno
+  // pelo mecanismo existente (studentId no documento), sem duplicar.
+  const assignWorkout = async (id: string) => {
+    const w = allWorkouts.find((x) => x.id === id);
+    if (!w || assigning) return;
+    setAssigning(true);
+    setAssignMsg(null);
+    try {
+      const token = await getToken();
+      await api.updateWorkout(id, { ...w, studentId: student.id }, token);
+      setAssignMsg("✓ Treino atribuído a este aluno.");
+      void load();
+    } catch (e) {
+      setAssignMsg(`⚠ ${e instanceof Error ? e.message : "Falha ao atribuir treino"}`);
+    } finally {
+      setAssigning(false);
+    }
+  };
+
+  const assignDiet = async (id: string) => {
+    const d = allDiets.find((x) => x.id === id);
+    if (!d || assigning) return;
+    setAssigning(true);
+    setAssignMsg(null);
+    try {
+      const token = await getToken();
+      await api.updateDiet(id, { ...d, studentId: student.id }, token);
+      setAssignMsg("✓ Dieta atribuída a este aluno.");
+      void load();
+    } catch (e) {
+      setAssignMsg(`⚠ ${e instanceof Error ? e.message : "Falha ao atribuir dieta"}`);
+    } finally {
+      setAssigning(false);
+    }
+  };
+
   if (!ready) return <ProfileSkeleton />;
 
   const lastWorkout = history[0] ?? null;
@@ -210,6 +266,18 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
       </div>
 
       {error && <div className="err-text">{error}</div>}
+      {assignMsg && (
+        <div
+          className={assignMsg.startsWith("✓") ? "" : "err-text"}
+          style={
+            assignMsg.startsWith("✓")
+              ? { color: "var(--ok, #2e7d32)", fontSize: 13, marginBottom: 8 }
+              : {}
+          }
+        >
+          {assignMsg}
+        </div>
+      )}
 
       {/* Dados do aluno */}
       <div className="section-label">Dados do aluno</div>
@@ -425,6 +493,27 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
 
       {/* Treinos */}
       <div className="section-label">Treinos</div>
+      {assignableWorkouts.length > 0 && (
+        <div className="nut-card" style={{ marginBottom: 12 }}>
+          <div className="frm-row">
+            <label className="frm-label">Atribuir treino existente (biblioteca)</label>
+            <select
+              value=""
+              disabled={assigning}
+              onChange={(e) => {
+                if (e.target.value) void assignWorkout(e.target.value);
+              }}
+            >
+              <option value="">— Selecionar treino da biblioteca —</option>
+              {assignableWorkouts.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
       {workouts.length === 0 ? (
         <div className="empty-box">Nenhum treino para este aluno ainda.</div>
       ) : (
@@ -468,6 +557,27 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
 
       {/* Dietas */}
       <div className="section-label">Dietas</div>
+      {assignableDiets.length > 0 && (
+        <div className="nut-card" style={{ marginBottom: 12 }}>
+          <div className="frm-row">
+            <label className="frm-label">Atribuir dieta existente (biblioteca)</label>
+            <select
+              value=""
+              disabled={assigning}
+              onChange={(e) => {
+                if (e.target.value) void assignDiet(e.target.value);
+              }}
+            >
+              <option value="">— Selecionar dieta da biblioteca —</option>
+              {assignableDiets.map((d) => (
+                <option key={d.id} value={d.id}>
+                  {d.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+      )}
       {diets.length === 0 ? (
         <div className="empty-box">Nenhuma dieta para este aluno ainda.</div>
       ) : (
