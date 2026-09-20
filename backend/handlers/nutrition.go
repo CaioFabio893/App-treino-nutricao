@@ -14,9 +14,13 @@ import (
 // ── Perfil do usuário logado ──
 
 // HandleGetMe devolve o perfil do usuário autenticado (com `id` preenchido).
-// Sem perfil, devolve um perfil "virtual" pendente de aprovação: o frontend usa
+// Sem perfil, CRIA o cadastro automaticamente como `pending_approval` (papel
+// vazio — quem decide role/plano é o admin). Isso faz qualquer conta criada no
+// Firebase Auth aparecer na fila de aprovação do admin imediatamente, mesmo
+// antes de o usuário completar o nome no ProfileSetup (spec 4.1: "se perfil não
+// existe, criar automaticamente como status: pending_approval"). O frontend usa
 // needsProfile (monta o ProfileSetup) e needsApproval (tela de espera) para
-// decidir o próximo passo — o perfil real só é criado no PUT /api/me.
+// decidir o próximo passo.
 func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
 	prof, err := h.repo.GetUserProfile(r.Context(), uid)
@@ -25,11 +29,42 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if prof == nil {
+		// Cadastro novo: preenche name/email/photoURL com o registro do
+		// Firebase Auth (login Google já traz tudo pronto; e-mail/senha entra
+		// sem nome e o ProfileSetup coleta depois).
+		p := &models.UserProfile{AuthProvider: middleware.AuthProviderFrom(r.Context())}
+		if h.auth != nil {
+			if rec, err := h.auth.GetUser(r.Context(), uid); err == nil {
+				p.Name = rec.DisplayName
+				p.Email = rec.Email
+				p.PhotoURL = rec.PhotoURL
+			}
+		}
+		if err := h.svc.GetOrCreateProfile(r.Context(), uid, p); err != nil {
+			http.Error(w, "falha ao criar perfil", http.StatusInternalServerError)
+			return
+		}
+		prof, err = h.repo.GetUserProfile(r.Context(), uid)
+		if err != nil {
+			http.Error(w, "falha ao ler perfil", http.StatusInternalServerError)
+			return
+		}
+		if prof == nil {
+			http.Error(w, "falha ao criar perfil", http.StatusInternalServerError)
+			return
+		}
+	}
+	// Cadastro pendente sem nome (ex.: e-mail/senha): o frontend ainda precisa
+	// coletar o nome antes da tela de espera — mantém o contrato needsProfile.
+	if prof.Role == "" && prof.Status == models.StatusPendingApproval && prof.Name == "" {
 		writeJSON(w, http.StatusOK, map[string]any{
-			"id":            uid,
+			"id":            prof.ID,
+			"name":          prof.Name,
+			"email":         prof.Email,
+			"photoURL":      prof.PhotoURL,
 			"role":          "",
-			"status":        models.StatusPendingApproval,
-			"authProvider":  middleware.AuthProviderFrom(r.Context()),
+			"status":        prof.Status,
+			"authProvider":  prof.AuthProvider,
 			"needsProfile":  true,
 			"needsApproval": true,
 		})

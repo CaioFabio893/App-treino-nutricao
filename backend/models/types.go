@@ -143,7 +143,10 @@ type WorkoutExercise struct {
 // ── Dietas ──
 
 // Diet é a dieta criada pelo nutricionista.
-// As refeições (com seus alimentos) ficam embutidas no documento (array `meals`).
+// Suporta dois formatos:
+//   - Content: texto livre (copiar/colar) — formato atual simplificado;
+//   - Meals: refeições com alimentos — formato legado, mantido para
+//     compatibilidade com dietas já cadastradas.
 type Diet struct {
 	ID             string    `json:"id,omitempty"`
 	StudentID      string    `json:"studentId"`
@@ -152,7 +155,8 @@ type Diet struct {
 	Description    string    `json:"description,omitempty"`
 	StartDate      string    `json:"startDate,omitempty"`
 	EndDate        string    `json:"endDate,omitempty"`
-	Meals          []*Meal   `json:"meals,omitempty"`
+	Content        string    `json:"content,omitempty"` // texto livre da dieta (formato simplificado)
+	Meals          []*Meal   `json:"meals,omitempty"`   // legado: refeições estruturadas
 	CreatedAt      time.Time `json:"createdAt,omitempty"`
 	UpdatedAt      time.Time `json:"updatedAt,omitempty"`
 }

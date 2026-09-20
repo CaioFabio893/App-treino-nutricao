@@ -260,6 +260,30 @@ func newChainMuxWithVerifier(repo repository.Repository, ver *fakeVerifier) http
 	return mux
 }
 
+// autoCreateRepo emula o comportamento real do Firestore depois de um
+// CreateUser: o documento users/{uid} criado passa a ser legível pelo
+// GetUserProfile seguinte. O chainFakeRepo base não faz isso (o perfil devolvido
+// é sempre o campo fixo `profile`), então os testes do fluxo de auto-criação no
+// GET /api/me usam este wrapper.
+type autoCreateRepo struct {
+	*chainFakeRepo
+	created *models.UserProfile
+}
+
+func (r *autoCreateRepo) GetUserProfile(ctx context.Context, uid string) (*models.UserProfile, error) {
+	if r.created != nil {
+		return r.created, nil
+	}
+	return r.chainFakeRepo.GetUserProfile(ctx, uid)
+}
+
+func (r *autoCreateRepo) CreateUser(_ context.Context, uid string, p *models.UserProfile) error {
+	cp := *p
+	cp.ID = uid
+	r.created = &cp
+	return nil
+}
+
 // baseRepo devolve um fake com listas vazias (nenhum dado "real" criado).
 func baseRepo(profile *models.UserProfile) *chainFakeRepo {
 	return &chainFakeRepo{
@@ -653,6 +677,57 @@ func TestChainProfileEndpointsSerializeID(t *testing.T) {
 	}
 }
 
+// ── GET /api/me CRIA o cadastro pendente (spec 4.1) ──
+//
+// Usuário que criou a conta no Firebase Auth mas ainda não tem documento no
+// Firestore: o GET /api/me deve criar o perfil automaticamente como
+// `pending_approval` com papel vazio. É isso que faz a conta "criada" aparecer
+// na fila de aprovação do admin (GET /api/users/pending consulta status
+// pending_approval). Antes da correção, o /me devolvia um perfil virtual sem
+// gravar nada — e o usuário sumia da fila até completar o ProfileSetup.
+func TestChainGetMeCreatesPendingProfile(t *testing.T) {
+	repo := &autoCreateRepo{chainFakeRepo: baseRepo(nil)}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/me", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/me code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.created == nil {
+		t.Fatal("GET /api/me não criou o perfil no Firestore")
+	}
+	if repo.created.Status != models.StatusPendingApproval {
+		t.Errorf("status criado = %q, want pending_approval", repo.created.Status)
+	}
+	if repo.created.Role != "" {
+		t.Errorf("role criado = %q, want vazio (quem decide é o admin)", repo.created.Role)
+	}
+	// Contrato de resposta: cadastro pendente SEM nome ainda → needsProfile +
+	// needsApproval para o frontend montar o ProfileSetup antes da tela de
+	// espera.
+	body := rr.Body.String()
+	for _, needle := range []string{
+		`"needsProfile":true`,
+		`"needsApproval":true`,
+		`"status":"pending_approval"`,
+		`"id":"uid-integration-test"`,
+	} {
+		if !strings.Contains(body, needle) {
+			t.Errorf("GET /api/me body = %q, deveria conter %s", body, needle)
+		}
+	}
+
+	// Segunda chamada: o perfil já existe → retorna o documento criado, sem
+	// duplicar/criar de novo.
+	rr = doChainRequest(h, "GET", "/api/me", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET /api/me (2ª vez) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), `"status":"pending_approval"`) {
+		t.Errorf("2ª chamada body = %q, deveria conter status pending_approval", rr.Body.String())
+	}
+}
+
 // ── ADMIN lista alunos SEM plano e SEM nutricionista ──
 //
 // Aluno aprovado com NutritionistID == "" não pode ficar invisível na Gestão:
@@ -900,6 +975,49 @@ func TestChainNutritionistCreatesDietWithoutStudent(t *testing.T) {
 
 // Admin cria TREINO como template sem nutritionistId — antes: 400
 // "nutritionistId obrigatorio (ou use role de nutricionista)".
+
+// ── FASE 5b: formato simplificado de dieta (texto livre) ──
+//
+// O `content` (copiar/colar em texto) é o formato atual de dieta; refeições
+// estruturadas (`meals`) continuam como legado. O handler precisa persistir
+// o texto exatamente como enviado (preservando quebras de linha) tanto na
+// criação quanto na edição.
+func TestChainDietTextContentPersistsOnCreate(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Plano Outubro","content":"CAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n\nALMOÇO (12:30)\n• 150g de arroz integral"}`
+	rr := doChainRequest(h, "POST", "/api/diets", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST /api/diets code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdDiet == nil {
+		t.Fatal("CreateDiet não foi chamado")
+	}
+	want := "CAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n\nALMOÇO (12:30)\n• 150g de arroz integral"
+	if got := repo.createdDiet.Content; got != want {
+		t.Errorf("content gravado = %q, want %q (texto preservado integralmente)", got, want)
+	}
+}
+
+func TestChainDietTextContentPersistsOnUpdate(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{ID: "d-1", Name: "Plano Outubro", NutritionistID: testUID}
+	h := newChainMux(repo)
+
+	body := `{"name":"Plano Outubro","content":"JANTAR (19:30)\n• Filé de peixe grelhado\n• Legumes no vapor"}`
+	rr := doChainRequest(h, "PUT", "/api/diets/d-1", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/diets/d-1 code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedDiet == nil {
+		t.Fatal("UpdateDiet não foi chamado")
+	}
+	want := "JANTAR (19:30)\n• Filé de peixe grelhado\n• Legumes no vapor"
+	if got := repo.updatedDiet.Content; got != want {
+		t.Errorf("content gravado = %q, want %q (texto preservado integralmente)", got, want)
+	}
+}
 func TestChainAdminCreatesWorkoutTemplate(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
