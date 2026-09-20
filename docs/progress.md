@@ -4,15 +4,53 @@
 
 ---
 
-## Fase atual: 1 — Implementação (correções TDD)
+## Fase atual: 2 — Testes de frontend (Vitest → Playwright)
 
-**Status: 3.3/3.5 corrigidos no backend (TDD) + Emulator/Security Rules
-configurados e testados (53 testes) + **Hardening de produção CORS/rate
-limit/users allowlist concluído** — continua em Fase 1.**
+**Status: dívida técnica do working tree integrada e commitada (2 commits);
+backend 112+, rules 53, build frontend OK. Setup Vitest/Playwright começando.**
+
+Governança a partir de 20 set 2026: **execução contínua** — commits
+automáticos em checkpoints verdes (Conventional Commits), sem push/deploy,
+sem tocar na V1 em produção. Decisões técnicas rotineiras não requerem OK;
+parar apenas para decisão de produto sem evidência, destruição, credenciais,
+stack ou arquitetura fundamental.
+
+### Checkpoint 1 — Integração do working tree V2 existente (20 set 2026)
+
+Alterações não commitadas de sessões anteriores foram auditadas (classificação
+A — features V2 válidas, sem segredos), testadas (go test, vet, 53 regras,
+build frontend) e commitadas:
+
+- `4c34243` **feat(api): auto-create profile on GET /me and persist free-text
+  diet content** — `HandleGetMe` agora cria o cadastro automaticamente como
+  `pending_approval` quando o perfil não existe (spec 4.1), preenchendo
+  name/email/photoURL do registro do Firebase Auth via `GetOrCreateProfile`
+  (preserva role/status — sem auto-promoção; nome ainda é obrigatório antes da
+  tela de espera: contrato `needsProfile` mantido). `Diet.Content` (texto
+  livre) persistido no Create/Update de dieta. +18 testes de cadeia real.
+- `a7a047d` **feat(frontend): student dashboard, ranking view and free-text
+  diets** — página `/dashboard` (StudentDashboard), página `/ranking`
+  (Ranking), navegação inferior com Início/Ranking + guardas de rota por
+  feature (`diet`/`community`/`ranking`; staff pula a guarda), formulário de
+  dieta simplificado (texto livre com `mealsToText` convertendo dietas legadas;
+  `meals: []` ao salvar — legado vira texto), EmptyDietState, ícones de app,
+  demo com features completas no perfil aluno.
+
+**Dívida conhecida registrada:** `npm run lint` tem **31 erros + 11 warnings**
+pré-existentes do V1 (principalmente `react-hooks/set-state-in-effect`, regra
+nova do eslint-config-next 16; o padrão `void fetch()` em useEffect é usado em
+todo o codebase). O build do Next 16 **não roda ESLint** (só TypeScript) —
+build fica verde. Limpeza de lint entra como tarefa de retaguarda (não
+bloquear features; evitar novos erros no código novo).
+
+### Fase 1 — Implementação (correções TDD)
 
 Fase 0 aprovada em checkpoint. A Fase 1 começou pelas correções de maior
 prioridade (Correção > Segurança > Testabilidade) identificadas na auditoria:
 createdAt do diet log, a race condition do feed e o hardening de produção.
+Status final: 3.3/3.5 corrigidos no backend (TDD) + Emulator/Security Rules
+configurados e testados (53 testes) + Hardening de produção CORS/rate
+limit/users allowlist concluído.
 
 ### Fase 1 — Hardening de produção: CORS, rate limit e allowlist de users (20 set 2026, TDD Red→Green→Refactor)
 
@@ -94,18 +132,23 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 
 ### Cobertura de testes
 
-- Backend: **112 testes** (antes 91) — `go test ./...` ✅ · `go vet ./...` limpo ✅
-- Frontend: 0 (pendente — próxima correção de riscos)
-- Firestore Emulator: **53 testes de regras** ✅ (antes 35)
+- Backend: **112+ testes** — `go test ./...` ✅ · `go vet ./...` limpo ✅
+- Frontend: 0 (em progresso — Fase 2: setup Vitest/Playwright).
+- Firestore Emulator: **53 testes de regras** ✅
   (`cd firestore-tests && npm test`)
 
-### Próximos passos (Fase 1)
+### Próximos passos (Fase 2+)
 
 - [x] Configurar Firestore Emulator + testes de regras (seção 25 do plano).
 - [x] Hardening de produção: ALLOWED_ORIGIN obrigatório, rate limit default,
       allowlist de users (relatório `phase-01-hardening.md`).
 - [x] Decisão do achado A3: NÃO criar `users(role, nutritionistID)` (index-merge).
-- [ ] Frontend: setup Vitest/Playwright e primeiros testes (risco alto).
+- [x] Integrar e commitar o working tree V2 existente (dashboard/ranking/dietas
+      texto/auto-create /api/me).
+- [ ] **[Fase 2]** Frontend: setup Vitest/Playwright e primeiros testes
+      (risco alto).
+- [ ] **[Fase 2]** Retaguarda: limpar dívida de lint do frontend (31 erros
+      `set-state-in-effect` pré-existentes).
 - [ ] Harmonizar pergunta em aberto do status `blocked` vs `paused/inactive`
       (achado A10 — regras já negam status fora da whitelist).
 - [ ] Seguir com as demais correções/implementações do SDD da Fase 1.
@@ -186,3 +229,4 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 20 set 2026 | 1 | Checkpoint aprovado; correções TDD de 3.3 (dietLogData createdAt) e 3.5 (UpdatePostTx no feed); 91 testes backend |
 | 20 set 2026 | 1 | Firestore Emulator configurado + rules endurecidas + 35 testes de regras (8 cenários + regressão admin); relatório phase-01-security-rules |
 | 20 set 2026 | 1 | Hardening de produção: CORS estrito (ALLOWED_ORIGIN obrigatório, sem `*`), rate limit com defaults + Retry-After, users update por allowlist (createdAt/authProvider fechados); decisão A3 (sem índice composto users); 112 testes backend + 53 regras |
+| 20 set 2026 | 2 | Working tree V2 integrado e commitado: auto-create /api/me + dieta texto (API) e dashboard/ranking/dietas texto (frontend); gates verdes; dívida de lint registrada |
