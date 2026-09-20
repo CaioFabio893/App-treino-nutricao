@@ -390,6 +390,13 @@ input, textarea { font-family: var(--sans); }
 }
 .frm-row input:focus, .frm-row textarea:focus, .frm-row select:focus { outline: none; border-color: var(--terra); }
 .frm-row textarea { resize: vertical; min-height: 60px; }
+/* Textarea grande para o conteúdo de uma dieta (copiar/colar do nutricionista). */
+.frm-row textarea.diet-content-input {
+  min-height: 320px;
+  line-height: 1.65;
+  font-size: 13.5px;
+  white-space: pre-wrap;
+}
 .frm-row-inline { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
 .frm-row-inline-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; }
 
@@ -475,6 +482,28 @@ input, textarea { font-family: var(--sans); }
   border-radius: var(--r); padding: 24px 16px; text-align: center;
   color: var(--muted); font-size: 12px; margin-bottom: 14px;
 }
+/* Estado vazio com ícone (ex.: Dietas) — mesmo idioma visual dos cards */
+.empty-state {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  text-align: center; padding: 32px 16px;
+  background: var(--white); border: 1.5px solid var(--border);
+  border-radius: var(--r); margin-bottom: 14px;
+}
+.empty-state-icon {
+  width: 96px; height: 96px; border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--peach); border: 1.5px solid var(--border);
+  color: var(--terra); margin-bottom: 16px;
+}
+.empty-state-title {
+  font-family: var(--serif); font-size: 15px; font-weight: 700;
+  color: var(--text); margin-bottom: 4px;
+}
+.empty-state-text {
+  font-size: 12px; color: var(--muted); line-height: 1.5;
+  max-width: 300px; margin-bottom: 18px;
+}
+.empty-state-text:last-child { margin-bottom: 0; }
 .err-text { color: var(--fail); font-size: 12px; margin-bottom: 10px; }
 
 /* Simples stats do dashboard */
@@ -503,6 +532,10 @@ input, textarea { font-family: var(--sans); }
 .print-meal-head b { color: var(--terra); }
 .print-meal-head span { color: var(--muted); }
 .print-food { font-size: 12px; color: var(--text); padding: 2px 0 2px 8px; }
+.print-content {
+  font-size: 12.5px; color: var(--text); line-height: 1.7;
+  white-space: pre-wrap; word-break: break-word; padding: 6px 0;
+}
 .print-day { margin-top: 14px; }
 .print-day-head {
   font-family: var(--serif); font-style: italic; font-size: 16px; color: var(--terra);

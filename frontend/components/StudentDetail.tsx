@@ -594,9 +594,15 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
                 <div className="nut-card-title">{d.name}</div>
                 <div className="nut-card-sub">
                   {d.description || ""}
-                  {` · ${d.meals?.length ?? 0} refeições`}
+                  {d.content ? " · Texto livre" : ` · ${d.meals?.length ?? 0} refeições`}
                   {d.startDate ? ` · ${d.startDate} → ${d.endDate || "?"}` : ""}
                 </div>
+                {!d.description && d.content && (
+                  <div className="nut-card-sub" style={{ marginTop: 4 }}>
+                    {d.content.slice(0, 80)}
+                    {d.content.length > 80 ? "…" : ""}
+                  </div>
+                )}
               </div>
             </div>
             <div className="btn-row">

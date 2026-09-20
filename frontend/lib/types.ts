@@ -181,6 +181,9 @@ export interface Diet {
   description?: string;
   startDate?: string;
   endDate?: string;
+  /** Texto livre da dieta (formato simplificado: copiar/colar do nutricionista). */
+  content?: string;
+  /** Legado: refeições estruturadas (mantido para dietas antigas). */
   meals?: Meal[];
   createdAt?: string;
   updatedAt?: string;

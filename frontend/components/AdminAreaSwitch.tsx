@@ -25,9 +25,11 @@ export default function AdminAreaSwitch() {
 
   const isStudentPath =
     pathname === "/" ||
+    pathname.startsWith("/dashboard") ||
     pathname.startsWith("/treinos") ||
     pathname.startsWith("/dietas") ||
     pathname.startsWith("/comunidade") ||
+    pathname.startsWith("/ranking") ||
     pathname.startsWith("/profile/");
 
   const isActiveArea = (href: string) => {

@@ -19,9 +19,9 @@ export default function Home() {
     if (!initializing && user && !needsProfile && !needsApproval && (role === "nutritionist" || role === "admin")) {
       router.replace("/nutritionist");
     }
-    // Alunos aprovados vão para a primeira aba da área do aluno (rota própria).
+    // Alunos aprovados vão para o dashboard da área do aluno (rota própria).
     if (!initializing && user && !needsProfile && !needsApproval && role === "student") {
-      router.replace("/treinos");
+      router.replace("/dashboard");
     }
   }, [initializing, user, configured, role, needsProfile, needsApproval, router]);
 

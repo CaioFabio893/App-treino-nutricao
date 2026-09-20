@@ -2,11 +2,27 @@
 
 import { useEffect, useState } from "react";
 import * as api from "@/lib/api";
-import type { Diet, Food, Meal, UserProfile } from "@/lib/types";
-import ConfirmModal from "./ConfirmModal";
+import type { Diet, Meal, UserProfile } from "@/lib/types";
 
-const newFood = (): Food => ({ name: "", quantity: 0, unit: "" });
-const newMeal = (order: number): Meal => ({ name: "", time: "", order, foods: [] });
+// Converte uma dieta legada (refeições estruturadas) em texto livre, para que
+// dietas antigas continuem visíveis/editáveis no novo formato simplificado.
+export function mealsToText(meals: Meal[] | undefined): string {
+  return (meals ?? [])
+    .filter((m) => m?.name)
+    .map((m) => {
+      const head = m.time ? `${m.name} (${m.time})` : m.name;
+      const foods = (m.foods ?? [])
+        .filter((f) => f?.name)
+        .map((f) => {
+          const qty = f.quantity ? ` — ${f.quantity} ${f.unit}` : f.unit ? ` — ${f.unit}` : "";
+          return `• ${f.name}${qty}${f.notes ? ` (${f.notes})` : ""}`;
+        })
+        .join("\n");
+      const notes = m.notes ? `Obs: ${m.notes}` : "";
+      return [head, foods, notes].filter(Boolean).join("\n");
+    })
+    .join("\n\n");
+}
 
 interface Props {
   initial?: Diet;
@@ -18,6 +34,11 @@ interface Props {
   onCancel: () => void;
 }
 
+/**
+ * Formulário de dieta simplificado: nome + texto livre (copiar/colar) +
+ * aluno opcional (biblioteca). Dietas legadas com refeições são convertidas
+ * para texto automaticamente ao abrir/duplicar — nada se perde na edição.
+ */
 export default function DietForm({
   initial,
   presetStudent,
@@ -29,14 +50,18 @@ export default function DietForm({
 }: Props) {
   const [name, setName] = useState(initial?.name ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
+  const [content, setContent] = useState(() => {
+    if (initial?.content) return initial.content;
+    if (initial?.meals?.length) return mealsToText(initial.meals);
+    return "";
+  });
   const [studentId, setStudentId] = useState(initial?.studentId ?? presetStudent ?? "");
   const [startDate, setStartDate] = useState(initial?.startDate ?? "");
   const [endDate, setEndDate] = useState(initial?.endDate ?? "");
-  const [meals, setMeals] = useState<Meal[]>(initial?.meals?.length ? initial.meals : []);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Se veio com "copyId", carrega a dieta de origem.
+  // Se veio com "copyId", carrega a dieta de origem (copiando o texto).
   useEffect(() => {
     if (!copyId) return;
     let cancelled = false;
@@ -44,13 +69,8 @@ export default function DietForm({
       try {
         const token = await getToken();
         const src = await api.getDiet(copyId, token);
-        if (!cancelled && src?.meals) {
-          const copied = src.meals.map((m) => ({
-            ...m,
-            id: undefined,
-            foods: m.foods?.map((f) => ({ ...f, id: undefined })),
-          }));
-          setMeals(copied);
+        if (!cancelled && src) {
+          setContent(src.content ?? mealsToText(src.meals));
           if (!name) setName(`${src.name} (copia)`);
           if (!description) setDescription(src.description ?? "");
           if (!startDate) setStartDate(src.startDate ?? "");
@@ -66,70 +86,10 @@ export default function DietForm({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [copyId]);
 
-  const setMeal = (mi: number, patch: Partial<Meal>) => {
-    setMeals((prev) => prev.map((m, j) => (j === mi ? { ...m, ...patch } : m)));
-  };
-
-  const setFood = (mi: number, fi: number, patch: Partial<Food>) => {
-    setMeals((prev) =>
-      prev.map((m, j) =>
-        j === mi
-          ? {
-              ...m,
-              foods: (m.foods ?? []).map((f, k) => (k === fi ? { ...f, ...patch } : f)),
-            }
-          : m
-      )
-    );
-  };
-
-  const addMeal = () => setMeals((prev) => [...prev, newMeal(prev.length + 1)]);
-  const [confirmMeal, setConfirmMeal] = useState<number | null>(null);
-  const removeMeal = (mi: number) => {
-    const m = meals[mi];
-    if (!m?.name) {
-      setMeals((prev) => prev.filter((_, j) => j !== mi));
-    } else {
-      setConfirmMeal(mi);
-    }
-  };
-  const confirmRemoveMeal = () => {
-    if (confirmMeal !== null) {
-      setMeals((prev) => prev.filter((_, j) => j !== confirmMeal));
-    }
-    setConfirmMeal(null);
-  };
-
-  const moveMeal = (mi: number, delta: number) => {
-    const j = mi + delta;
-    if (j < 0 || j >= meals.length) return;
-    setMeals((prev) => {
-      const next = [...prev];
-      const tmp = next[mi];
-      next[mi] = next[j];
-      next[j] = tmp;
-      return next;
-    });
-  };
-
-  const addFood = (mi: number) => {
-    setMeals((prev) =>
-      prev.map((m, j) => (j === mi ? { ...m, foods: [...(m.foods ?? []), newFood()] } : m))
-    );
-  };
-
-  const removeFood = (mi: number, fi: number) => {
-    setMeals((prev) =>
-      prev.map((m, j) =>
-        j === mi ? { ...m, foods: (m.foods ?? []).filter((_, k) => k !== fi) } : m
-      )
-    );
-  };
-
   const dateRangeInvalid = Boolean(startDate && endDate) && startDate > endDate;
   // Aluno é opcional: sem aluno a dieta fica na biblioteca e pode ser
   // atribuída depois (mecanismo existente: diets.studentId).
-  const canSave = Boolean(name.trim()) && !dateRangeInvalid;
+  const canSave = Boolean(name.trim()) && Boolean(content.trim()) && !dateRangeInvalid;
 
   const save = async () => {
     if (!canSave || busy) return;
@@ -144,11 +104,9 @@ export default function DietForm({
         description: description.trim(),
         startDate,
         endDate,
-        meals: meals.map((m, i) => ({
-          ...m,
-          order: i + 1,
-          foods: (m.foods ?? []).filter((f) => f.name.trim() !== ""),
-        })),
+        content: content.trim(),
+        // Novo formato é texto: refeições estruturadas caem (legado vira texto).
+        meals: [],
       };
       if (initial?.id) {
         await api.updateDiet(initial.id, payload, token);
@@ -177,7 +135,7 @@ export default function DietForm({
           <div className="page-sub">
             {initial?.id
               ? "Altere os campos e salve."
-              : "Monte a dieta. O aluno é opcional e pode ser atribuído depois."}
+              : "Cole o plano alimentar como texto. O aluno é opcional e pode ser atribuído depois."}
           </div>
         </div>
       </div>
@@ -192,14 +150,6 @@ export default function DietForm({
             value={name}
             placeholder='Ex.: "Plano alimentar - Outubro"'
             onChange={(e) => setName(e.target.value)}
-          />
-        </div>
-        <div className="frm-row">
-          <label>Descrição</label>
-          <textarea
-            value={description}
-            placeholder='Ex.: "Plano para ganho de massa muscular"'
-            onChange={(e) => setDescription(e.target.value)}
           />
         </div>
         <div className="frm-row">
@@ -238,121 +188,21 @@ export default function DietForm({
         )}
       </div>
 
-      <div className="section-label">Refeições ({meals.length})</div>
-
-      {meals.length === 0 && (
-        <div className="empty-box">
-          Nenhuma refeição ainda. Clique em "+ Adicionar refeição".
+      <div className="frm-card" style={{ marginTop: 12 }}>
+        <h3>Conteúdo da dieta</h3>
+        <div className="frm-row">
+          <label>
+            Plano alimentar (texto livre) <span style={{ color: "var(--muted)" }}>· copiar e colar</span>
+          </label>
+          <textarea
+            className="diet-content-input"
+            rows={16}
+            value={content}
+            placeholder={"Ex.:\n\nCAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n• 30g de aveia\n\nALMOÇO (12:30)\n• 150g de arroz integral\n• 200g de frango grelhado\n• Salada à vontade com azeite"}
+            onChange={(e) => setContent(e.target.value)}
+          />
         </div>
-      )}
-
-      {meals.map((meal, mi) => (
-        <div key={mi} className="item-card">
-          <div className="item-card-head">
-            <b>Refeição {mi + 1}</b>
-            <div style={{ display: "flex", gap: 6 }}>
-              <button
-                type="button"
-                className="btn-sm"
-                disabled={mi === 0}
-                onClick={() => moveMeal(mi, -1)}
-                style={{ padding: "4px 10px" }}
-              >
-                ↑
-              </button>
-              <button
-                type="button"
-                className="btn-sm"
-                disabled={mi === meals.length - 1}
-                onClick={() => moveMeal(mi, 1)}
-                style={{ padding: "4px 10px" }}
-              >
-                ↓
-              </button>
-              <button
-                type="button"
-                className="btn-sm danger"
-                onClick={() => removeMeal(mi)}
-                style={{ padding: "4px 10px" }}
-              >
-                Excluir
-              </button>
-            </div>
-          </div>
-
-          <div className="frm-row-inline">
-            <div className="frm-row">
-              <label>Nome</label>
-              <input
-                value={meal.name}
-                placeholder="Ex.: Café da manhã"
-                onChange={(e) => setMeal(mi, { name: e.target.value })}
-              />
-            </div>
-            <div className="frm-row">
-              <label>Horário</label>
-              <input
-                type="time"
-                value={meal.time}
-                onChange={(e) => setMeal(mi, { time: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="frm-row">
-            <label>Descrição/observação (opcional)</label>
-            <input
-              value={meal.notes ?? ""}
-              placeholder="Observações da refeição…"
-              onChange={(e) => setMeal(mi, { notes: e.target.value })}
-            />
-          </div>
-
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--muted)", textTransform: "uppercase", margin: "8px 0 6px", fontWeight: 500 }}>
-            Alimentos
-          </div>
-
-          {(meal.foods ?? []).map((food, fi) => (
-            <div key={fi} className="food-line">
-              <input
-                className="food-name"
-                value={food.name}
-                placeholder="Ex.: Ovo"
-                onChange={(e) => setFood(mi, fi, { name: e.target.value })}
-              />
-              <input
-                className="food-qty"
-                type="number"
-                min={0}
-                step="any"
-                value={food.quantity}
-                placeholder="Qtd."
-                onChange={(e) => setFood(mi, fi, { quantity: Number(e.target.value) || 0 })}
-              />
-              <input
-                className="food-unit"
-                value={food.unit}
-                placeholder="unid./g"
-                onChange={(e) => setFood(mi, fi, { unit: e.target.value })}
-              />
-              <button
-                type="button"
-                className="btn-sm danger food-del"
-                onClick={() => removeFood(mi, fi)}
-                style={{ padding: "4px 10px" }}
-              >
-                ✕
-              </button>
-            </div>
-          ))}
-          <button type="button" className="btn-sm" onClick={() => addFood(mi)}>
-            + Adicionar alimento
-          </button>
-        </div>
-      ))}
-
-      <button type="button" className="btn-sm full" onClick={addMeal}>
-        + Adicionar refeição
-      </button>
+      </div>
 
       <div className="btn-row" style={{ marginTop: 16 }}>
         <button
@@ -364,21 +214,6 @@ export default function DietForm({
           {busy ? "Salvando…" : "Salvar dieta"}
         </button>
       </div>
-
-      <ConfirmModal
-        open={confirmMeal !== null}
-        title="Excluir refeição"
-        message={
-          <>
-            Remover a refeição{" "}
-            <strong>{confirmMeal !== null ? meals[confirmMeal]?.name || "" : ""}</strong>?
-            Essa alteração vale até salvar a dieta.
-          </>
-        }
-        confirmLabel="Excluir"
-        onConfirm={confirmRemoveMeal}
-        onCancel={() => setConfirmMeal(null)}
-      />
     </div>
   );
 }

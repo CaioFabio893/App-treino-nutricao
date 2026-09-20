@@ -8,6 +8,7 @@ import type { Diet, UserProfile } from "@/lib/types";
 import { DietsPageSkeleton } from "@/components/Skeleton";
 import DietForm from "@/components/DietForm";
 import ConfirmModal from "@/components/ConfirmModal";
+import { EmptyDietState } from "@/components/EmptyDietState";
 
 export default function DietsPage() {
   return (
@@ -123,9 +124,7 @@ function DietsInner() {
       {error && <div className="err-text">{error}</div>}
 
       {diets.length === 0 ? (
-        <div className="empty-box">
-          Nenhuma dieta cadastrada. Clique em "+ Nova dieta" para começar.
-        </div>
+        <EmptyDietState onAction={() => router.push("/nutritionist/diets?new=1")} />
       ) : (
         diets.map((d) => (
           <div key={d.id} className="nut-card">
@@ -140,7 +139,9 @@ function DietsInner() {
               </div>
             </div>
             <div className="nut-meta">
-              <span className="badge">{d.meals?.length ?? 0} refeições</span>
+              <span className="badge">
+                {d.content ? "Texto livre" : `${d.meals?.length ?? 0} refeições`}
+              </span>
               {d.startDate && (
                 <span className="badge">
                   {d.startDate} → {d.endDate || "…"}

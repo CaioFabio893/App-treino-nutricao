@@ -9,7 +9,7 @@ import DietCheck from "@/components/DietCheck";
 import LoadError from "@/components/LoadError";
 import { todayDateLabel } from "@/lib/days";
 
-/** Página "Dietas" do aluno: dieta ativa + acompanhamento de hoje. */
+/** Página "Dietas" do aluno: dieta ativa (texto ou refeições legadas) + acompanhamento de hoje. */
 export default function StudentDietPage() {
   const { getToken, profile } = useAuth();
   const [diets, setDiets] = useState<Diet[]>([]);
@@ -78,31 +78,61 @@ export default function StudentDietPage() {
                 ? ` · ${todayDiet.startDate} → ${todayDiet.endDate || "..."}`
                 : ""}
             </div>
-            {todayDiet.meals?.map((meal, mi) => (
-              <div key={mi} className="stu-meal">
-                <div className="stu-meal-head">
-                  <b>{meal.name}</b>
-                  <span>{meal.time || "—"}</span>
-                </div>
-                {meal.foods?.map((f, fi) => (
-                  <div key={fi} className="stu-food">
-                    • {f.name} — {f.quantity || ""} {f.unit}
-                    {f.notes ? ` (${f.notes})` : ""}
+            {todayDiet.content ? (
+              <>
+                <div className="stu-diet-content">{todayDiet.content}</div>
+                <CopyDietButton content={todayDiet.content} />
+              </>
+            ) : (
+              todayDiet.meals?.map((meal, mi) => (
+                <div key={mi} className="stu-meal">
+                  <div className="stu-meal-head">
+                    <b>{meal.name}</b>
+                    <span>{meal.time || "—"}</span>
                   </div>
-                ))}
-                {meal.notes && <div className="stu-food-note">{meal.notes}</div>}
-              </div>
-            ))}
+                  {meal.foods?.map((f, fi) => (
+                    <div key={fi} className="stu-food">
+                      • {f.name} — {f.quantity || ""} {f.unit}
+                      {f.notes ? ` (${f.notes})` : ""}
+                    </div>
+                  ))}
+                  {meal.notes && <div className="stu-food-note">{meal.notes}</div>}
+                </div>
+              ))
+            )}
           </div>
-          <div className="section-label">Acompanhamento de hoje</div>
-          <DietCheck diet={todayDiet} />
+          {(todayDiet.meals?.length ?? 0) > 0 && (
+            <>
+              <div className="section-label">Acompanhamento de hoje</div>
+              <DietCheck diet={todayDiet} />
+            </>
+          )}
         </>
       ) : (
         <div className="empty-box">
-          Nenhuma dieta ativa no momento. Quando seu nutricionista cadastrar,
+          Nenhuma dieta foi atribuída ainda. Quando seu nutricionista cadastrar,
           aparece aqui.
         </div>
       )}
     </div>
+  );
+}
+
+/** Botão de copiar a dieta em texto (mesmo padrão do botão de copiar treino). */
+function CopyDietButton({ content }: { content: string }) {
+  const [copied, setCopied] = useState(false);
+  const copy = async () => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1600);
+    } catch {
+      /* clipboard indisponível */
+    }
+  };
+  return (
+    <button type="button" className="btn-sm stu-copy-btn" onClick={() => void copy()}>
+      {copied ? "✓ Copiado!" : "Copiar dieta"}
+    </button>
   );
 }

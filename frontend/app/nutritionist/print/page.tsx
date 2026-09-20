@@ -281,6 +281,11 @@ function PrintExercises({
 }
 
 function PrintMeals({ diet }: { diet: Diet }) {
+  // Formato simplificado: texto livre (copiar/colar) preservando quebras de linha.
+  if (diet.content) {
+    return <div className="print-content">{diet.content}</div>;
+  }
+  // Legado: refeições estruturadas.
   return (
     <>
       {diet.meals?.map((meal, mi) => (

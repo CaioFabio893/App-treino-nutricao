@@ -39,7 +39,7 @@ const LS_KEY = {
   session: (w: number, d: string) => `ll_demo_session_${w}_${d}`,
   prs: "ll_demo_prs",
   state: "ll_demo_state",
-  seeded: "ll_demo_seeded_v4",
+  seeded: "ll_demo_seeded_v5",
   students: "ll_demo_students",
   workouts: "ll_demo_workouts",
   diets: "ll_demo_diets",
@@ -269,30 +269,28 @@ function seedDemo() {
       description: "Plano para ganho de massa muscular",
       startDate: "2026-09-01",
       endDate: "2026-12-31",
-      meals: [
-        {
-          id: "m1",
-          name: "Café da manhã",
-          time: "07:00",
-          order: 1,
-          notes: "45 min antes do treino",
-          foods: [
-            { id: "f1", name: "Ovo", quantity: 2, unit: "unidades", notes: "cozidos" },
-            { id: "f2", name: "Banana", quantity: 1, unit: "unidade", notes: "" },
-            { id: "f3", name: "Aveia", quantity: 30, unit: "g", notes: "em flocos" },
-          ],
-        },
-        {
-          id: "m2",
-          name: "Almoço",
-          time: "12:30",
-          order: 2,
-          foods: [
-            { id: "f4", name: "Arroz", quantity: 150, unit: "g", notes: "integral" },
-            { id: "f5", name: "Frango", quantity: 200, unit: "g", notes: "grelhado" },
-          ],
-        },
-      ],
+      content: `CAFÉ DA MANHÃ (07:00)
+• 2 ovos cozidos
+• 1 banana
+• 30g de aveia em flocos
+
+ALMOÇO (12:30)
+• 150g de arroz integral
+• 200g de frango grelhado
+• Salada verde com azeite (1 colher)
+
+LANCHE (16:00)
+• 1 pão integral com pasta de amendoim
+• 1 maçã
+
+JANTAR (19:30)
+• 1 filé de peixe grelhado
+• Batata-doce assada (150g)
+• Legumes no vapor à vontade
+
+OBSERVAÇÕES
+• Beber 2,5L de água por dia
+• Proteína em todas as refeições principais`,
       createdAt: new Date().toISOString(),
     },
   ];
@@ -323,29 +321,26 @@ function seedDemo() {
       description: "Foco em perda de gordura mantendo massa",
       startDate: "2026-09-01",
       endDate: "2026-11-30",
-      meals: [
-        {
-          id: "m3",
-          name: "Café da manhã",
-          time: "07:30",
-          order: 1,
-          foods: [
-            { id: "f6", name: "Iogurte natural", quantity: 200, unit: "g", notes: "sem açúcar" },
-            { id: "f7", name: "Granola", quantity: 20, unit: "g", notes: "" },
-          ],
-        },
-        {
-          id: "m4",
-          name: "Almoço",
-          time: "12:30",
-          order: 2,
-          foods: [
-            { id: "f8", name: "Salada verde", quantity: 1, unit: "porção", notes: "azeite 1 colher" },
-            { id: "f9", name: "Peixe grelhado", quantity: 180, unit: "g", notes: "" },
-            { id: "f10", name: "Batata-doce", quantity: 150, unit: "g", notes: "assada" },
-          ],
-        },
-      ],
+      content: `CAFÉ DA MANHÃ (07:30)
+• 1 iogurte natural (200g)
+• 20g de granola sem açúcar
+• Café preto sem açúcar
+
+ALMOÇO (12:30)
+• Salada verde com azeite (1 colher)
+• 180g de peixe grelhado
+• 150g de batata-doce assada
+
+LANCHE (16:00)
+• 1 fruta + 1 punhado de castanhas
+
+JANTAR (20:00)
+• Omelete de 2 claras e 1 gema
+• Legumes no vapor à vontade
+
+OBSERVAÇÕES
+• Manter hidratação (2L/dia)
+• Reduzir sódio no jantar`,
       createdAt: new Date().toISOString(),
     },
   ];

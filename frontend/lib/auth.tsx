@@ -66,6 +66,9 @@ const DEMO_STUDENT: UserProfile = {
   role: "student",
   nutritionistID: "demo-user",
   status: "active",
+  // Demo sempre enxerga todos os módulos liberados, para que o teste manual
+  // do modo aluno mostre Treinos, Dietas, Comunidade e Ranking no dashboard.
+  features: ["workouts", "diet", "community", "ranking"],
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {

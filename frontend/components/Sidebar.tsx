@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import { useNewCompletions } from "@/lib/useNewCompletions";
 import DashIcon from "./DashIcon";
+import { navAppIcons } from "./icons/AppIcons";
 
 export const NAV_ITEMS = [
   { href: "/nutritionist", label: "Painel", icon: "grid" as const },
@@ -76,6 +77,7 @@ export default function Sidebar() {
         <nav className="dash-nav">
           {items.map((item) => {
             const active = isActive(pathname, item.href);
+            const AppIcon = navAppIcons[item.icon];
             return (
               <Link
                 key={item.href}
@@ -86,7 +88,7 @@ export default function Sidebar() {
                   if (item.href === "/nutritionist/timeline" && count > 0) consume();
                 }}
               >
-                <DashIcon name={item.icon} />
+                {AppIcon ? <AppIcon width={18} height={18} /> : <DashIcon name={item.icon} />}
                 <span>{item.label}</span>
                 {item.href === "/nutritionist/timeline" && count > 0 && (
                   <span className="dash-nav-badge" title="Novos treinos concluídos">
