@@ -201,6 +201,142 @@ func TestUserProfileDataUsesServerTimestampOnCreate(t *testing.T) {
 	}
 }
 
+// ── Dieta diária: dietLogData (item 3.3) ──
+//
+// PutDietLog regravava createdAt com firestore.ServerTimestamp a CADA save,
+// perdendo a data real de criação (achado A1 do relatório). Depois da
+// correção, createdAt é preservado quando o log já tem data (spell do
+// userProfileData) e só usa ServerTimestamp em log novo (CreatedAt zero).
+
+func TestDietLogDataPreservesCreatedAt(t *testing.T) {
+	past := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
+	log := &models.DietDailyLog{StudentID: "s1", Date: "2026-07-01", CreatedAt: past}
+
+	m := dietLogData(log)
+	createdAt, ok := m["createdAt"]
+	if !ok {
+		t.Fatal("mapa sem chave createdAt")
+	}
+	tv, ok := createdAt.(time.Time)
+	if !ok {
+		t.Fatalf("createdAt = %T (%v), want time.Time preservado (atualização de log existente)", createdAt, createdAt)
+	}
+	if !tv.Equal(past) {
+		t.Errorf("createdAt = %v, want %v (data de criação preservada)", tv, past)
+	}
+}
+
+func TestDietLogDataUsesServerTimestampOnCreate(t *testing.T) {
+	// Log novo (CreatedAt zero) deve usar o sentinela do Firestore, nunca um
+	// valor fixo — o servidor preenche a data real de criação.
+	fresh := &models.DietDailyLog{StudentID: "s2", Date: "2026-07-02"}
+	m := dietLogData(fresh)
+	createdAt, ok := m["createdAt"]
+	if !ok {
+		t.Fatal("mapa sem chave createdAt")
+	}
+	if got := createdAt; got != firestore.ServerTimestamp {
+		t.Errorf("createdAt = %v, want firestore.ServerTimestamp (log novo)", got)
+	}
+}
+
+// TestDietLogDataKeepsOtherFields garante que a extração do mapa não perde
+// campos de negócio do log (status, refeições, postId, donos).
+func TestDietLogDataKeepsOtherFields(t *testing.T) {
+	log := &models.DietDailyLog{
+		StudentID:      "s1",
+		NutritionistID: "n1",
+		DietID:         "d1",
+		DietName:       "Dieta A",
+		Date:           "2026-07-01",
+		Status:         models.DietPartial,
+		MealChecks:     []*models.MealCheck{{MealID: "m1", Followed: true}},
+		Note:           "nota",
+		Caption:        "legenda",
+		PostID:         "p1",
+		CreatedAt:      time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
+	}
+	m := dietLogData(log)
+	if m["studentId"] != "s1" || m["nutritionistId"] != "n1" {
+		t.Errorf("donos errados: studentId=%v nutritionistId=%v", m["studentId"], m["nutritionistId"])
+	}
+	if m["dietId"] != "d1" || m["dietName"] != "Dieta A" {
+		t.Errorf("vínculo de dieta errado: %v / %v", m["dietId"], m["dietName"])
+	}
+	if m["date"] != "2026-07-01" {
+		t.Errorf("date = %v", m["date"])
+	}
+	if m["status"] != string(models.DietPartial) {
+		t.Errorf("status = %v, want %v", m["status"], string(models.DietPartial))
+	}
+	if m["postId"] != "p1" {
+		t.Errorf("postId = %v, want p1", m["postId"])
+	}
+	if _, ok := m["mealChecks"]; !ok {
+		t.Error("mapa sem mealChecks")
+	}
+	if m["note"] != "nota" || m["caption"] != "legenda" {
+		t.Errorf("note/caption errados: %v / %v", m["note"], m["caption"])
+	}
+}
+
+// ── Feed: postData (item 3.5) ──
+//
+// O mapa de escrita do post (extraído para postData) precisa preservar
+// likes/comentários já existentes e o registro de moderação — qualquer perda
+// aqui é perda de dados concorrente (a race que o UpdatePostTx corrige).
+
+func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
+	created := time.Date(2026, 7, 3, 9, 0, 0, 0, time.UTC)
+	p := &models.Post{
+		ID:           "p1",
+		UserID:       "u1",
+		UserName:     "Ana",
+		UserPhotoURL: "foto.png",
+		Type:         models.PostWorkout,
+		Text:         "texto",
+		WorkoutID:    "w1",
+		WorkoutName:  "Treino A",
+		Date:         "2026-07-03",
+		Likes:        map[string]bool{"u2": true, "u3": true},
+		LikeCount:    2,
+		Comments:     []*models.PostComment{{ID: "c1", UserID: "u2", Text: "bom!"}},
+		Deleted:      true,
+		ModeratedBy:  "n1",
+		ModeratedAt:  time.Date(2026, 7, 3, 10, 0, 0, 0, time.UTC),
+		CreatedAt:    created,
+	}
+
+	m := postData(p)
+	if m["userId"] != "u1" || m["userName"] != "Ana" {
+		t.Errorf("autor errado: %v / %v", m["userId"], m["userName"])
+	}
+	likes, ok := m["likes"].(map[string]bool)
+	if !ok || !likes["u2"] || !likes["u3"] || len(likes) != 2 {
+		t.Errorf("likes perdidos: %#v", m["likes"])
+	}
+	if likeCount := m["likeCount"]; likeCount != 2 {
+		t.Errorf("likeCount = %v, want 2", likeCount)
+	}
+	comments, ok := m["comments"].([]*models.PostComment)
+	if !ok || len(comments) != 1 || comments[0].ID != "c1" {
+		t.Errorf("comments perdidos: %#v", m["comments"])
+	}
+	if m["deleted"] != true {
+		t.Errorf("deleted = %v, want true", m["deleted"])
+	}
+	if m["moderatedBy"] != "n1" {
+		t.Errorf("moderatedBy = %v, want n1", m["moderatedBy"])
+	}
+	modAt, ok := m["moderatedAt"].(time.Time)
+	if !ok || modAt.IsZero() {
+		t.Errorf("moderatedAt perdido: %#v", m["moderatedAt"])
+	}
+	if createdAt := m["createdAt"]; createdAt != created {
+		t.Errorf("createdAt = %v, want %v", createdAt, created)
+	}
+}
+
 // ── Testes pré-existentes (preservados) ──
 
 func TestDocKey(t *testing.T) {

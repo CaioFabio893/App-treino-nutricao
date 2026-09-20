@@ -2,11 +2,12 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
-	"time"
 
 	"treino-louise/backend/middleware"
 	"treino-louise/backend/models"
+	"treino-louise/backend/repository"
 	"treino-louise/backend/service"
 )
 
@@ -156,12 +157,20 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 			_ = h.repo.PutDietLog(r.Context(), log)
 		}
 	} else if log.PostID != "" {
-		post, err := h.repo.GetPost(r.Context(), log.PostID)
-		if err == nil && post != nil && !post.Deleted {
+		// Remove o post automático (soft delete auditado) dentro de uma
+		// transação — o aluno/nutricionista que salvou o log é o moderador.
+		err := h.repo.UpdatePostTx(r.Context(), log.PostID, func(post *models.Post) error {
+			if post == nil || post.Deleted {
+				return repository.ErrPostNotFound // já removido: nada a fazer
+			}
 			post.Deleted = true
 			post.ModeratedBy = uid
-			post.ModeratedAt = time.Now()
-			_ = h.repo.UpdatePost(r.Context(), log.PostID, post)
+			post.ModeratedAt = service.Now()
+			return nil
+		})
+		if err != nil && !errors.Is(err, repository.ErrPostNotFound) {
+			http.Error(w, "falha ao remover post do feed", http.StatusInternalServerError)
+			return
 		}
 		log.PostID = ""
 		_ = h.repo.PutDietLog(r.Context(), log)

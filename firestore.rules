@@ -1,76 +1,90 @@
 // Regras do Firestore.
 //
 // IMPORTANTE: o app acessa o banco SOMENTE através da API Go (que usa o
-// Admin SDK e ignora estas regras). Estas regras servem como proteção extra
-// caso alguém conecte o Firestore direto pelo cliente no futuro.
+// Admin SDK e ignora estas regras). Estas regras bloqueiam qualquer tentativa
+// de contornar a API Go conectando o Firestore direto pelo cliente
+// (config pública do Firebase Web permite acesso via SDK cliente).
 //
-// Regras por coleção:
-//   - users/{uid}             → dono lê/escreve o próprio perfil, mas campos
-//                               administrativos (role, status, planID, features)
-//                               só mudam via admin; admin também lê e exclui
-//   - users/{uid}/{sub}/...   → apenas o dono (modo original: sessions, prs, state)
-//   - posts/{postId}          → leitura p/ autenticados; autor cria/edita/apaga;
-//                               nutricionista/admin podem moderar (editar/apagar)
-//   - dietLogs/{docId}        → dono do log e seu nutricionista leem; aluno/admin
-//                               escrevem (o aluno só o próprio)
-//   - workouts, diets,
-//     workoutHistory          → NEGADO para clientes (só a API Go acessa)
-//   - plans/{planId}          → leitura p/ autenticados; escrita só admin
-//   - scores/{uid}            → leitura p/ autenticados; escrita só API
-//   - scores_history/{uid}    → leitura p/ dono + nutricionista/admin; escrita só API
+// Política de acesso refletida nas regras (espelha o backend):
+//   - Aprovação: usuário com perfil sem status (legado ""), "active" ou
+//     "paused" pode acessar recursos de negócio; "pending_approval",
+//     "rejected" e "inactive" (bloqueado) NÃO. Admin sempre aprovado.
+//   - Perfil do usuário: o próprio dono lê/cria/edita SOMENTE os campos da
+//     allowlist (name, email, photoURL, bio); tudo o mais — role, status,
+//     planID, features, nutritionistID, approvedBy, approvedAt,
+//     rejectedReason, createdAt, authProvider, startDate... — muda SOMENTE
+//     pela API Go, nunca por SDK de cliente, nem admin (hasOnly nega até
+//     combinações "campo legítimo + campo sensível" no mesmo update).
+//   - Escrita de dados de negócio (posts, dietLogs, workouts, diets,
+//     workoutHistory, plans, scores, scores_history): SOMENTE pela API Go.
+//     O cliente (SDK) tem acesso de LEITURA quando autorizado (aprovado +
+//     relação dono/nutricionista/admin no caso de dados de aluno).
 rules_version = '2';
 
 service cloud.firestore {
   match /databases/{database}/documents {
+    // ── Helpers ──
+
+    function me() {
+      return get(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
+    function meExists() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/users/$(request.auth.uid));
+    }
+
     function isOwner(uid) {
       return request.auth != null && request.auth.uid == uid;
     }
 
     function isAdmin() {
-      return request.auth != null &&
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+      return meExists() && me().data.role == 'admin';
     }
 
-    function isModerator() {
-      return request.auth != null && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role in ['nutritionist', 'admin'];
-    }
-
-    function isStudentOrAdmin(studentId) {
-      return request.auth != null && (
-        request.auth.uid == studentId ||
-        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin'
+    // "Pessoa aprovada": espelha middleware.IsApproved ("" | active |
+    // paused) + bypass de admin. pending_approval/rejected/inactive
+    // (bloqueados) ficam de fora de recursos de negócio.
+    function isApprovedUser() {
+      return meExists() && (
+        me().data.role == 'admin' ||
+        me().data.status == '' ||
+        me().data.status == 'active' ||
+        me().data.status == 'paused'
       );
     }
 
     function canViewStudentData(studentId) {
-      let me = get(/databases/$(database)/documents/users/$(request.auth.uid)).data;
-      return request.auth.uid == studentId ||
-             me.role == 'admin' ||
-             (me.role == 'nutritionist' && get(/databases/$(database)/documents/users/$(studentId)).data.nutritionistID == request.auth.uid);
+      return isApprovedUser() && (
+        request.auth.uid == studentId ||
+        isAdmin() ||
+        (me().data.role == 'nutritionist' &&
+         exists(/databases/$(database)/documents/users/$(studentId)) &&
+         get(/databases/$(database)/documents/users/$(studentId)).data.nutritionistID == request.auth.uid)
+      );
     }
-
-    // Bloqueia que o PRÓPRIO aluno altere campos administrativos escrevendo
-    // direto no Firestore (role/status/planID/features/nutritionistID e os
-    // campos do fluxo de aprovação só mudam via admin).
-    // A API Go usa Admin SDK e ignora estas regras — é proteção extra para
-    // acesso direto pelo cliente.
-    function sensitiveChanged() {
-      return resource.data.role != request.resource.data.role ||
-             resource.data.status != request.resource.data.status ||
-             resource.data.planID != request.resource.data.planID ||
-             resource.data.features != request.resource.data.features ||
-             resource.data.nutritionistID != request.resource.data.nutritionistID ||
-             resource.data.approvedBy != request.resource.data.approvedBy ||
-             resource.data.approvedAt != request.resource.data.approvedAt ||
-             resource.data.rejectedReason != request.resource.data.rejectedReason;
+    // Allowlist estrita dos campos que o DONO pode alterar no próprio perfil
+    // via SDK de cliente. Derivada dos fluxos reais (GET/PUT /api/me: name,
+    // email, photoURL, bio). Qualquer outro campo — incluindo createdAt e
+    // authProvider (controles internos de escrita) — só muda pela API Go
+    // (Admin SDK, que ignora estas regras). affectedKeys().hasOnly() bloqueia
+    // o update INTEIRO se QUALQUER outra chave for tocada: uma requisição
+    // "name + role", "name + status" etc. é negada como um todo, e mesmo
+    // campos não administrativos fora da lista (ex.: startDate) são negados
+    // até que um fluxo real justifique incluí-los aqui.
+    function allowedSelfProfileUpdate() {
+      return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
+        'name',
+        'email',
+        'photoURL',
+        'bio'
+      ]);
     }
 
     // Permite apenas a criação do PERFIL PRÓPRIO ainda pendente de aprovação
-    // SEM nenhum campo administrativo (role, planID, features,
-    // nutritionistID, approvedBy, approvedAt, rejectedReason). O backend Go
-    // (Admin SDK) é quem cria perfis com esses campos — o cliente nunca
-    // precisa criar próprios campos privilegiados, então qualquer tentativa de
-    // se auto-declarar admin/ativo/rejeitado via REST é negada.
+    // SEM nenhum campo administrativo. O backend Go (Admin SDK) é quem cria
+    // perfis com campos administrativos - o cliente nunca precisa de campos
+    // privilegiados, então auto-declarar-se admin/ativo/rejeitado é negado.
     function isPendingSelfProfile() {
       let keys = request.resource.data.keys();
       return request.resource.data.status == 'pending_approval' &&
@@ -78,13 +92,16 @@ service cloud.firestore {
                            'approvedBy', 'approvedAt', 'rejectedReason']);
     }
 
-    // Perfil do usuário: dono lê/escreve dados próprios (SEM campos
-    // administrativos); admin lê, escreve e exclui.
+    // ── Perfis de usuário ──
+    // Dono lê/atualiza o próprio perfil (somente campos da allowlist
+    // allowedSelfProfileUpdate) e cria o próprio perfil pendente. Admin lê
+    // qualquer perfil. Escrita que não seja a do próprio pendente/campos da
+    // allowlist = via API Go.
     match /users/{uid} {
-      allow read: if request.auth != null && (isOwner(uid) || isAdmin());
+      allow read: if isOwner(uid) || isAdmin();
       allow create: if isOwner(uid) && isPendingSelfProfile();
-      allow update: if isAdmin() || (isOwner(uid) && !sensitiveChanged());
-      allow delete: if isAdmin();
+      allow update: if isOwner(uid) && allowedSelfProfileUpdate();
+      allow delete: if false;
     }
 
     // Modo original (sessions, prs, state): só o dono acessa.
@@ -92,25 +109,23 @@ service cloud.firestore {
       allow read, write: if isOwner(uid);
     }
 
-    // Feed global: todos os autenticados leem; o autor escreve o próprio;
-    // moderadores podem editar/apagar qualquer post.
+    // ── Feed ──
+    // Leitura: aprovados (feed é recurso de comunidade; pendente/bloqueado
+    // não acessa). Escrita: SOMENTE pela API Go (transações corrigem race).
     match /posts/{postId} {
-      allow read: if request.auth != null;
-      allow create: if request.auth != null && request.resource.data.userId == request.auth.uid;
-      allow update, delete: if request.auth != null && (
-        resource.data.userId == request.auth.uid || isModerator()
-      );
+      allow read: if isApprovedUser();
+      allow create, update, delete: if false;
     }
 
-    // Log diário de dieta: aluno marca o próprio dia; admin marca qualquer um;
-    // leitura para o próprio aluno e seu nutricionista (detalhe por refeição incluído).
+    // ── Log diário de dieta ──
+    // Leitura: próprio aluno + seu nutricionista + admin (aprovados).
+    // Escrita: só API Go (transações preservam createdAt).
     match /dietLogs/{docId} {
-      allow read: if request.auth != null && canViewStudentData(resource.data.studentId);
-      allow write: if request.auth != null && isStudentOrAdmin(request.resource.data.studentId);
+      allow read: if canViewStudentData(resource.data.studentId);
+      allow write: if false;
     }
 
-    // Coleções gerenciadas apenas pela API Go (Admin SDK).
-    // Nenhum acesso direto pelo cliente é permitido.
+    // ── Coleções gerenciadas apenas pela API Go (Admin SDK) ──
     match /workouts/{document=**} {
       allow read, write: if false;
     }
@@ -121,21 +136,25 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // Planos (pacotes de features): clientes leem; só o admin cria/edita/exclui.
+    // ── Planos ──
+    // Leitura: aprovados. Escrita: só API Go (create/update/delete via admin
+    // pelo SDK de cliente é negado - contornaria a API).
     match /plans/{planId} {
-      allow read: if request.auth != null;
-      allow write: if isAdmin();
-    }
-
-    // Nota corrente: todos os autenticados leem (ranking); escrita só da API.
-    match /scores/{uid} {
-      allow read: if request.auth != null;
+      allow read: if isApprovedUser();
       allow write: if false;
     }
 
-    // Histórico de ciclos: o próprio aluno e o nutricionista/admin leem.
+    // ── Ranking ──
+    // Nota corrente: leitura para aprovados; escrita só da API.
+    match /scores/{uid} {
+      allow read: if isApprovedUser();
+      allow write: if false;
+    }
+
+    // Histórico de ciclos (scores_history/{uid}/cycles/{cycleId}):
+    // próprio aluno, nutricionista do aluno e admin leem (aprovados).
     match /scores_history/{uid}/{document=**} {
-      allow read: if request.auth != null && canViewStudentData(uid);
+      allow read: if canViewStudentData(uid);
       allow write: if false;
     }
   }

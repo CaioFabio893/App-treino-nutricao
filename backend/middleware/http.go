@@ -4,6 +4,7 @@ import (
 	"log"
 	"net"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -11,32 +12,35 @@ import (
 
 // ── CORS ──
 
-// CORS libera o frontend (hospedado em outro domínio) de chamar a API.
-// allowedOrigins aceita "*" (ecoa a origem — comportamento local) ou uma lista
-// de origens separadas por vírgula. Em produção, use a variável de ambiente
-// ALLOWED_ORIGIN com o domínio exato do frontend.
+// CORS libera somente as origens exatas configuradas (ALLOWED_ORIGIN — lista
+// separada por vírgula). Não suporta "*": o carregamento de configuração
+// (config.go, no boot) já rejeita wildcard. Regras:
+//   - origem permitida ⇒ Access-Control-Allow-Origin reflete a origem + Vary: Origin;
+//   - origem não permitida ⇒ 403 sem Access-Control-Allow-Origin (requests reais
+//     e preflights são bloqueados no middleware, antes do handler);
+//   - requisição sem header Origin (curl, healthcheck, same-origin) ⇒ passa.
 func CORS(allowedOrigins string) func(http.Handler) http.Handler {
-	allowAll := allowedOrigins == "" || allowedOrigins == "*"
 	origins := map[string]bool{}
-	if !allowAll {
-		for _, o := range strings.Split(allowedOrigins, ",") {
-			if o = strings.TrimSpace(o); o != "" {
-				origins[o] = true
-			}
+	for _, o := range strings.Split(allowedOrigins, ",") {
+		if o = strings.TrimSpace(o); o != "" {
+			origins[o] = true
 		}
 	}
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			allow := "*"
-			if !allowAll {
-				allow = ""
-				if origins[r.Header.Get("Origin")] {
-					allow = r.Header.Get("Origin")
-				}
+			origin := r.Header.Get("Origin")
+			if origin == "" {
+				next.ServeHTTP(w, r)
+				return
 			}
-			if allow != "" {
-				w.Header().Set("Access-Control-Allow-Origin", allow)
+			// Vary sinaliza aos caches que a resposta depende do Origin
+			// (inclusive para origens negadas).
+			w.Header().Add("Vary", "Origin")
+			if !origins[origin] {
+				http.Error(w, `{"error":"origem nao permitida"}`, http.StatusForbidden)
+				return
 			}
+			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
 			w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type")
 			if r.Method == http.MethodOptions {
@@ -84,17 +88,17 @@ func newRateLimiter(limit int, window time.Duration) *rateLimiter {
 	return &rateLimiter{limit: limit, window: window, visits: map[string]*rateEntry{}}
 }
 
-func (l *rateLimiter) allow(key string) bool {
+func (l *rateLimiter) allow(key string) (bool, time.Duration) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	now := time.Now()
 	e, ok := l.visits[key]
 	if !ok || now.After(e.resetAt) {
 		l.visits[key] = &rateEntry{count: 1, resetAt: now.Add(l.window)}
-		return true
+		return true, 0
 	}
 	if e.count >= l.limit {
-		return false
+		return false, e.resetAt.Sub(now)
 	}
 	e.count++
 	// Purga simples de memória quando a tabela cresce demais.
@@ -105,11 +109,15 @@ func (l *rateLimiter) allow(key string) bool {
 			}
 		}
 	}
-	return true
+	return true, 0
 }
 
 // RateLimit limita requisições por IP dentro de uma janela. limit <= 0
-// desativa. Em Cloud Run o IP real vem no header X-Forwarded-For.
+// desativa (uso local, jamais em produção — o boot rejeita RATE_LIMIT=0 com
+// GO_ENV=production). Em Cloud Run o IP real vem no header X-Forwarded-For
+// (primeiro elemento — política herdada da V1; risco residual documentado em
+// docs/reports/phase-01-hardening.md). Respostas 429 incluem Retry-After em
+// segundos (quando o cliente pode tentar de novo).
 func RateLimit(limit int, window time.Duration) func(http.Handler) http.Handler {
 	if limit <= 0 || window <= 0 {
 		return func(next http.Handler) http.Handler { return next }
@@ -117,7 +125,16 @@ func RateLimit(limit int, window time.Duration) func(http.Handler) http.Handler 
 	rl := newRateLimiter(limit, window)
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if !rl.allow(clientIP(r)) {
+			ok, retryIn := rl.allow(clientIP(r))
+			if !ok {
+				wait := int(retryIn.Seconds())
+				if retryIn%time.Second != 0 {
+					wait++
+				}
+				if wait < 1 {
+					wait = 1
+				}
+				w.Header().Set("Retry-After", strconv.Itoa(wait))
 				http.Error(w, `{"error":"muitas requisicoes"}`, http.StatusTooManyRequests)
 				return
 			}

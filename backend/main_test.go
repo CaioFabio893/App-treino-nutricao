@@ -82,6 +82,52 @@ type chainFakeRepo struct {
 	updatedDiet    *models.Diet
 	createdDiet    *models.Diet
 	createdWorkout *models.WorkoutDefine
+
+	// FASE 1 (feed): posts em memória para as rotas sociais.
+	posts map[string]*models.Post
+}
+
+// postsMap inicializa (se preciso) o mapa de posts do fake.
+func (f *chainFakeRepo) postsMap() map[string]*models.Post {
+	if f.posts == nil {
+		f.posts = map[string]*models.Post{}
+	}
+	return f.posts
+}
+
+func (f *chainFakeRepo) CreatePost(_ context.Context, p *models.Post) (*models.Post, error) {
+	f.postsMap()[p.ID] = p
+	return p, nil
+}
+
+func (f *chainFakeRepo) GetPost(_ context.Context, id string) (*models.Post, error) {
+	p, ok := f.postsMap()[id]
+	if !ok {
+		return nil, nil
+	}
+	cp := *p
+	return &cp, nil
+}
+
+func (f *chainFakeRepo) DeletePost(_ context.Context, id string) error {
+	delete(f.postsMap(), id)
+	return nil
+}
+
+// UpdatePostTx aplica a mutação sobre o post em memória — espelha o contrato
+// da implementação Firestore (transação): post inexistente aborta com
+// ErrPostNotFound; o mutate roda sobre o post atual e o resultado é gravado.
+func (f *chainFakeRepo) UpdatePostTx(_ context.Context, id string, mutate func(*models.Post) error) error {
+	p, ok := f.postsMap()[id]
+	if !ok {
+		return repository.ErrPostNotFound
+	}
+	cp := *p
+	if err := mutate(&cp); err != nil {
+		return err
+	}
+	f.posts[id] = &cp
+	return nil
 }
 
 func (f *chainFakeRepo) GetUserProfile(_ context.Context, uid string) (*models.UserProfile, error) {
@@ -202,11 +248,11 @@ func (f *chainFakeRepo) PutUserProfile(_ context.Context, _ string, _ *models.Us
 }
 
 // newChainMux monta o mux real de produção (registerRoutes) com fakes.
-func newChainMux(repo *chainFakeRepo) http.Handler {
+func newChainMux(repo repository.Repository) http.Handler {
 	return newChainMuxWithVerifier(repo, &fakeVerifier{uid: testUID})
 }
 
-func newChainMuxWithVerifier(repo *chainFakeRepo, ver *fakeVerifier) http.Handler {
+func newChainMuxWithVerifier(repo repository.Repository, ver *fakeVerifier) http.Handler {
 	a := middleware.NewAuth(ver, repo)
 	h := handlers.New(service.New(repo), repo, nil)
 	mux := http.NewServeMux()
@@ -1066,5 +1112,186 @@ func TestChainStudentCannotCreateDietOrWorkout(t *testing.T) {
 	rr = doChainRequest(h, "POST", "/api/workouts", `{"name":"X","exercises":[]}`, "token-valido")
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("POST /api/workouts (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// ── FEED (item 3.5: transações no feed) ──
+//
+// Os handlers de curtir/comentar/remover agora usam UpdatePostTx (leitura +
+// escrita DENTRO da transação). Estes testes provam que os contratos HTTP
+// continuam os mesmos e que a mutação observada no fake é a esperada.
+
+// feedRepo monta um chainFakeRepo com um post + perfil do aluno autor.
+func feedRepo(authorID string) *chainFakeRepo {
+	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureCommunity}))
+	repo.posts = map[string]*models.Post{
+		"post-1": {
+			ID:       "post-1",
+			UserID:   authorID,
+			UserName: "Autor",
+			Type:     models.PostText,
+			Text:     "Olá",
+			Likes:    map[string]bool{},
+			Comments: []*models.PostComment{},
+		},
+	}
+	return repo
+}
+
+func TestChainToggleLikeOnPost(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	// 1ª curtida: liked=true, likeCount=1.
+	rr := doChainRequest(h, "POST", "/api/posts/post-1/like", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("like code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), `"liked":true`) || !strings.Contains(rr.Body.String(), `"likeCount":1`) {
+		t.Fatalf("like body = %s, want liked:true likeCount:1", rr.Body.String())
+	}
+
+	// 2ª curtida: descurte (liked=false, likeCount=0).
+	rr = doChainRequest(h, "POST", "/api/posts/post-1/like", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("unlike code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), `"liked":false`) || !strings.Contains(rr.Body.String(), `"likeCount":0`) {
+		t.Fatalf("unlike body = %s, want liked:false likeCount:0", rr.Body.String())
+	}
+}
+
+func TestChainToggleLikePostNotFound(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/posts/nao-existe/like", "", "token-valido")
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("like em post inexistente code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainAddCommentOnPost(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"bom treino"}`, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("comment code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if !strings.Contains(rr.Body.String(), `"text":"bom treino"`) {
+		t.Fatalf("comment body = %s, want text salvo", rr.Body.String())
+	}
+	// O post em memória deve ter o comentário.
+	post := repo.posts["post-1"]
+	if len(post.Comments) != 1 {
+		t.Fatalf("comments len = %d, want 1", len(post.Comments))
+	}
+}
+
+func TestChainAddCommentEmptyTextRejected(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"   "}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("comment vazio code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Autor apaga o próprio comentário: remoção real (sem soft delete).
+func TestChainDeleteOwnComment(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	repo.posts["post-1"].Comments = []*models.PostComment{{ID: "c1", UserID: testUID, Text: "meu comentario"}}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("DELETE comentário próprio code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if len(repo.posts["post-1"].Comments) != 0 {
+		t.Fatalf("comentário do autor não foi removido de vez: %#v", repo.posts["post-1"].Comments)
+	}
+}
+
+// Aluno NÃO pode apagar comentário alheio (não é moderador).
+func TestChainStudentCannotDeleteOthersComment(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	repo.posts["post-1"].Comments = []*models.PostComment{{ID: "c1", UserID: "outro-aluno", Text: "comentario alheio"}}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("DELETE comentário alheio (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Moderador (nutritionist) apaga comentário alheio: soft delete com auditoria.
+func TestChainNutritionistSoftDeletesOthersComment(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.posts = map[string]*models.Post{
+		"post-1": {
+			ID:    "post-1",
+			UserID: "outro-autor",
+			Type:  models.PostText,
+			Text:  "Olá",
+			Likes: map[string]bool{},
+			Comments: []*models.PostComment{
+				{ID: "c1", UserID: "aluno-x", Text: "comentario alheio"},
+			},
+		},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("DELETE comentário (nutri moderador) code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
+	}
+	c := repo.posts["post-1"].Comments[0]
+	if !c.Deleted || c.ModeratedBy != testUID {
+		t.Fatalf("soft delete não registrado: %+v", c)
+	}
+}
+
+// Autor apaga o próprio post: remoção real do documento.
+func TestChainAuthorDeletesOwnPost(t *testing.T) {
+	repo := feedRepo(testUID)
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("DELETE post próprio code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if _, ok := repo.posts["post-1"]; ok {
+		t.Fatal("post do autor não foi removido de vez")
+	}
+}
+
+// Moderador apaga post alheio: soft delete com auditoria.
+func TestChainNutritionistSoftDeletesPost(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.posts = map[string]*models.Post{
+		"post-1": {ID: "post-1", UserID: "outro-autor", Type: models.PostText, Text: "Olá", Likes: map[string]bool{}},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("DELETE post (nutri moderador) code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
+	}
+	p := repo.posts["post-1"]
+	if !p.Deleted || p.ModeratedBy != testUID {
+		t.Fatalf("soft delete do post não registrado: %+v", p)
+	}
+}
+
+// Aluno NÃO pode apagar post alheio.
+func TestChainStudentCannotDeleteOthersPost(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("DELETE post alheio (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
 	}
 }

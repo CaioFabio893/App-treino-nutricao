@@ -2,16 +2,21 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"strconv"
 	"strings"
-	"time"
 
 	"treino-louise/backend/middleware"
 	"treino-louise/backend/models"
+	"treino-louise/backend/repository"
 	"treino-louise/backend/service"
 )
+
+// errForbidden distingue "sem permissão" dentro de um mutate de UpdatePostTx
+// (que devolve o erro para abortar a transação).
+var errForbidden = errors.New("sem permissao")
 
 // canModerate devolve true se o usuário é nutricionista ou admin.
 func canModerate(r *http.Request) bool {
@@ -94,7 +99,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 	if post.UserName == "" {
 		post.UserName = post.UserID
 	}
-	post.CreatedAt = time.Now()
+	post.CreatedAt = service.Now()
 
 	created, err := h.repo.CreatePost(r.Context(), post)
 	if err != nil {
@@ -134,37 +139,42 @@ func (h *Handlers) HandleListPosts(w http.ResponseWriter, r *http.Request) {
 	})
 }
 
-// HandleToggleLike curte/descurte um post do feed.
+// HandleToggleLike curte/descurte um post do feed. A leitura-modificação-escrita
+// acontece DENTRO de uma transação (UpdatePostTx): duas curtidas concorrentes
+// não se sobrescrevem mais (item 3.5).
 func (h *Handlers) HandleToggleLike(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	uid := middleware.UIDFrom(r.Context())
 
-	post, err := h.repo.GetPost(r.Context(), id)
-	if err != nil {
-		http.Error(w, "falha ao ler post", http.StatusInternalServerError)
-		return
-	}
-	if post == nil || post.Deleted {
+	liked := false
+	likeCount := 0
+	err := h.repo.UpdatePostTx(r.Context(), id, func(post *models.Post) error {
+		if post == nil || post.Deleted {
+			return repository.ErrPostNotFound
+		}
+		if post.Likes[uid] {
+			delete(post.Likes, uid)
+		} else {
+			post.Likes[uid] = true
+			liked = true
+		}
+		post.LikeCount = len(post.Likes)
+		likeCount = post.LikeCount
+		return nil
+	})
+	if errors.Is(err, repository.ErrPostNotFound) {
 		http.Error(w, "post nao encontrado", http.StatusNotFound)
 		return
 	}
-
-	liked := false
-	if post.Likes[uid] {
-		delete(post.Likes, uid)
-	} else {
-		post.Likes[uid] = true
-		liked = true
-	}
-	post.LikeCount = len(post.Likes)
-	if err := h.repo.UpdatePost(r.Context(), id, post); err != nil {
+	if err != nil {
 		http.Error(w, "falha ao curtir", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"liked": liked, "likeCount": post.LikeCount})
+	writeJSON(w, http.StatusOK, map[string]any{"liked": liked, "likeCount": likeCount})
 }
 
-// HandleAddComment adiciona um comentário a um post.
+// HandleAddComment adiciona um comentário a um post. O append acontece dentro
+// de UpdatePostTx: comentários concorrentes não se perdem (item 3.5).
 func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	uid := middleware.UIDFrom(r.Context())
@@ -180,16 +190,6 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	post, err := h.repo.GetPost(r.Context(), id)
-	if err != nil {
-		http.Error(w, "falha ao ler post", http.StatusInternalServerError)
-		return
-	}
-	if post == nil || post.Deleted {
-		http.Error(w, "post nao encontrado", http.StatusNotFound)
-		return
-	}
-
 	prof, err := h.repo.GetUserProfile(r.Context(), uid)
 	name, photo := uid, ""
 	if err == nil && prof != nil {
@@ -199,15 +199,26 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 		photo = prof.PhotoURL
 	}
 	comment := &models.PostComment{
-		ID:           fmt.Sprintf("c%d", time.Now().UnixNano()),
+		ID:           fmt.Sprintf("c%d", service.Now().UnixNano()),
 		UserID:       uid,
 		UserName:     name,
 		UserPhotoURL: photo,
 		Text:         req.Text,
-		CreatedAt:    time.Now(),
+		CreatedAt:    service.Now(),
 	}
-	post.Comments = append(post.Comments, comment)
-	if err := h.repo.UpdatePost(r.Context(), id, post); err != nil {
+
+	err = h.repo.UpdatePostTx(r.Context(), id, func(post *models.Post) error {
+		if post == nil || post.Deleted {
+			return repository.ErrPostNotFound
+		}
+		post.Comments = append(post.Comments, comment)
+		return nil
+	})
+	if errors.Is(err, repository.ErrPostNotFound) {
+		http.Error(w, "post nao encontrado", http.StatusNotFound)
+		return
+	}
+	if err != nil {
 		http.Error(w, "falha ao comentar", http.StatusInternalServerError)
 		return
 	}
@@ -215,61 +226,60 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDeleteComment apaga um comentário: o autor remove de vez; moderador
-// (nutricionista/admin) remove qualquer um com soft delete auditado.
+// (nutricionista/admin) remove qualquer um com soft delete auditado. Tudo
+// dentro de UpdatePostTx para não perder comentários concorrentes.
 func (h *Handlers) HandleDeleteComment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	cid := r.PathValue("cid")
 	uid := middleware.UIDFrom(r.Context())
 
-	post, err := h.repo.GetPost(r.Context(), id)
-	if err != nil {
-		http.Error(w, "falha ao ler post", http.StatusInternalServerError)
-		return
-	}
-	if post == nil || post.Deleted {
-		http.Error(w, "post nao encontrado", http.StatusNotFound)
-		return
-	}
-
-	found := false
-	kept := make([]*models.PostComment, 0, len(post.Comments))
-	for _, c := range post.Comments {
-		if c.ID == cid {
-			if c.Deleted {
-				http.Error(w, "comentario nao encontrado", http.StatusNotFound)
-				return
-			}
-			found = true
-			if uid == c.UserID {
-				continue // autor: remoção real
-			}
-			if !canModerate(r) {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-			// Moderador: soft delete com auditoria.
-			c.Deleted = true
-			c.ModeratedBy = uid
-			c.ModeratedAt = time.Now()
-			kept = append(kept, c)
-			continue
+	err := h.repo.UpdatePostTx(r.Context(), id, func(post *models.Post) error {
+		if post == nil || post.Deleted {
+			return repository.ErrPostNotFound
 		}
-		kept = append(kept, c)
-	}
-	if !found {
+		found := false
+		kept := make([]*models.PostComment, 0, len(post.Comments))
+		for _, c := range post.Comments {
+			if c.ID == cid {
+				if c.Deleted {
+					return repository.ErrCommentNotFound
+				}
+				found = true
+				if uid == c.UserID {
+					continue // autor: remoção real
+				}
+				if !canModerate(r) {
+					return errForbidden
+				}
+				// Moderador: soft delete com auditoria.
+				c.Deleted = true
+				c.ModeratedBy = uid
+				c.ModeratedAt = service.Now()
+				kept = append(kept, c)
+				continue
+			}
+			kept = append(kept, c)
+		}
+		if !found {
+			return repository.ErrCommentNotFound
+		}
+		post.Comments = kept
+		return nil
+	})
+	switch {
+	case errors.Is(err, repository.ErrPostNotFound), errors.Is(err, repository.ErrCommentNotFound):
 		http.Error(w, "comentario nao encontrado", http.StatusNotFound)
-		return
-	}
-	post.Comments = kept
-	if err := h.repo.UpdatePost(r.Context(), id, post); err != nil {
+	case errors.Is(err, errForbidden):
+		http.Error(w, "sem permissao", http.StatusForbidden)
+	case err != nil:
 		http.Error(w, "falha ao apagar comentario", http.StatusInternalServerError)
-		return
+	default:
+		w.WriteHeader(http.StatusNoContent)
 	}
-	w.WriteHeader(http.StatusNoContent)
 }
 
 // HandleDeletePost apaga um post: o autor remove de vez; o moderador faz soft
-// delete com registro de quem moderou e quando.
+// delete (dentro de UpdatePostTx) com registro de quem moderou e quando.
 func (h *Handlers) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	uid := middleware.UIDFrom(r.Context())
@@ -283,7 +293,6 @@ func (h *Handlers) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "post nao encontrado", http.StatusNotFound)
 		return
 	}
-
 	if uid == post.UserID {
 		if err := h.repo.DeletePost(r.Context(), id); err != nil {
 			http.Error(w, "falha ao apagar post", http.StatusInternalServerError)
@@ -296,10 +305,17 @@ func (h *Handlers) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
-	post.Deleted = true
-	post.ModeratedBy = uid
-	post.ModeratedAt = time.Now()
-	if err := h.repo.UpdatePost(r.Context(), id, post); err != nil {
+	err = h.repo.UpdatePostTx(r.Context(), id, func(p *models.Post) error {
+		p.Deleted = true
+		p.ModeratedBy = uid
+		p.ModeratedAt = service.Now()
+		return nil
+	})
+	if errors.Is(err, repository.ErrPostNotFound) {
+		http.Error(w, "post nao encontrado", http.StatusNotFound)
+		return
+	}
+	if err != nil {
 		http.Error(w, "falha ao moderar post", http.StatusInternalServerError)
 		return
 	}

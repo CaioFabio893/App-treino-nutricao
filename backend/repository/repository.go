@@ -5,6 +5,7 @@ package repository
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -14,6 +15,15 @@ import (
 	"google.golang.org/grpc/status"
 
 	"treino-louise/backend/models"
+)
+
+// Erros sentinela de domínio do feed, traduzidos em HTTP pelos handlers.
+var (
+	// ErrPostNotFound indica que o post não existe (nem como documento) ou já
+	// foi removido por moderação no momento da transação.
+	ErrPostNotFound = errors.New("post nao encontrado")
+	// ErrCommentNotFound indica que o comentário alvo não existe mais.
+	ErrCommentNotFound = errors.New("comentario nao encontrado")
 )
 
 // Estrutura no Firestore:
@@ -96,7 +106,12 @@ type Repository interface {
 	CreatePost(ctx context.Context, p *models.Post) (*models.Post, error)
 	GetPost(ctx context.Context, id string) (*models.Post, error)
 	ListPosts(ctx context.Context, limit int, cursor string) ([]*models.Post, string, error)
-	UpdatePost(ctx context.Context, id string, p *models.Post) error
+	// UpdatePostTx executa leitura-modificação-escrita de um post DENTRO de uma
+	// transação (RunTransaction): o post atual é lido, passado para mutate (que
+	// pode abortar devolvendo erro), e regravado na mesma transação. Elimina a
+	// race do feed (curtidas/comentários perdidos) do padrão antigo
+	// GetPost→modifica→UpdatePost.
+	UpdatePostTx(ctx context.Context, id string, mutate func(*models.Post) error) error
 	DeletePost(ctx context.Context, id string) error
 	// FindAutoPostToday devolve o post automático do tipo dado criado a partir
 	// de start (inclusive) pelo aluno — para não publicar duas vezes no dia.
@@ -844,9 +859,11 @@ func encodeCursor(p *models.Post) string {
 	return fmt.Sprintf("%d,%s", p.CreatedAt.UnixMilli(), p.ID)
 }
 
-// UpdatePost grava o documento inteiro do post (curtidas/comentários novos).
-func (r *firestoreRepo) UpdatePost(ctx context.Context, id string, p *models.Post) error {
-	_, err := r.fs.Collection("posts").Doc(id).Set(ctx, map[string]any{
+// postData monta o mapa de escrita de um post. Extraído para poder ser testado
+// e compartilhado entre UpdatePost e UpdatePostTx (nunca perder campos do
+// documento ao gravar).
+func postData(p *models.Post) map[string]any {
+	return map[string]any{
 		"userId":       p.UserID,
 		"userName":     p.UserName,
 		"userPhotoURL": p.UserPhotoURL,
@@ -865,7 +882,35 @@ func (r *firestoreRepo) UpdatePost(ctx context.Context, id string, p *models.Pos
 		"moderatedAt":  p.ModeratedAt,
 		"createdAt":    p.CreatedAt,
 		"updatedAt":    time.Now(),
-	}, firestore.MergeAll)
+	}
+}
+
+// UpdatePostTx executa a leitura-modificação-escrita de um post DENTRO de uma
+// transação Firestore. O callback recebe o post atual (mutações aplicadas em
+// memória); ao final, o documento é regravado na mesma transação. Se o post
+// não existir, o callback não é chamado e devolve ErrPostNotFound. Isso
+// elimina a race do padrão antigo GetPost→modifica→UpdatePost, em que duas
+// curtidas/comentários concorrentes podiam se sobrescrever (item 3.5).
+func (r *firestoreRepo) UpdatePostTx(ctx context.Context, id string, mutate func(*models.Post) error) error {
+	ref := r.fs.Collection("posts").Doc(id)
+	err := r.fs.RunTransaction(ctx, func(_ context.Context, tx *firestore.Transaction) error {
+		doc, err := tx.Get(ref)
+		if err != nil {
+			if isNotFound(err) {
+				return ErrPostNotFound
+			}
+			return err
+		}
+		p := &models.Post{}
+		if err := doc.DataTo(p); err != nil {
+			return err
+		}
+		p.ID = id
+		if err := mutate(p); err != nil {
+			return err
+		}
+		return tx.Set(ref, postData(p), firestore.MergeAll)
+	})
 	return err
 }
 
@@ -923,8 +968,16 @@ func (r *firestoreRepo) GetDietLog(ctx context.Context, studentID, date string) 
 	return out, nil
 }
 
-func (r *firestoreRepo) PutDietLog(ctx context.Context, log *models.DietDailyLog) error {
-	_, err := r.fs.Collection("dietLogs").Doc(dietLogDocID(log.StudentID, log.Date)).Set(ctx, map[string]any{
+// dietLogData monta o mapa de escrita de um log de dieta diário. createdAt é
+// PRESERVADO quando o log já tem data (atualização); só log novo
+// (log.CreatedAt zero) usa ServerTimestamp — mesma regra do userProfileData.
+// Corrige o achado 3.3 (PutDietLog regravava createdAt a cada save).
+func dietLogData(log *models.DietDailyLog) map[string]any {
+	createdAt := any(firestore.ServerTimestamp)
+	if !log.CreatedAt.IsZero() {
+		createdAt = log.CreatedAt
+	}
+	return map[string]any{
 		"studentId":      log.StudentID,
 		"nutritionistId": log.NutritionistID,
 		"dietId":         log.DietID,
@@ -935,9 +988,13 @@ func (r *firestoreRepo) PutDietLog(ctx context.Context, log *models.DietDailyLog
 		"note":           log.Note,
 		"caption":        log.Caption,
 		"postId":         log.PostID,
-		"createdAt":      firestore.ServerTimestamp,
+		"createdAt":      createdAt,
 		"updatedAt":      firestore.ServerTimestamp,
-	})
+	}
+}
+
+func (r *firestoreRepo) PutDietLog(ctx context.Context, log *models.DietDailyLog) error {
+	_, err := r.fs.Collection("dietLogs").Doc(dietLogDocID(log.StudentID, log.Date)).Set(ctx, dietLogData(log))
 	return err
 }
 

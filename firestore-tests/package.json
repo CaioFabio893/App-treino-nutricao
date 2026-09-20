@@ -1,0 +1,14 @@
+{
+  "name": "treino-louise-firestore-rules-tests",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Testes automatizados das Security Rules do Firestore (rode contra o Emulador, nunca produção).",
+  "scripts": {
+    "test": "cd .. && firebase emulators:exec --only firestore \"node firestore-tests/node_modules/mocha/bin/mocha.js firestore-tests/rules.test.js --timeout 60000\""
+  },
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^3.0.2",
+    "firebase": "^10.14.1",
+    "mocha": "^10.8.2"
+  }
+}

@@ -6,7 +6,6 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
-	"strconv"
 	"syscall"
 	"time"
 
@@ -59,27 +58,20 @@ func main() {
 		port = "8080"
 	}
 
-	// ── Cadeia de hardening (hardening.md) ──
-	// Externamente: CORS → SecurityHeaders → RateLimit → mux.
-	// CORS: em produção, defina ALLOWED_ORIGIN com o domínio exato do frontend
-	// (ex.: "https://app.treinolouise.com"). Default "*" para desenvolvimento.
-	allowedOrigin := os.Getenv("ALLOWED_ORIGIN")
-	if allowedOrigin == "" {
-		allowedOrigin = "*"
-	}
-
-	// Rate limit por IP/minuto. RATE_LIMIT=0 (ou ausente) desativa.
-	rateLimit := 0
-	if v := os.Getenv("RATE_LIMIT"); v != "" {
-		if n, err := strconv.Atoi(v); err == nil && n > 0 {
-			rateLimit = n
-		}
+	// ── Hardening de produção (config.go) ──
+	// CORS + rate limit derivados do ambiente com fail-fast: em produção
+	// (GO_ENV=production) ALLOWED_ORIGIN é OBRIGATÓRIO e nunca "*"; rate limit
+	// nunca fica desativado (default 120/min/IP em produção, 600 em dev/teste).
+	// Erro de configuração derruba o boot — sem fallback permissivo.
+	cfg, err := loadConfig(os.Getenv)
+	if err != nil {
+		log.Fatalf("configuracao invalida: %v", err)
 	}
 
 	var handler http.Handler = mux
 	handler = middleware.SecurityHeaders(handler)
-	handler = middleware.CORS(allowedOrigin)(handler)
-	handler = middleware.RateLimit(rateLimit, time.Minute)(handler)
+	handler = middleware.CORS(cfg.allowedOrigin)(handler)
+	handler = middleware.RateLimit(cfg.rateLimit, cfg.rateWindow)(handler)
 	handler = middleware.MaxBody(handler)
 	// Recover é o mais externo: cobre qualquer panic abaixo (middlewares, auth,
 	// handlers, service, repository) sem derrubar o processo.
