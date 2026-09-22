@@ -4,7 +4,41 @@
 
 ---
 
-## Fase atual: 3 — Testes E2E (Playwright)
+## Fase atual: 13 — Revisão final de segurança, autorização e regressão
+
+**Status: FASE 13 CONCLUÍDA (22 set 2026).** Backend `go vet`/`go test`
+120/120 ✅ · Firestore rules 53/53 ✅ · Vitest 28/28 ✅ · Playwright E2E
+19/19 ✅ · `tsc --noEmit` ✅ · `next build` ✅ · **Lint frontend 0/0** ✅.
+Relatório completo em `docs/reports/phase-13-final-security-regression.md`.
+
+**Correção classe A da F13:** `PUT /api/me` vira ALLOWLIST estrita
+(name/email/photoURL/bio) — antes, `startDate`/`endDate`/`authProvider`
+enviados no body eram gravados, e como `startDate` alimenta o denominador da
+pontuação (`daysElapsedInCycle`), o aluno podia inflar a própria nota no
+ranking. `GetOrCreateProfile` agora preserva também `StartDate`/`EndDate`.
+Regressão coberta por `TestChainPutMeIsAllowlistBlockingMassAssignment`.
+Demais auditorias (auth, ownership, timestamps, timezone, concorrência,
+índices, dados públicos, payloads, config de produção) confirmadas íntegras;
+resíduos classe C documentados no relatório.
+
+**Próximo passo:** decidir as próximas fases do roadmap (F5 biblioteca de
+exercícios / F8 alimentos / F14 PWA / F15 produção) + resíduos do backlog
+(status `blocked` vs `paused`, limites por campo aninhado, reativação da regra
+de lint na migração RSC/SWR).
+
+### Fase 13 — Revisão final de segurança (22 set 2026)
+
+Revisão sistemática (auth, roles, status, ownership/IDOR, mass assignment,
+payloads, timestamps, timezone, concorrência, índices, dados públicos,
+frontend, qualidade de testes). Um achado A corrigido (mass assignment em
+`PUT /api/me` — allowlist + preservação de datas + AuthProvider do token);
+resto confirmado ou documentado como resíduo C. Commit: `security: complete
+F13 final security and regression review` (local, sem push/deploy).
+`opencode.json` preservado fora do commit.
+
+---
+
+## Fase 3 — Testes E2E (Playwright) [concluída]
 
 **Status: FASE 3 CONCLUÍDA (22 set 2026).** Playwright 17/17 ✅ · Backend
 `go vet`/`go test` ✅ · `tsc --noEmit` ✅ · Vitest 28/28 ✅ · Firestore rules
@@ -18,12 +52,12 @@ origem `127.0.0.1` (canônica = `localhost`) → `allowedDevOrigins: ["127.0.0.1
 (`clients.claim()` → `controllerchange` → reload) → `serviceWorkers: "block"`
 no contexto E2E.
 
-**Próximo passo:** decidir próximas fases do roadmap (F5 biblioteca de
-exercícios / F8 alimentos / F13 revisão / F14 PWA / F15 produção) + pendências
-remanescentes do backlog (status `blocked` vs `paused`, demais correções SDD da
-Fase 1). O hardening pré-F13 (deep-link, `time.Now`, tamanho de entrada, perfil
-público, payloads, docs) está concluído — ver seção abaixo e
-`docs/reports/pre-f13-hardening.md`.
+**Próximo passo (registro histórico da fase 3):** decidir próximas fases do
+roadmap (F5 biblioteca de exercícios / F8 alimentos / F13 revisão / F14 PWA /
+F15 produção) + pendências remanescentes do backlog (status `blocked` vs
+`paused`, demais correções SDD da Fase 1). O hardening pré-F13 (deep-link,
+`time.Now`, tamanho de entrada, perfil público, payloads, docs) está concluído
+— ver seção abaixo e `docs/reports/pre-f13-hardening.md`.
 
 ### Retaguarda — lint frontend (22 set 2026)
 

@@ -73,10 +73,14 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, prof)
 }
 
-// HandlePutMe atualiza o perfil do usuário autenticado (só dados de perfil).
-// role/status/planID/features são definidos pelo admin no fluxo de aprovação —
-// o cliente jamais envia esses campos por aqui. Perfil novo é criado como
-// pending_approval (via GetOrCreateProfile).
+// HandlePutMe atualiza o perfil do usuário autenticado (só dados de perfil —
+// ALLOWLIST). role/status/planID/features/nutritionistID/startDate/endDate/
+// histórico de aprovação/criadoEm são definidos pelos fluxos da API Go
+// (admin/nutricionista/approval); qualquer valor desses campos no body é
+// IGNORADO. Antes da F13, startDate/endDate passavam direto para o Firestore:
+// como startDate alimenta o denominador da pontuação (daysElapsedInCycle), um
+// aluno podia enviar uma data recente e inflar a própria nota do ranking.
+// AuthProvider também vem do ID token verificado — nunca do body.
 func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
 	var p models.UserProfile
@@ -84,14 +88,24 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	// Não permite trocar role/status/plano por si mesmo via /me.
+	// Allowlist estrita (mesmo contrato do allowedSelfProfileUpdate das regras
+	// Firestore): o cliente só edita name/email/photoURL/bio. Todo o resto é
+	// decisão de servidor — zera cada campo não editável para que o body não
+	// tenha efeito algum sobre eles.
 	p.Role = ""
 	p.Status = ""
 	p.PlanID = ""
 	p.Features = nil
-	if p.AuthProvider == "" {
-		p.AuthProvider = middleware.AuthProviderFrom(r.Context())
-	}
+	p.NutritionistID = ""
+	p.StartDate = ""
+	p.EndDate = ""
+	p.ApprovedBy = ""
+	p.ApprovedAt = time.Time{}
+	p.RejectedReason = ""
+	p.CreatedAt = time.Time{}
+	// Provedor de login vem do ID token verificado pelo Require — nunca
+	// aceita spoof via body ("google.com", etc.).
+	p.AuthProvider = middleware.AuthProviderFrom(r.Context())
 	if tooLong(p.Name, service.MaxNameLength) {
 		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return

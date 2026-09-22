@@ -95,7 +95,13 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
    600 req/min/IP — **nunca escreva fallback com `*`**. Deploy no Cloud Run
    precisa de `GO_ENV=production` + `ALLOWED_ORIGIN=<domínio exato do front>`.
 10. **Allowlist de `users` update** (`allowedSelfProfileUpdate`): via SDK de
-    cliente o dono só altera `name`/`email`/`photoURL`/`bio`
-    (`affectedKeys().hasOnly`); `createdAt`/`authProvider`/campos
-    administrativos mudam somente pela API Go. Não adicionar campo novo à
-    allowlist sem fluxo real que o envie e sem teste de regras.
+     cliente o dono só altera `name`/`email`/`photoURL`/`bio`
+     (`affectedKeys().hasOnly`); `createdAt`/`authProvider`/campos
+     administrativos mudam somente pela API Go. Não adicionar campo novo à
+     allowlist sem fluxo real que o envie e sem teste de regras. A regra vale
+     **também para o `PUT /api/me` (F13)**: o handler zera toda campo não
+     editável (`role`/`status`/`planID`/`features`/`nutritionistID`/
+     `startDate`/`endDate`/aprovação/`createdAt`) e `AuthProvider` vem sempre
+     do ID token — nunca do body. `GetOrCreateProfile` preserva do registro
+     existente os dois campos que o body podia gravar antes da F13
+     (`StartDate`/`EndDate` — ambos alimentam cálculo de pontuação).

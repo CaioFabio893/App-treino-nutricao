@@ -21,6 +21,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
 
@@ -281,6 +282,21 @@ func (r *autoCreateRepo) CreateUser(_ context.Context, uid string, p *models.Use
 	cp := *p
 	cp.ID = uid
 	r.created = &cp
+	return nil
+}
+
+// capturePutRepo captura o perfil que o handler mandou gravar em
+// PutUserProfile (PUT /api/me) — o chainFakeRepo base apenas marca
+// updateUserCalled; a ALLOWLIST da F13 precisa inspecionar os campos do
+// perfil que chegaria ao Firestore.
+type capturePutRepo struct {
+	*chainFakeRepo
+	updated *models.UserProfile
+}
+
+func (r *capturePutRepo) PutUserProfile(_ context.Context, _ string, p *models.UserProfile) error {
+	cp := *p
+	r.updated = &cp
 	return nil
 }
 
@@ -725,6 +741,112 @@ func TestChainGetMeCreatesPendingProfile(t *testing.T) {
 	}
 	if !strings.Contains(rr.Body.String(), `"status":"pending_approval"`) {
 		t.Errorf("2ª chamada body = %q, deveria conter status pending_approval", rr.Body.String())
+	}
+}
+
+// ── FASE 13 (segurança): PUT /api/me é ALLOWLIST — mass assignment bloqueado ──
+//
+// Achado A da revisão final: HandlePutMe decodifica o UserProfile inteiro e
+// só zera Role/Status/PlanID/Features. GetOrCreateProfile preserva os campos
+// administrativos do registro (nutritionistID, approvedBy, ...) mas NÃO
+// StartDate/EndDate — e startDate alimenta o denominador da pontuação
+// (daysElapsedInCycle): um aluno podia enviar uma data recente e INFLAR a
+// própria nota do ranking. O mesmo furo valia para authProvider/approvedAt/
+// rejectedReason (client-sent, sem preservação). Contrato (rules Firestore
+// allowedSelfProfileUpdate + docs/api): o cliente só edita name/email/
+// photoURL/bio; TODO o resto é definido pela API Go em fluxos dedicados.
+func TestChainPutMeIsAllowlistBlockingMassAssignment(t *testing.T) {
+	existing := &models.UserProfile{
+		ID:             testUID,
+		Name:           "Nome Original",
+		Email:          "original@email.com",
+		Role:           models.RoleStudent,
+		Status:         models.StatusActive,
+		NutritionistID: "nutri-1",
+		PlanID:         "plano-1",
+		Features:       []models.Feature{models.FeatureWorkouts, models.FeatureDiet},
+		StartDate:      "2026-09-01",
+		EndDate:        "2026-12-01",
+		AuthProvider:   "password",
+		ApprovedBy:     "admin-1",
+		RejectedReason: "",
+		CreatedAt:      time.Date(2026, 8, 1, 12, 0, 0, 0, time.UTC),
+	}
+	repo := &capturePutRepo{chainFakeRepo: baseRepo(existing)}
+	h := newChainMux(repo)
+
+	// O body tenta "vender" o perfil inteiro: edita name/email (legítimos) e
+	// envenena tudo que é de decisão do admin/nutricionista.
+	body := `{
+		"id":"` + testUID + `",
+		"name":"Nome Editado",
+		"email":"editado@email.com",
+		"role":"admin",
+		"status":"rejected",
+		"planID":"plano-hack",
+		"features":["community","ranking"],
+		"nutritionistID":"nutri-hack",
+		"startDate":"2026-10-01",
+		"endDate":"2026-10-02",
+		"authProvider":"google.com",
+		"approvedBy":"admin-hack",
+		"approvedAt":"2026-10-01T00:00:00Z",
+		"rejectedReason":"hack",
+		"createdAt":"2026-01-01T00:00:00Z"
+	}`
+	rr := doChainRequest(h, "PUT", "/api/me", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT /api/me code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updated == nil {
+		t.Fatal("PUT /api/me não chamou PutUserProfile")
+	}
+	got := repo.updated
+
+	// O que o cliente PODE editar (allowlist) passa.
+	if got.Name != "Nome Editado" {
+		t.Errorf("name = %q, want %q (editável via /me)", got.Name, "Nome Editado")
+	}
+	if got.Email != "editado@email.com" {
+		t.Errorf("email = %q, want %q (editável via /me)", got.Email, "editado@email.com")
+	}
+
+	// O resto é decisão do admin/nutricionista — o registro manda.
+	if got.Role != models.RoleStudent {
+		t.Errorf("role = %q, want preservar student", got.Role)
+	}
+	if got.Status != models.StatusActive {
+		t.Errorf("status = %q, want preservar active", got.Status)
+	}
+	if got.PlanID != "plano-1" {
+		t.Errorf("planID = %q, want preservar plano-1", got.PlanID)
+	}
+	if len(got.Features) != 2 || got.Features[0] != models.FeatureWorkouts || got.Features[1] != models.FeatureDiet {
+		t.Errorf("features = %v, want preservar [workouts diet]", got.Features)
+	}
+	if got.NutritionistID != "nutri-1" {
+		t.Errorf("nutritionistID = %q, want preservar nutri-1 (aluno não define vínculo)", got.NutritionistID)
+	}
+	if got.StartDate != "2026-09-01" {
+		t.Errorf("startDate = %q, want preservar 2026-09-01 (startDate alimenta o denominador do score)", got.StartDate)
+	}
+	if got.EndDate != "2026-12-01" {
+		t.Errorf("endDate = %q, want preservar 2026-12-01", got.EndDate)
+	}
+	if got.AuthProvider != "password" {
+		t.Errorf("authProvider = %q, want preservar password (provém do token, nunca do body)", got.AuthProvider)
+	}
+	if got.ApprovedBy != "admin-1" {
+		t.Errorf("approvedBy = %q, want preservar admin-1", got.ApprovedBy)
+	}
+	if !got.ApprovedAt.IsZero() {
+		t.Errorf("approvedAt = %v, want zero (histórico de aprovação é do admin)", got.ApprovedAt)
+	}
+	if got.RejectedReason != "" {
+		t.Errorf("rejectedReason = %q, want preservar vazio", got.RejectedReason)
+	}
+	if !got.CreatedAt.Equal(existing.CreatedAt) {
+		t.Errorf("createdAt = %v, want preservar %v (nunca sobrescrito)", got.CreatedAt, existing.CreatedAt)
 	}
 }
 

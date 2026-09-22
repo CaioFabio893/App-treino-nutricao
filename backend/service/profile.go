@@ -26,6 +26,14 @@ func (s *Service) GetOrCreateProfile(ctx context.Context, uid string, p *models.
 		p.ApprovedAt = existing.ApprovedAt
 		p.RejectedReason = existing.RejectedReason
 		p.CreatedAt = existing.CreatedAt
+		// StartDate/EndDate também são definidos por fluxos administrativos
+		// (update de aluno / aprovação), nunca pelo próprio via /me — se o
+		// body os trouxer (ou vier zerado), o registro manda. Corrige a F13:
+		// antes, PUT /api/me escrevia startDate direto, e como startDate
+		// alimenta o denominador da pontuação (daysElapsedInCycle), o aluno
+		// podia inflar a própria nota do ranking.
+		p.StartDate = existing.StartDate
+		p.EndDate = existing.EndDate
 		return s.repo.PutUserProfile(ctx, uid, p)
 	}
 	// Cria novo perfil como pendente de aprovação — nunca vira aluno ativo
