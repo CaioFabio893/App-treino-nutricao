@@ -24,6 +24,10 @@ import type { Feature, Role, UserProfile } from "./types";
 interface AuthCtx {
   user: User | null;
   initializing: boolean;
+  /** true quando o perfil (role/status/features) já foi carregado (ou falhou)
+   *  para o usuário atual. Evita que guards decidam redirect com o role
+   *  default "student" antes de o GET /api/me responder (deep-link). */
+  profileLoaded: boolean;
   configured: boolean;
   profile: UserProfile | null;
   role: Role;
@@ -75,6 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(DEMO_MODE ? DEMO_USER : null);
   const [initializing, setInitializing] = useState(DEMO_MODE ? false : true);
   const [profile, setProfile] = useState<UserProfile | null>(null);
+  const [profileLoaded, setProfileLoaded] = useState(DEMO_MODE ? true : false);
   // Modo demo: alterna entre ver o painel do nutricionista e a visão do aluno.
   const [demoAs, setDemoAs] = useState<"nutritionist" | "student">("nutritionist");
 
@@ -101,6 +106,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Falhas transitórias (rede, timeout, 5xx): mantém o perfil atual em
       // vez de apagá-lo — evita "piscar" o usuário entre papéis por um erro
       // momentâneo de conexão.
+    } finally {
+      setProfileLoaded(true);
     }
   }, []);
 
@@ -109,11 +116,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // No modo demo simula o perfil de acordo com o papel ativo.
       setUser(demoAs === "student" ? DEMO_STUDENT_USER : DEMO_USER);
       setProfile(demoAs === "student" ? DEMO_STUDENT : DEMO_NUTRITIONIST);
+      setProfileLoaded(true);
       setInitializing(false);
       return;
     }
     if (!firebaseAuth) {
       setInitializing(false);
+      setProfileLoaded(true);
       return;
     }
     const unsub = onAuthStateChanged(firebaseAuth, (u) => {
@@ -200,6 +209,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       user,
       initializing,
+      profileLoaded,
       configured: DEMO_MODE ? true : firebaseConfigured,
       profile,
       role,
@@ -215,7 +225,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       demoAs,
       setDemoAs,
     }),
-    [user, initializing, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, loginWithGoogle, logout, getToken, demoAs]
+    [user, initializing, profileLoaded, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, loginWithGoogle, logout, getToken, demoAs]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

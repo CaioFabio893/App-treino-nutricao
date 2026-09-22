@@ -60,3 +60,26 @@ func TestWriteJSON(t *testing.T) {
 		t.Errorf("code = %d, want 500", rr.Code)
 	}
 }
+
+func TestTooLong(t *testing.T) {
+	cases := []struct {
+		name string
+		s    string
+		max  int
+		want bool
+	}{
+		{"vazio aceito", "", 5, false},
+		{"exatamente no limite", "abcde", 5, false},
+		{"acima do limite", "abcdef", 5, true},
+		{"unicode conta runas (não bytes)", "café", 4, false},
+		{"emoji conta 1 runa", "👋👋👋", 3, false},
+		{"emoji acima do limite", "👋👋👋👋", 3, true},
+	}
+	for _, c := range cases {
+		t.Run(c.name, func(t *testing.T) {
+			if got := tooLong(c.s, c.max); got != c.want {
+				t.Errorf("tooLong(%q, %d) = %v, want %v", c.s, c.max, got, c.want)
+			}
+		})
+	}
+}

@@ -19,18 +19,24 @@ export default function DashboardLayout({
   children: React.ReactNode;
   allowedRoles: string[];
 }) {
-  const { user, initializing, role, logout } = useAuth();
+  const { user, initializing, profileLoaded, role, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
   const roleOk = !!role && allowedRoles.includes(role);
 
+  // O redirect por papel só acontece DEPOIS que o perfil foi carregado
+  // (profileLoaded). Antes disso, `role` ainda é o default "student" — decidir
+  // redirect agora faria um admin/nutritionist acessando /admin ou /nutritionist
+  // por URL direta ser rebatido para "/" como se fosse aluno (corrida de
+  // deep-link). A autorização real continua no backend (RequireApproved/Allow);
+  // este guard é só UX de roteamento.
   useEffect(() => {
-    if (initializing) return;
+    if (initializing || !profileLoaded) return;
     if (!user) router.replace("/login");
     else if (!roleOk) router.replace("/");
-  }, [initializing, user, roleOk, router]);
+  }, [initializing, profileLoaded, user, roleOk, router]);
 
-  if (initializing || !user || !roleOk) {
+  if (initializing || !user || !profileLoaded || !roleOk) {
     return <LoadingScreen />;
   }
 

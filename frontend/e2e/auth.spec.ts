@@ -40,4 +40,23 @@ test.describe("Autenticação (fluxo real no Auth Emulator)", () => {
     await expect(page.getByText("Cadastro recusado")).toBeVisible();
     await expect(page.getByText("Documento divergente", { exact: false })).toBeVisible();
   });
+
+  // ── Deep-link de papel (achado pre-f13): acesso por URL direta não pode ser
+  // rebatido por causa do role default "student" antes do perfil carregar. ──
+  test("admin acessa /admin por URL direta (deep-link)", async ({ page }) => {
+    await login(page, USERS.admin.email, USERS.admin.password);
+    await page.waitForURL("**/nutritionist");
+    // Full reload em /admin — re-hidrata a app com o perfil ainda carregando.
+    await page.goto("/admin");
+    await page.waitForURL("**/admin");
+    await expect(page.getByText("Cadastros pendentes", { exact: false })).toBeVisible();
+  });
+
+  test("nutritionist acessa /nutritionist/workouts por URL direta (deep-link)", async ({ page }) => {
+    await login(page, USERS.nutritionist.email, USERS.nutritionist.password);
+    await page.waitForURL("**/nutritionist");
+    await page.goto("/nutritionist/workouts");
+    await page.waitForURL("**/nutritionist/workouts");
+    await expect(page.getByRole("heading", { name: "Treinos" })).toBeVisible();
+  });
 });

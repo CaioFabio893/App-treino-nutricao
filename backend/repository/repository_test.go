@@ -288,6 +288,7 @@ func TestDietLogDataKeepsOtherFields(t *testing.T) {
 
 func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
 	created := time.Date(2026, 7, 3, 9, 0, 0, 0, time.UTC)
+	updated := time.Date(2026, 7, 3, 9, 30, 0, 0, time.UTC)
 	p := &models.Post{
 		ID:           "p1",
 		UserID:       "u1",
@@ -305,6 +306,7 @@ func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
 		ModeratedBy:  "n1",
 		ModeratedAt:  time.Date(2026, 7, 3, 10, 0, 0, 0, time.UTC),
 		CreatedAt:    created,
+		UpdatedAt:    updated,
 	}
 
 	m := postData(p)
@@ -334,6 +336,12 @@ func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
 	}
 	if createdAt := m["createdAt"]; createdAt != created {
 		t.Errorf("createdAt = %v, want %v", createdAt, created)
+	}
+	// updatedAt vem do struct (definido pelo handler com service.Now()), nunca
+	// de time.Now() cru no repository — regressão do achado "time.Now em dado
+	// de negócio" (pre-f13).
+	if updatedAt := m["updatedAt"]; updatedAt != updated {
+		t.Errorf("updatedAt = %v, want %v", updatedAt, updated)
 	}
 }
 

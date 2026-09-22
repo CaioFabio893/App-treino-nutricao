@@ -20,8 +20,10 @@ no contexto E2E.
 
 **Próximo passo:** decidir próximas fases do roadmap (F5 biblioteca de
 exercícios / F8 alimentos / F13 revisão / F14 PWA / F15 produção) + pendências
-do backlog (corrida de deep-link de papel, status `blocked` vs `paused`,
-demais correções SDD da Fase 1).
+remanescentes do backlog (status `blocked` vs `paused`, demais correções SDD da
+Fase 1). O hardening pré-F13 (deep-link, `time.Now`, tamanho de entrada, perfil
+público, payloads, docs) está concluído — ver seção abaixo e
+`docs/reports/pre-f13-hardening.md`.
 
 ### Retaguarda — lint frontend (22 set 2026)
 
@@ -43,6 +45,46 @@ lint → build → Vitest 28/28):
   compartilhado** (`components/Avatar.tsx`) com um único disable interno
   documentado (photoURL remota com dimensões desconhecidas; migração para
   `next/image` registrada como trabalho das fases PWA/otimização).
+
+### Hardening pré-F13 — retaguarda de segurança/consistência (22 set 2026)
+
+**Status: CONCLUSO — checkpoints verdes; commit `security: harden app before
+final review`.** Corrige os achados levantados antes de abrir a F13 (revisão).
+Relatório completo em `docs/reports/pre-f13-hardening.md`.
+
+1. **Corrida de deep-link de papel**: `DashboardLayout` só decide redirect
+   depois que o perfil carregou (`profileLoaded` no `AuthProvider`) — admin/
+   nutritionist acessando `/admin`/`/nutritionist/*` por URL direta não é mais
+   rebatido com o role default "student". Autorização real permanece no backend
+   (RequireApproved/Allow). +2 testes E2E de deep-link.
+2. **`time.Now()` em dado de negócio**: `postData` escreve `updatedAt` de
+   `p.UpdatedAt` (nunca relógio cru no repository); posts passam a ganhar
+   `UpdatedAt` na criação (manuais e automáticos) e em toda mutação
+   transacional (like, comentário, soft-delete de moderação, despublicação do
+   post automático de dieta). Regressão em `repository_test.go`. Único
+   `time.Now()` restante: rate limit (relógio técnico, sem fuso de negócio).
+3. **Limite de tamanho de entrada por campo**: helper `tooLong` (runas, não
+   bytes) + constantes em `service/constants.go`; validação → 400 em posts,
+   comentários, perfil (`/api/me`), treinos, dietas, planos, log de dieta,
+   conclusão de treino, motivo de recusa e — fechado neste checkpoint — na
+   duplicação de treino/dieta (`NewName`) e na edição de aluno (nome/bio).
+   `MaxBody` (1 MiB) segue como teto global (middleware).
+4. **Perfil público**: `PublicProfile` é DTO mínimo (sem email/status/planos/
+   vínculos/histórico de aprovação); regressão
+   `TestGetPublicProfileDoesNotExposeSensitiveFields`.
+5. **Auditoria de payloads JSON**: decode malformado → 400 em todas as rotas de
+   escrita; campos obrigatórios checados (id/role/nome/workoutId/planID/date);
+   sem furos além do tamanho (item 3). Alguns counters numéricos sem range-check
+   (ex.: duração da conclusão) foram classificados como risco residual aceitável.
+6. **Docs de `createdAt`/regras**: `CLAUDE.md` e `docs/architecture/
+   firestore-model.md` corrigidos (createdAt preservado em `dietLogData` desde a
+   Fase 1; cláusula `UpdatePost` removida já na Fase 1; seção de regras de
+   segurança descrita conforme o estado endurecido — escrita de negócio só via
+   API Go).
+
+Gates: backend `go vet` + **119 testes** ✅ · Firestore rules **53/53** ✅ ·
+Vitest **28/28** ✅ · Playwright E2E **19/19** ✅ · `tsc --noEmit` ✅ ·
+`next build` ✅ · lint frontend **0/0** ✅.
 
 ### Fase 2 — Vitest/frontend tests (22 set 2026)
 
@@ -198,13 +240,13 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 
 ### Cobertura de testes
 
-- Backend: **112+ testes** — `go test ./...` ✅ · `go vet ./...` limpo ✅
+- Backend: **119 testes** — `go test ./...` ✅ · `go vet ./...` limpo ✅
 - Frontend: **28 testes (Vitest)** ✅ — `npm test` (6 arquivos: StudentDietPage,
   Ranking, StudentDashboard, mealsToText, EmptyDietState, auth-demo).
 - Firestore Emulator: **53 testes de regras** ✅
   (`cd firestore-tests && npm test`)
-- E2E (Playwright): **17 testes** ✅ — `npm run test:e2e` (auth, aluno,
-  autorização, ranking, aprovação).
+- E2E (Playwright): **19 testes** ✅ — `npm run test:e2e` (auth, aluno,
+  autorização, ranking, aprovação, deep-link de papel).
 
 ### Próximos passos (Fase 3+)
 
@@ -222,9 +264,9 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
       2026). Decisão: regra `react-hooks/set-state-in-effect` desligada (falso
       positivo no padrão de fetch no mount; reativar na migração RSC/SWR);
       entidades corrigidas; `Avatar` compartilhado para avatares.
-- [ ] Corrigir corrida de deep-link de papel (guard `DashboardLayout` decide
-      redirect com `role` default "student" antes do perfil carregar — registrado
-      no relatório da Fase 3).
+- [x] Corrigir corrida de deep-link de papel (guard `DashboardLayout` decide
+      redirect com `role` default "student" antes do perfil carregar — corrigido
+      no hardening pré-F13 via `profileLoaded`; ver seção acima).
 - [ ] Harmonizar pergunta em aberto do status `blocked` vs `paused/inactive`
       (achado A10 — regras já negam status fora da whitelist).
 - [ ] Seguir com as demais correções/implementações do SDD da Fase 1.
@@ -308,3 +350,4 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 20 set 2026 | 2 | Working tree V2 integrado e commitado: auto-create /api/me + dieta texto (API) e dashboard/ranking/dietas texto (frontend); gates verdes; dívida de lint registrada |
 | 22 set 2026 | 2 | Fase 2 (Vitest) concluída: 28/28 testes frontend verdes; 4 falhas classificadas TESTE INCORRETO e corrigidas sem mudar produto; fix TS2304 no vitest.setup.ts; build/typecheck/backend verdes; relatório phase-02-frontend-tests |
 | 22 set 2026 | 3 | Fase 3 (Playwright E2E) concluída: 17/17 verdes; causa raiz do "Carregando." (allowedDevOrigins do Next 16 + CSP dev) e da flakiness (SW clients.claim → reload → serviceWorkers:block); relatório phase-03-e2e-tests |
+| 22 set 2026 | 3→F13 | **Hardening pré-F13**: corrida de deep-link de papel corrigida (`profileLoaded`), `updatedAt` sem `time.Now()` cru (posts + mutações transacionais), limites de tamanho por campo (`tooLong`/constantes), DTO `PublicProfile` testado, auditoria de payloads, docs de createdAt/regras sincronizadas; gates backend 119 / rules 53 / Vitest 28 / E2E 19 + lint 0/0; relatório pre-f13-hardening |

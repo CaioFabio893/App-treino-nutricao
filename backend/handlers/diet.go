@@ -58,6 +58,14 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "data invalida (use AAAA-MM-DD)", http.StatusBadRequest)
 		return
 	}
+	if tooLong(req.Note, service.MaxNoteLength) {
+		http.Error(w, "nota muito longa", http.StatusBadRequest)
+		return
+	}
+	if tooLong(req.Caption, service.MaxPostText) {
+		http.Error(w, "legenda muito longa", http.StatusBadRequest)
+		return
+	}
 
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
@@ -166,6 +174,7 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 			post.Deleted = true
 			post.ModeratedBy = uid
 			post.ModeratedAt = service.Now()
+			post.UpdatedAt = service.Now()
 			return nil
 		})
 		if err != nil && !errors.Is(err, repository.ErrPostNotFound) {

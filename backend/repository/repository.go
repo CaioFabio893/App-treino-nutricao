@@ -864,6 +864,10 @@ func encodeCursor(p *models.Post) string {
 // postData monta o mapa de escrita de um post. Extraído para poder ser testado
 // e compartilhado entre UpdatePost e UpdatePostTx (nunca perder campos do
 // documento ao gravar).
+// updatedAt usa p.UpdatedAt (preservado do struct), e NÃO time.Now() cru: o
+// timestamp é definido pelo chamador (handler/service) com service.Now()
+// (America/Recife) — o repository não conhece o fuso de negócio e não deve
+// derivá-lo sozinho.
 func postData(p *models.Post) map[string]any {
 	return map[string]any{
 		"userId":       p.UserID,
@@ -883,7 +887,7 @@ func postData(p *models.Post) map[string]any {
 		"moderatedBy":  p.ModeratedBy,
 		"moderatedAt":  p.ModeratedAt,
 		"createdAt":    p.CreatedAt,
-		"updatedAt":    time.Now(),
+		"updatedAt":    p.UpdatedAt,
 	}
 }
 

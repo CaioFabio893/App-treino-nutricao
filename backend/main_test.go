@@ -1317,6 +1317,89 @@ func TestChainAddCommentEmptyTextRejected(t *testing.T) {
 	}
 }
 
+// ── Achado 3 (pre-f13): limite de tamanho de entrada ──
+
+func TestChainAddCommentTooLongRejected(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"`+strings.Repeat("a", service.MaxCommentText+1)+`"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("comentario longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainCreatePostTooLongRejected(t *testing.T) {
+	repo := feedRepo("outro-autor")
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/posts", `{"text":"`+strings.Repeat("a", service.MaxPostText+1)+`"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("post longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Duplicar treino com NewName acima do limite não pode burlar a validação de
+// nome (mesma classe do achado 3 — o nome vai para o nome do treino no Firestore).
+func TestChainDuplicateWorkoutTooLongRejected(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.workout = &models.WorkoutDefine{
+		ID:             "w-1",
+		StudentID:      "student-1",
+		NutritionistID: testUID,
+		Name:           "Treino A",
+	}
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/workouts/w-1/duplicate", `{"newName":"`+strings.Repeat("a", service.MaxNameLength+1)+`"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("duplicar treino com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainDuplicateDietTooLongRejected(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.diet = &models.Diet{
+		ID:             "d-1",
+		StudentID:      "student-1",
+		NutritionistID: testUID,
+		Name:           "Dieta A",
+	}
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive, NutritionistID: testUID},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/diets/d-1/duplicate", `{"newName":"`+strings.Repeat("a", service.MaxNameLength+1)+`"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("duplicar dieta com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// Nutricionista editando aluno não pode gravar nome/bio acima do limite — mesma
+// regra do PUT /api/me (nome e bio são campos de perfil exibidos na UI).
+func TestChainUpdateStudentTooLongRejected(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo.studentsByID = map[string]*models.UserProfile{
+		"student-1": {
+			ID:             "student-1",
+			Name:           "Aluno 1",
+			Role:           models.RoleStudent,
+			Status:         models.StatusActive,
+			NutritionistID: testUID,
+		},
+	}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "PUT", "/api/students/student-1", `{"name":"`+strings.Repeat("a", service.MaxNameLength+1)+`","status":"active"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("editar aluno com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
 // Autor apaga o próprio comentário: remoção real (sem soft delete).
 func TestChainDeleteOwnComment(t *testing.T) {
 	repo := feedRepo("outro-autor")

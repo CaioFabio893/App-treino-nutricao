@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"strconv"
 	"time"
+	"unicode/utf8"
 
 	firebaseAuth "firebase.google.com/go/v4/auth"
 
@@ -61,6 +62,13 @@ func canAccessResource(r *http.Request, studentID, nutritionistID string) bool {
 func validDate(s string) bool {
 	_, err := time.Parse("2006-01-02", s)
 	return err == nil
+}
+
+// tooLong devolve true se s (medido em runas, não bytes) exceder max.
+// Centraliza a validação de tamanho de entrada dos campos textuais controlados
+// pelo cliente — os limites ficam em service/constants.go.
+func tooLong(s string, max int) bool {
+	return utf8.RuneCountInString(s) > max
 }
 
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {

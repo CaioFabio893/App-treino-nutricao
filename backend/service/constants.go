@@ -26,3 +26,20 @@ const (
 	// RankingPublicTop é o tamanho do ranking público (top 20).
 	RankingPublicTop = 20
 )
+
+// ── Limites de tamanho de entrada (texto controlado pelo usuário) ──
+//
+// O middleware MaxBody já limita o corpo inteiro de POST/PUT a 1 MiB; estes
+// limites são POR CAMPO, para impedir abuso em textos que vão direto para o
+// Firestore e aparecem no feed/UI. Medidos em runas (caracteres Unicode), não
+// em bytes — assim o limite é justo para nomes com acento/emoji.
+const (
+	MaxPostText          = 500   // texto/legenda de post e comentário
+	MaxCommentText       = 500   // comentário do feed
+	MaxNameLength        = 120   // nome de usuário/treino/dieta/plano
+	MaxBioLength         = 500   // bio do perfil
+	MaxDescriptionLength = 2000  // descrição/objetivo de treino/dieta/plano
+	MaxNoteLength        = 2000  // notas (exercício, refeição, log de dieta)
+	MaxDietContentLength = 20000 // dieta em texto livre
+	MaxRejectReason      = 500   // motivo de recusa de cadastro
+)

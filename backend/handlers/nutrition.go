@@ -92,6 +92,14 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	if p.AuthProvider == "" {
 		p.AuthProvider = middleware.AuthProviderFrom(r.Context())
 	}
+	if tooLong(p.Name, service.MaxNameLength) {
+		http.Error(w, "nome muito longo", http.StatusBadRequest)
+		return
+	}
+	if tooLong(p.Bio, service.MaxBioLength) {
+		http.Error(w, "bio muito longa", http.StatusBadRequest)
+		return
+	}
 	if err := h.svc.GetOrCreateProfile(r.Context(), uid, &p); err != nil {
 		http.Error(w, "falha ao salvar perfil", http.StatusInternalServerError)
 		return
@@ -224,6 +232,10 @@ func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
 	var p models.UserProfile
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
+		return
+	}
+	if tooLong(p.Name, service.MaxNameLength) || tooLong(p.Bio, service.MaxBioLength) {
+		http.Error(w, "nome ou bio muito longos", http.StatusBadRequest)
 		return
 	}
 	// Merge com o perfil existente: esta rota só permite editar dados do aluno
@@ -377,6 +389,12 @@ func (h *Handlers) HandleCreateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
 	}
+	if tooLong(workout.Name, service.MaxNameLength) ||
+		tooLong(workout.Description, service.MaxDescriptionLength) ||
+		tooLong(workout.Objective, service.MaxDescriptionLength) {
+		http.Error(w, "nome, descricao ou objetivo muito longo", http.StatusBadRequest)
+		return
+	}
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
 	if role == models.RoleNutritionist {
@@ -428,6 +446,12 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 	}
 	if workout.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
+		return
+	}
+	if tooLong(workout.Name, service.MaxNameLength) ||
+		tooLong(workout.Description, service.MaxDescriptionLength) ||
+		tooLong(workout.Objective, service.MaxDescriptionLength) {
+		http.Error(w, "nome, descricao ou objetivo muito longo", http.StatusBadRequest)
 		return
 	}
 	// Preserva donos se não vierem no body.
@@ -498,6 +522,10 @@ func (h *Handlers) HandleDuplicateWorkout(w http.ResponseWriter, r *http.Request
 	var req models.DuplicateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
+		return
+	}
+	if req.NewName != "" && tooLong(req.NewName, service.MaxNameLength) {
+		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return
 	}
 	uid := middleware.UIDFrom(r.Context())
@@ -593,6 +621,12 @@ func (h *Handlers) HandleCreateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
 	}
+	if tooLong(d.Name, service.MaxNameLength) ||
+		tooLong(d.Description, service.MaxDescriptionLength) ||
+		tooLong(d.Content, service.MaxDietContentLength) {
+		http.Error(w, "nome, descricao ou conteudo muito longo", http.StatusBadRequest)
+		return
+	}
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
 	if role == models.RoleNutritionist {
@@ -644,6 +678,12 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	}
 	if d.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
+		return
+	}
+	if tooLong(d.Name, service.MaxNameLength) ||
+		tooLong(d.Description, service.MaxDescriptionLength) ||
+		tooLong(d.Content, service.MaxDietContentLength) {
+		http.Error(w, "nome, descricao ou conteudo muito longo", http.StatusBadRequest)
 		return
 	}
 	if d.StudentID == "" {
@@ -713,6 +753,10 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 	var req models.DuplicateRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
+		return
+	}
+	if req.NewName != "" && tooLong(req.NewName, service.MaxNameLength) {
+		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return
 	}
 	role := middleware.RoleFrom(r.Context())
@@ -841,6 +885,10 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 	}
 	if req.WorkoutID == "" {
 		http.Error(w, "workoutId obrigatorio", http.StatusBadRequest)
+		return
+	}
+	if tooLong(req.Caption, service.MaxPostText) {
+		http.Error(w, "legenda muito longa", http.StatusBadRequest)
 		return
 	}
 	uid := middleware.UIDFrom(r.Context())

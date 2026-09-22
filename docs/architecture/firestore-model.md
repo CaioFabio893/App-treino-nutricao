@@ -9,8 +9,9 @@ Fonte: `backend/repository/repository.go`, `backend/models/types.go`,
 - IDs: documentos usam auto-IDs (`Add`) ou chaves determinísticas
   (`users/{uid}`, `dietLogs/{studentID}_{date}`, `scores/{uid}`).
 - Timestamps: `createdAt`/`updatedAt` via `firestore.ServerTimestamp`
-  (**exceção**: `createdAt` preservado quando != zero — V1 corrigiu para
-  perfil em `userProfileData`; `PutDietLog` ainda regrava → **corrigir no V2**).
+  (**exceção**: `createdAt` preservado quando != zero em `userProfileData` e
+  `dietLogData`; `UpdateWorkout`/`UpdateDiet` usam `Set(..., MergeAll)` sem
+  `createdAt`, logo também não o sobrescrevem).
 - Datas de negócio: strings `YYYY-MM-DD` no fuso `America/Recife`.
 
 ## Coleções
@@ -93,8 +94,9 @@ studentId, nutritionistId, dietId, dietName, date, status
 (not_followed|partial|followed), mealChecks[] {mealId, mealName, followed,
 note, updatedAt}, note, caption, postId, createdAt, updatedAt
 ```
-- `PutDietLog` regrava `createdAt: ServerTimestamp` **a cada save** (sobrescreve
-  a data de criação original) — achado adicional, corrigir no V2.
+- `dietLogData` preserva `createdAt` quando o log já tem data (só usa
+  `ServerTimestamp` em log novo) — mesma regra do `userProfileData` (corrigido
+  na Fase 1; regressão em `repository_test.go`).
 
 ### ScoreRecord / ScoreHistoryEntry
 ```
@@ -136,17 +138,28 @@ Emulator** e exige que o arquivo de índices seja a fonte da verdade.
 
 ## Regras de segurança (firestore.rules)
 
-- `users/{uid}`: dono lê/escreve dados próprios SEM campos administrativos;
-  create só via `isPendingSelfProfile`; admins sobrescrevem; delete admin.
+Camada extra sobre a API Go (que usa Admin SDK e ignora as regras) — bloqueia
+acesso direto do cliente ao Firestore. Estado real (endurecido 20 set 2026,
+Fase 1 + hardening pré-F13):
+
+- `users/{uid}`: dono LÊ o próprio perfil; CRIA só o próprio perfil
+  `pending_approval` SEM campos administrativos (`isPendingSelfProfile` —
+  role/planID/features/nutritionistID/approvedBy/approvedAt/rejectedReason =
+  negado); ATUALIZA só os campos da allowlist estrita
+  (`allowedSelfProfileUpdate` com `affectedKeys().hasOnly(['name','email',
+  'photoURL','bio'])` — qualquer outro campo, inclusive `createdAt` e
+  `authProvider`, nega o update INTEIRO, mesmo combinado com campos legítimos);
+  DELETE negado até para admin (exclusão só pela API Go).
 - `users/{uid}/{sub}/...`: somente o dono (modo original).
-- `posts`: leitura autenticada; autor cria/edita/apaga; moderador (nutri/admin)
-  edita/apaga.
-- `dietLogs`: aluno e seu nutricionista leem; aluno/admin escrevem.
-- `workouts`, `diets`, `workoutHistory`: **negados a clientes** (só API Go).
-- `plans`: leitura autenticada; escrita admin.
-- `scores`, `scores_history`: leitura autenticada/dono+nutri/admin; escrita
-  somente API.
-- A API Go usa Admin SDK (ignora rules) — regras são camada extra.
+- `posts`, `plans`: LEITURA para usuário aprovado (`isApprovedUser` — status
+  `""|active|paused` ou admin; `pending_approval`/`rejected`/`inactive` ficam
+  fora); ESCRITA somente API Go (negada a clientes, inclusive admin).
+- `dietLogs`, `scores_history`: leitura do próprio aluno + nutricionista do
+  aluno + admin (aprovados — `canViewStudentData`); escrita só API Go.
+- `workouts`, `diets`, `workoutHistory`, `scores`: **negados a clientes**
+  (leitura e escrita — só API Go).
+- Toda escrita de dados de negócio passa pela API Go desde 20 set 2026 (regras
+  testadas no Emulator — `firestore-tests/`, 53 testes).
 
 ## Notas para o V2 (direção)
 

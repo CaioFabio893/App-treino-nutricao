@@ -36,6 +36,10 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "post precisa de texto ou referência a treino/dieta", http.StatusBadRequest)
 		return
 	}
+	if tooLong(req.Text, service.MaxPostText) {
+		http.Error(w, "texto do post muito longo", http.StatusBadRequest)
+		return
+	}
 	if req.Date == "" {
 		req.Date = service.Now().Format("2006-01-02")
 	}
@@ -100,6 +104,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 		post.UserName = post.UserID
 	}
 	post.CreatedAt = service.Now()
+	post.UpdatedAt = service.Now()
 
 	created, err := h.repo.CreatePost(r.Context(), post)
 	if err != nil {
@@ -160,6 +165,7 @@ func (h *Handlers) HandleToggleLike(w http.ResponseWriter, r *http.Request) {
 		}
 		post.LikeCount = len(post.Likes)
 		likeCount = post.LikeCount
+		post.UpdatedAt = service.Now()
 		return nil
 	})
 	if errors.Is(err, repository.ErrPostNotFound) {
@@ -189,6 +195,10 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "comentario vazio", http.StatusBadRequest)
 		return
 	}
+	if tooLong(req.Text, service.MaxCommentText) {
+		http.Error(w, "comentario muito longo", http.StatusBadRequest)
+		return
+	}
 
 	prof, err := h.repo.GetUserProfile(r.Context(), uid)
 	name, photo := uid, ""
@@ -212,6 +222,7 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 			return repository.ErrPostNotFound
 		}
 		post.Comments = append(post.Comments, comment)
+		post.UpdatedAt = service.Now()
 		return nil
 	})
 	if errors.Is(err, repository.ErrPostNotFound) {
@@ -264,6 +275,7 @@ func (h *Handlers) HandleDeleteComment(w http.ResponseWriter, r *http.Request) {
 			return repository.ErrCommentNotFound
 		}
 		post.Comments = kept
+		post.UpdatedAt = service.Now()
 		return nil
 	})
 	switch {
@@ -309,6 +321,7 @@ func (h *Handlers) HandleDeletePost(w http.ResponseWriter, r *http.Request) {
 		p.Deleted = true
 		p.ModeratedBy = uid
 		p.ModeratedAt = service.Now()
+		p.UpdatedAt = service.Now()
 		return nil
 	})
 	if errors.Is(err, repository.ErrPostNotFound) {

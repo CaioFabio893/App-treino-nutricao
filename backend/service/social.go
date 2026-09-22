@@ -52,6 +52,7 @@ func (s *Service) PublishWorkoutPost(ctx context.Context, h *models.WorkoutHisto
 		Likes:        map[string]bool{},
 		Comments:     []*models.PostComment{},
 		CreatedAt:    Now(),
+		UpdatedAt:    Now(),
 	})
 	return err
 }
@@ -96,6 +97,7 @@ func (s *Service) PublishDietPost(ctx context.Context, log *models.DietDailyLog)
 		Likes:        map[string]bool{},
 		Comments:     []*models.PostComment{},
 		CreatedAt:    Now(),
+		UpdatedAt:    Now(),
 	})
 	if err != nil {
 		return "", err

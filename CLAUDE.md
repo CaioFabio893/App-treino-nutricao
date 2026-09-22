@@ -76,12 +76,14 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
    outro nutricionista via body (backend força `NutritionistID` do registro).
 3. **Timezone oficial `America/Recife`** (`service/timezone.go`, `AppLoc`,
    `Now()`) — nunca `time.Now()` cru para datas de negócio.
-4. **createdAt NUNCA é sobrescrito** na atualização (`userProfileData`
-   preserva se != zero); `PutDietLog` ainda regrava `createdAt` a cada save —
-   item a corrigir na V2 (transações).
-5. **Race condition no feed** (`UpdatePost` = read-modify-write sem
-   `RunTransaction`) — curtidas/comentários podem perder atualizações. Corrigir
-   com transações no V2.
+4. **createdAt NUNCA é sobrescrito** na atualização (`userProfileData` e
+   `dietLogData` preservam o valor se != zero; só criação usa
+   `ServerTimestamp`). `UpdateWorkout`/`UpdateDiet` usam `Set(..., MergeAll)`
+   sem `createdAt`, logo também não o sobrescrevem.
+5. **Race condition no feed**: corrigida na Fase 1 — leitura-modificação-
+   escrita de posts roda em `RunTransaction` (`UpdatePostTx`); o padrão antigo
+   `GetPost → modifica → UpdatePost` foi **removido da interface** (impossível
+   voltar a usar sem transação).
 6. **V2 é e-mail/senha apenas** — login Google da V1 sai (decisão de produto).
 7. Prioridades: **Correção > Segurança > Testabilidade > Manutenibilidade >
    Simplicidade > Performance > Velocidade**.

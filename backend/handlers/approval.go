@@ -59,6 +59,10 @@ func (h *Handlers) HandleRejectUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
+	if tooLong(req.Reason, service.MaxRejectReason) {
+		http.Error(w, "motivo muito longo", http.StatusBadRequest)
+		return
+	}
 
 	if err := h.svc.RejectUser(r.Context(), id, req.Reason); err != nil {
 		h.serviceError(err, w)
@@ -95,6 +99,10 @@ func (h *Handlers) HandleCreatePlan(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome do plano obrigatorio", http.StatusBadRequest)
 		return
 	}
+	if tooLong(p.Name, service.MaxNameLength) || tooLong(p.Description, service.MaxDescriptionLength) {
+		http.Error(w, "nome ou descricao do plano muito longo", http.StatusBadRequest)
+		return
+	}
 	p.Features = sanitizeFeatures(p.Features)
 	created, err := h.repo.CreatePlan(r.Context(), &p)
 	if err != nil {
@@ -113,6 +121,10 @@ func (h *Handlers) HandleUpdatePlan(w http.ResponseWriter, r *http.Request) {
 	}
 	if p.Name == "" {
 		http.Error(w, "nome do plano obrigatorio", http.StatusBadRequest)
+		return
+	}
+	if tooLong(p.Name, service.MaxNameLength) || tooLong(p.Description, service.MaxDescriptionLength) {
+		http.Error(w, "nome ou descricao do plano muito longo", http.StatusBadRequest)
 		return
 	}
 	p.Features = sanitizeFeatures(p.Features)
