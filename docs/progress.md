@@ -6,14 +6,48 @@
 
 ## Fase atual: 2 — Testes de frontend (Vitest → Playwright)
 
-**Status: dívida técnica do working tree integrada e commitada (2 commits);
-backend 112+, rules 53, build frontend OK. Setup Vitest/Playwright começando.**
+**Status: FASE 2 CONCLUÍDA (22 set 2026).** Vitest 28/28 ✅ · Typecheck ✅ ·
+Build ✅ (crash transitório do worker Next em 1ª tentativa, passou na
+reexecução sem mudança de código) · Lint sem novos problemas (dívida
+pré-existente 31+11 registrada) · Backend 112+ ✅ (rodada fresca). Relatório
+completo em `docs/reports/phase-02-frontend-tests.md`.
 
-Governança a partir de 20 set 2026: **execução contínua** — commits
-automáticos em checkpoints verdes (Conventional Commits), sem push/deploy,
-sem tocar na V1 em produção. Decisões técnicas rotineiras não requerem OK;
-parar apenas para decisão de produto sem evidência, destruição, credenciais,
-stack ou arquitetura fundamental.
+**Próximo passo: planejamento/implementação dos testes E2E com Playwright**
+(login, aprovação, conclusão de treino — estratégia de testes na doc).
+
+### Fase 2 — Vitest/frontend tests (22 set 2026)
+
+- **Setup Vitest concluído**: `vitest.config.mts` (jsdom + RTL +
+  vite-tsconfig-paths), `vitest.setup.ts` (matchMedia/ResizeObserver stubs +
+  cleanup `localStorage`), deps e scripts `test`/`test:watch` no
+  `package.json`. 6 arquivos / **28 testes**.
+- **4 falhas corrigidas (todas classificadas TESTE INCORRETO — nenhuma
+  mudança de comportamento de produto):**
+  - `mealsToText` (2): testes exigiam cabeçalho em MAIÚSCULAS; contrato real =
+    preservar nomes do legado + horário no cabeçalho (capitalização é
+    apresentação). Testes ajustados; implementação intacta.
+  - `EmptyDietState` (1): teste exigia "Ajude o aluno..." (inventado); texto
+    real do produto ("Adicione uma refeição ou plano alimentar...") mantido.
+  - `StudentDashboard` (1): teste era internamente contraditório (Treinos
+    visível E empty state simultâneos). Regra real documentada
+    (`docs/security/plans.md`): `workouts` é **sempre liberado** (tier
+    gratuito) → empty state inalcançável; ramo mantido como guarda defensiva.
+  - **Extra**: `vitest.setup.ts` usava o global `afterEach` sem import →
+    `TS2304` no `tsc`/`next build`; corrigido com import explícito de
+    `afterEach` (sem mexer em tsconfig/gates).
+- **Decisões**: (1) `mealsToText` não normaliza caixa; (2) texto do
+  `EmptyDietState` mantido; (3) Treinos = tier gratuito sempre visível;
+  (4) import explícito no setup em vez de `types: ["vitest/globals"]`.
+- **Gates**: Vitest 28/28 · typecheck ✅ · build ✅ (1 crash transitório
+  `3221225477` do worker Next, reexecução passou) · lint 31E/11W só
+  pré-existentes (nenhum nos arquivos da Fase 2) · backend `-count=1` ✅.
+- **Checkpoint commitado**: hash abaixo no histórico.
+
+Governança desde 20 set 2026: **execução contínua** — commits automáticos em
+checkpoints verdes (Conventional Commits), sem push/deploy, sem tocar na V1 em
+produção. Decisões técnicas rotineiras não requerem OK; parar apenas para
+decisão de produto sem evidência, destruição, credenciais, stack ou
+arquitetura fundamental.
 
 ### Checkpoint 1 — Integração do working tree V2 existente (20 set 2026)
 
@@ -133,11 +167,12 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 ### Cobertura de testes
 
 - Backend: **112+ testes** — `go test ./...` ✅ · `go vet ./...` limpo ✅
-- Frontend: 0 (em progresso — Fase 2: setup Vitest/Playwright).
+- Frontend: **28 testes (Vitest)** ✅ — `npm test` (6 arquivos: StudentDietPage,
+  Ranking, StudentDashboard, mealsToText, EmptyDietState, auth-demo).
 - Firestore Emulator: **53 testes de regras** ✅
   (`cd firestore-tests && npm test`)
 
-### Próximos passos (Fase 2+)
+### Próximos passos (Fase 3+)
 
 - [x] Configurar Firestore Emulator + testes de regras (seção 25 do plano).
 - [x] Hardening de produção: ALLOWED_ORIGIN obrigatório, rate limit default,
@@ -145,10 +180,12 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 - [x] Decisão do achado A3: NÃO criar `users(role, nutritionistID)` (index-merge).
 - [x] Integrar e commitar o working tree V2 existente (dashboard/ranking/dietas
       texto/auto-create /api/me).
-- [ ] **[Fase 2]** Frontend: setup Vitest/Playwright e primeiros testes
-      (risco alto).
-- [ ] **[Fase 2]** Retaguarda: limpar dívida de lint do frontend (31 erros
-      `set-state-in-effect` pré-existentes).
+- [x] **[Fase 2]** Frontend: setup Vitest e primeiros testes (28/28 verdes;
+      relatório `phase-02-frontend-tests.md`).
+- [ ] **[Fase 3]** Frontend: Playwright (E2E) — login, aprovação, conclusão de
+      treino (fluxos críticos).
+- [ ] Retaguarda: limpar dívida de lint do frontend (31 erros + 11 warnings
+      `set-state-in-effect`/`no-img-element` pré-existentes).
 - [ ] Harmonizar pergunta em aberto do status `blocked` vs `paused/inactive`
       (achado A10 — regras já negam status fora da whitelist).
 - [ ] Seguir com as demais correções/implementações do SDD da Fase 1.
@@ -230,3 +267,4 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 20 set 2026 | 1 | Firestore Emulator configurado + rules endurecidas + 35 testes de regras (8 cenários + regressão admin); relatório phase-01-security-rules |
 | 20 set 2026 | 1 | Hardening de produção: CORS estrito (ALLOWED_ORIGIN obrigatório, sem `*`), rate limit com defaults + Retry-After, users update por allowlist (createdAt/authProvider fechados); decisão A3 (sem índice composto users); 112 testes backend + 53 regras |
 | 20 set 2026 | 2 | Working tree V2 integrado e commitado: auto-create /api/me + dieta texto (API) e dashboard/ranking/dietas texto (frontend); gates verdes; dívida de lint registrada |
+| 22 set 2026 | 2 | Fase 2 (Vitest) concluída: 28/28 testes frontend verdes; 4 falhas classificadas TESTE INCORRETO e corrigidas sem mudar produto; fix TS2304 no vitest.setup.ts; build/typecheck/backend verdes; relatório phase-02-frontend-tests |

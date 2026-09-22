@@ -35,15 +35,15 @@ da V1, e não uma adição à V1.
 
 ## Fase atual (IMPORTANTE)
 
-**Fase 0 — Análise e planejamento (em andamento / aguardando checkpoint).**
-A Fase 0 **nada implementa**: só documentação, decisões e plano.
+**Fase 2 — Testes de frontend (Vitest): CONCLUÍDA (22 set 2026).**
+Fase 0 (análise/planejamento) concluída e aprovada; Fase 1 (correções TDD +
+security rules + hardening) concluída; Fase 2 (Vitest 28/28) concluída.
+**Próximo passo: Fase 3 — Playwright (E2E)** + retaguarda de lint.
 
-- Fase 0 concluída → **checkpoint** apresentado ao dono do projeto → aguardar
-  OK explícito antes de iniciar a Fase 1 (implementação).
-- **NÃO commitar/pushar nada sem autorização explícita** (governança do
-  projeto). Alterações locais em `frontend/` e `backend/` da V1 são de
-  sessões anteriores e **não devem ser revertidas** — o V2 continua a partir
-  do estado atual do working tree.
+Governança desde 20 set 2026: **execução contínua** — commits automáticos em
+checkpoints verdes (Conventional Commits), **sem push/deploy**, sem tocar na
+V1 em produção. Parar apenas para decisão de produto sem evidência, destruição,
+credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 
 ## Stack e comandos
 
@@ -52,7 +52,8 @@ A Fase 0 **nada implementa**: só documentação, decisões e plano.
 - Firestore rules: testes em `firestore-tests/` (`cd firestore-tests; npm test` —
   sobe o emulador, roda 35 testes e derruba; exige Java + `firebase emulators:exec`).
 - Frontend: Next.js 16 (standalone), `npm run dev` / `npm run build` /
-  `npm run lint`. **Zero testes de frontend na V1** — V2 exige Vitest/Playwright.
+  `npm run lint` / `npm test` (Vitest — 28 testes, Fase 2). V1 tinha zero
+  testes de frontend; V2 mantém Vitest (unit/component) + Playwright (E2E).
 - Firestore: regras em `firestore.rules`; índices em `firestore.indexes.json`
   (9 compostos). Emuladores configurados em `firebase.json` (Firestore
   127.0.0.1:8080) — rodar testes de regras contra o emulador, nunca produção.
