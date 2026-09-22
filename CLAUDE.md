@@ -35,10 +35,13 @@ da V1, e não uma adição à V1.
 
 ## Fase atual (IMPORTANTE)
 
-**Fase 2 — Testes de frontend (Vitest): CONCLUÍDA (22 set 2026).**
+**Fase 3 — Testes E2E (Playwright): CONCLUÍDA (22 set 2026).**
 Fase 0 (análise/planejamento) concluída e aprovada; Fase 1 (correções TDD +
-security rules + hardening) concluída; Fase 2 (Vitest 28/28) concluída.
-**Próximo passo: Fase 3 — Playwright (E2E)** + retaguarda de lint.
+security rules + hardening) concluída; Fase 2 (Vitest 28/28) concluída;
+Fase 3 (Playwright E2E 17/17) concluída. Relatório em
+`docs/reports/phase-03-e2e-tests.md`.
+**Próximo passo:** retaguarda de lint (31E+11W) + decidir próximas fases
+(F5 exercícios / F8 alimentos / F13 revisão / F14 PWA / F15 produção).
 
 Governança desde 20 set 2026: **execução contínua** — commits automáticos em
 checkpoints verdes (Conventional Commits), **sem push/deploy**, sem tocar na
@@ -50,10 +53,11 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 - Backend: Go 1.23+, mod `treino-louise/backend`. Testes: `go test ./...`
   (91 testes na V1 — chain de integração real sem Firebase em `main_test.go`).
 - Firestore rules: testes em `firestore-tests/` (`cd firestore-tests; npm test` —
-  sobe o emulador, roda 35 testes e derruba; exige Java + `firebase emulators:exec`).
+  sobe o emulador, roda 53 testes e derruba; exige Java + `firebase emulators:exec`).
 - Frontend: Next.js 16 (standalone), `npm run dev` / `npm run build` /
-  `npm run lint` / `npm test` (Vitest — 28 testes, Fase 2). V1 tinha zero
-  testes de frontend; V2 mantém Vitest (unit/component) + Playwright (E2E).
+  `npm run lint` / `npm test` (Vitest — 28 testes, Fase 2) / `npm run test:e2e`
+  (Playwright — 17 testes, Fase 3; sobe emuladores + backend + seed). V1 tinha
+  zero testes de frontend; V2 mantém Vitest (unit/component) + Playwright (E2E).
 - Firestore: regras em `firestore.rules`; índices em `firestore.indexes.json`
   (9 compostos). Emuladores configurados em `firebase.json` (Firestore
   127.0.0.1:8080) — rodar testes de regras contra o emulador, nunca produção.

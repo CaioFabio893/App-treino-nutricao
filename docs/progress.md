@@ -4,16 +4,22 @@
 
 ---
 
-## Fase atual: 2 — Testes de frontend (Vitest → Playwright)
+## Fase atual: 3 — Testes E2E (Playwright)
 
-**Status: FASE 2 CONCLUÍDA (22 set 2026).** Vitest 28/28 ✅ · Typecheck ✅ ·
-Build ✅ (crash transitório do worker Next em 1ª tentativa, passou na
-reexecução sem mudança de código) · Lint sem novos problemas (dívida
-pré-existente 31+11 registrada) · Backend 112+ ✅ (rodada fresca). Relatório
-completo em `docs/reports/phase-02-frontend-tests.md`.
+**Status: FASE 3 CONCLUÍDA (22 set 2026).** Playwright 17/17 ✅ · Backend
+`go vet`/`go test` ✅ · `tsc --noEmit` ✅ · Vitest 28/28 ✅ · Firestore rules
+53/53 ✅ · Lint só dívida pré-existente (31+11). Relatório completo em
+`docs/reports/phase-03-e2e-tests.md`.
 
-**Próximo passo: planejamento/implementação dos testes E2E com Playwright**
-(login, aprovação, conclusão de treino — estratégia de testes na doc).
+**Causa raiz do bloqueio "Carregando.":** Next 16 bloqueava recursos dev de
+origem `127.0.0.1` (canônica = `localhost`) → `allowedDevOrigins: ["127.0.0.1"]`
++ CSP dev liberando emuladores locais. **Flakiness adicional:** SW do PWA
+(`clients.claim()` → `controllerchange` → reload) → `serviceWorkers: "block"`
+no contexto E2E.
+
+**Próximo passo:** retaguarda de lint (31E+11W) + decidir próximas fases do
+roadmap (F5 biblioteca de exercícios / F8 alimentos / F13 revisão / F14 PWA /
+F15 produção).
 
 ### Fase 2 — Vitest/frontend tests (22 set 2026)
 
@@ -171,6 +177,8 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
   Ranking, StudentDashboard, mealsToText, EmptyDietState, auth-demo).
 - Firestore Emulator: **53 testes de regras** ✅
   (`cd firestore-tests && npm test`)
+- E2E (Playwright): **17 testes** ✅ — `npm run test:e2e` (auth, aluno,
+  autorização, ranking, aprovação).
 
 ### Próximos passos (Fase 3+)
 
@@ -182,10 +190,13 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
       texto/auto-create /api/me).
 - [x] **[Fase 2]** Frontend: setup Vitest e primeiros testes (28/28 verdes;
       relatório `phase-02-frontend-tests.md`).
-- [ ] **[Fase 3]** Frontend: Playwright (E2E) — login, aprovação, conclusão de
-      treino (fluxos críticos).
+- [x] **[Fase 3]** Frontend: Playwright (E2E) — login, aprovação, conclusão de
+      treino (fluxos críticos). 17/17 verdes; relatório `phase-03-e2e-tests.md`.
 - [ ] Retaguarda: limpar dívida de lint do frontend (31 erros + 11 warnings
       `set-state-in-effect`/`no-img-element` pré-existentes).
+- [ ] Corrigir corrida de deep-link de papel (guard `DashboardLayout` decide
+      redirect com `role` default "student" antes do perfil carregar — registrado
+      no relatório da Fase 3).
 - [ ] Harmonizar pergunta em aberto do status `blocked` vs `paused/inactive`
       (achado A10 — regras já negam status fora da whitelist).
 - [ ] Seguir com as demais correções/implementações do SDD da Fase 1.
@@ -268,3 +279,4 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 20 set 2026 | 1 | Hardening de produção: CORS estrito (ALLOWED_ORIGIN obrigatório, sem `*`), rate limit com defaults + Retry-After, users update por allowlist (createdAt/authProvider fechados); decisão A3 (sem índice composto users); 112 testes backend + 53 regras |
 | 20 set 2026 | 2 | Working tree V2 integrado e commitado: auto-create /api/me + dieta texto (API) e dashboard/ranking/dietas texto (frontend); gates verdes; dívida de lint registrada |
 | 22 set 2026 | 2 | Fase 2 (Vitest) concluída: 28/28 testes frontend verdes; 4 falhas classificadas TESTE INCORRETO e corrigidas sem mudar produto; fix TS2304 no vitest.setup.ts; build/typecheck/backend verdes; relatório phase-02-frontend-tests |
+| 22 set 2026 | 3 | Fase 3 (Playwright E2E) concluída: 17/17 verdes; causa raiz do "Carregando." (allowedDevOrigins do Next 16 + CSP dev) e da flakiness (SW clients.claim → reload → serviceWorkers:block); relatório phase-03-e2e-tests |

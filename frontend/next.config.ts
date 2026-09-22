@@ -19,6 +19,10 @@ import type { NextConfig } from "next";
 const isProd = process.env.NODE_ENV === "production";
 // 'unsafe-eval' apenas em dev (HMR do Next.js/webpack).
 const scriptSrc = isProd ? "'self' 'unsafe-inline'" : "'self' 'unsafe-eval' 'unsafe-inline'";
+// Em dev, o browser acessa emuladores locais (Auth :9099, Firestore :8080,
+// API :8081) e o HMR websocket por 127.0.0.1/localhost — origens que não
+// existem em produção. Só são liberadas fora de produção (nunca em prod).
+const devConnectSrc = isProd ? "" : " http://127.0.0.1:* http://localhost:* ws://127.0.0.1:*";
 const CSP = [
   "default-src 'self'",
   `script-src ${scriptSrc}`,
@@ -26,7 +30,8 @@ const CSP = [
   "img-src 'self' data:",
   "font-src 'self'",
   "connect-src 'self' https://*.googleapis.com https://*.firebaseio.com https://*.a.run.app ws://localhost:* wss://localhost:*" +
-    ((process.env.NEXT_PUBLIC_API_URL || "").trim() ? ` ${(process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "")}` : ""),
+    ((process.env.NEXT_PUBLIC_API_URL || "").trim() ? ` ${(process.env.NEXT_PUBLIC_API_URL || "").trim().replace(/\/+$/, "")}` : "") +
+    devConnectSrc,
   "frame-src https://www.youtube.com https://www.youtube-nocookie.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
@@ -41,6 +46,13 @@ const nextConfig: NextConfig = {
   output: "standalone",
   trailingSlash: false,
   images: { unoptimized: true },
+
+  // E2E local (dev): o Playwright acessa o app por `127.0.0.1`, mas a origem
+  // canônica do `next dev` é `localhost`. O Next 16 bloqueia, por padrão,
+  // recursos dev de origens diferentes (ex.: o websocket do HMR) — sem isso a
+  // página carrega como SSR estático e o cliente não hidrata (bug "Carregando").
+  // Só afeta desenvolvimento; produção ignora `allowedDevOrigins`.
+  allowedDevOrigins: ["127.0.0.1"],
 
   // Hardening (política de segurança do projeto): proteção contra
   // clickjacking (X-Frame-Options), MIME sniffing (X-Content-Type-Options),
