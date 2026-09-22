@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { StudentsPageSkeleton } from "@/components/Skeleton";
+import Avatar from "@/components/Avatar";
 
 export default function StudentsPage() {
   return (
@@ -95,7 +96,7 @@ function StudentsInner() {
         <div className="nut-card-head">
           <div className="avatar">
             {s.photoURL ? (
-              <img src={s.photoURL} alt={s.name} />
+              <Avatar src={s.photoURL} alt={s.name} />
             ) : (
               s.name?.charAt(0)?.toUpperCase() || "?"
             )}
@@ -136,7 +137,7 @@ function StudentsInner() {
           <div className="dash-cell-user">
             <span className="avatar avatar-sm">
               {s.photoURL ? (
-                <img src={s.photoURL} alt={s.name} />
+                <Avatar src={s.photoURL} alt={s.name} />
               ) : (
                 s.name?.charAt(0)?.toUpperCase() || "?"
               )}

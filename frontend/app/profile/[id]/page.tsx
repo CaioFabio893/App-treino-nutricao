@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import type { PublicProfile as PublicProfileType } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import { LoadingScreen } from "@/components/SetupNeeded";
+import Avatar from "@/components/Avatar";
 
 // Rota /profile/[id] — página pública de qualquer usuário autenticado.
 export default function PublicProfilePage({
@@ -54,7 +55,7 @@ export default function PublicProfilePage({
       <div className="profile-public-card">
         <div className="profile-public-avatar">
           {prof.photoURL ? (
-            <img src={prof.photoURL} alt={prof.name} />
+            <Avatar src={prof.photoURL} alt={prof.name} />
           ) : (
             <span>{prof.name.charAt(0).toUpperCase() || "?"}</span>
           )}

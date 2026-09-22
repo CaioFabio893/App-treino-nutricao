@@ -4,7 +4,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { UserProfile, WorkoutDefine, WorkoutExercise } from "@/lib/types";
+import type { UserProfile, WorkoutDefine } from "@/lib/types";
 import { WorkoutsPageSkeleton } from "@/components/Skeleton";
 import WorkoutForm from "@/components/WorkoutForm";
 import ConfirmModal from "@/components/ConfirmModal";
@@ -256,7 +256,7 @@ function WorkoutsInner() {
 
       {workouts.length === 0 ? (
         <div className="empty-box">
-          Nenhum treino cadastrado. Clique em "+ Novo treino" para começar.
+          Nenhum treino cadastrado. Clique em &quot;+ Novo treino&quot; para começar.
         </div>
       ) : filtered.length === 0 ? (
         <div className="empty-box">Nenhum treino encontrado com essa busca.</div>

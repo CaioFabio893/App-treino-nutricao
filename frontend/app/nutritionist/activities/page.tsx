@@ -6,6 +6,7 @@ import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { ActivitiesSkeleton } from "@/components/Skeleton";
+import Avatar from "@/components/Avatar";
 
 export default function ActivitiesPage() {
   const { getToken } = useAuth();
@@ -144,7 +145,7 @@ export default function ActivitiesPage() {
           <div className="nut-card-head">
             <div className="avatar">
               {student.photoURL ? (
-                <img src={student.photoURL} alt={student.name} />
+                <Avatar src={student.photoURL} alt={student.name} />
               ) : (
                 student.name?.charAt(0)?.toUpperCase() || "?"
               )}

@@ -55,7 +55,7 @@ export default function RestTimer({ visible }: RestTimerProps) {
     <div className="timer-wrap" style={{ display: visible ? "block" : "none" }}>
       <div className="timer-head">
         <div className={`timer-display${finished ? " done" : ""}`}>{fmt(elapsed)}</div>
-        <div className="timer-lbl">Cronômetro · máx 3'</div>
+        <div className="timer-lbl">Cronômetro · máx 3&apos;</div>
       </div>
       <div className="timer-bar">
         <div
@@ -75,7 +75,7 @@ export default function RestTimer({ visible }: RestTimerProps) {
               setRunning(false);
             }}
           >
-            {sec / 60}'
+            {sec / 60}&apos;
           </button>
         ))}
         <button

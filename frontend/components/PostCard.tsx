@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import { friendlyError } from "@/lib/api";
 import type { Post, Role } from "@/lib/types";
 import ConfirmModal from "./ConfirmModal";
+import Avatar from "./Avatar";
 
 const TYPE_LABEL: Record<string, string> = {
   workout: "Treino",
@@ -116,7 +117,7 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
     <article className="post-card">
       <div className="post-head">
         <Link href={`/profile/${post.userId}`} className="post-avatar">
-          {avatar ? <img src={avatar} alt={post.userName} /> : <span>{initials}</span>}
+          {avatar ? <Avatar src={avatar} alt={post.userName} /> : <span>{initials}</span>}
         </Link>
         <div className="post-who">
           <Link href={`/profile/${post.userId}`} className="post-name">

@@ -7,6 +7,7 @@ import type { Post } from "@/lib/types";
 import { useAuth } from "@/lib/auth";
 import PostCard from "./PostCard";
 import LoadError from "./LoadError";
+import Avatar from "./Avatar";
 
 export default function Feed() {
   const { getToken, profile } = useAuth();
@@ -89,7 +90,7 @@ export default function Feed() {
           <div className="post-composer-head">
             <div className="post-avatar">
               {profile.photoURL ? (
-                <img src={profile.photoURL} alt={profile.name} />
+                <Avatar src={profile.photoURL} alt={profile.name} />
               ) : (
                 <span>{profile.name.charAt(0).toUpperCase() || "?"}</span>
               )}

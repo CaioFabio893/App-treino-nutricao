@@ -14,6 +14,7 @@ import type {
   Status,
 } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
+import Avatar from "@/components/Avatar";
 
 const WEEK_DAY_LABEL: Record<string, string> = {
   monday: "Segunda",
@@ -379,7 +380,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             <div className="v">
               <div className="avatar">
                 {student.photoURL ? (
-                  <img src={student.photoURL} alt={student.name} />
+                  <Avatar src={student.photoURL} alt={student.name} />
                 ) : (
                   student.name?.charAt(0)?.toUpperCase() || "?"
                 )}

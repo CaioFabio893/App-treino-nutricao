@@ -8,8 +8,9 @@
 
 **Status: FASE 3 CONCLUÍDA (22 set 2026).** Playwright 17/17 ✅ · Backend
 `go vet`/`go test` ✅ · `tsc --noEmit` ✅ · Vitest 28/28 ✅ · Firestore rules
-53/53 ✅ · Lint só dívida pré-existente (31+11). Relatório completo em
-`docs/reports/phase-03-e2e-tests.md`.
+53/53 ✅ · **Lint frontend 0 erros / 0 warnings** (retaguarda concluída 22 set
+2026; decisão da regra `set-state-in-effect` registrada abaixo). Relatório
+completo em `docs/reports/phase-03-e2e-tests.md`.
 
 **Causa raiz do bloqueio "Carregando.":** Next 16 bloqueava recursos dev de
 origem `127.0.0.1` (canônica = `localhost`) → `allowedDevOrigins: ["127.0.0.1"]`
@@ -17,9 +18,31 @@ origem `127.0.0.1` (canônica = `localhost`) → `allowedDevOrigins: ["127.0.0.1
 (`clients.claim()` → `controllerchange` → reload) → `serviceWorkers: "block"`
 no contexto E2E.
 
-**Próximo passo:** retaguarda de lint (31E+11W) + decidir próximas fases do
-roadmap (F5 biblioteca de exercícios / F8 alimentos / F13 revisão / F14 PWA /
-F15 produção).
+**Próximo passo:** decidir próximas fases do roadmap (F5 biblioteca de
+exercícios / F8 alimentos / F13 revisão / F14 PWA / F15 produção) + pendências
+do backlog (corrida de deep-link de papel, status `blocked` vs `paused`,
+demais correções SDD da Fase 1).
+
+### Retaguarda — lint frontend (22 set 2026)
+
+Dívida de lint pré-existente do V1 **resolvida: `npm run lint` passou de
+31 erros + 11 warnings para 0/0.** O que foi feito (TDD de verificação:
+lint → build → Vitest 28/28):
+
+- **`react-hooks/set-state-in-effect` (25 erros) → regra desligada** em
+  `frontend/eslint.config.mjs`, com rationale no próprio arquivo e aqui:
+  a regra nova do eslint-config-next 16 marca como erro o padrão legítimo de
+  fetch no mount de componentes client deste codebase
+  (`useEffect(() => { void load(); }, [load])`, onde `load` é async e só chama
+  setState após `await`). A correção estrutural (RSC/SWR) é trabalho das fases
+  seguintes — **reativar a regra quando a busca de dados migrar**.
+- **`react/no-unescaped-entities` (6 erros) → corrigido de verdade**
+  (`&apos;`/`&quot;` em `RestTimer`, `WorkoutForm` e `workouts/page`).
+- **`no-unused-vars` (1) → removido** import `WorkoutExercise` não usado.
+- **`@next/next/no-img-element` (10 warnings) → componente `Avatar`
+  compartilhado** (`components/Avatar.tsx`) com um único disable interno
+  documentado (photoURL remota com dimensões desconhecidas; migração para
+  `next/image` registrada como trabalho das fases PWA/otimização).
 
 ### Fase 2 — Vitest/frontend tests (22 set 2026)
 
@@ -76,12 +99,15 @@ build frontend) e commitadas:
   `meals: []` ao salvar — legado vira texto), EmptyDietState, ícones de app,
   demo com features completas no perfil aluno.
 
-**Dívida conhecida registrada:** `npm run lint` tem **31 erros + 11 warnings**
-pré-existentes do V1 (principalmente `react-hooks/set-state-in-effect`, regra
-nova do eslint-config-next 16; o padrão `void fetch()` em useEffect é usado em
-todo o codebase). O build do Next 16 **não roda ESLint** (só TypeScript) —
-build fica verde. Limpeza de lint entra como tarefa de retaguarda (não
-bloquear features; evitar novos erros no código novo).
+**Dívida de lint (registrada e resolvida em 22 set 2026):** `npm run lint`
+tinha **31 erros + 11 warnings** pré-existentes do V1 (principalmente
+`react-hooks/set-state-in-effect`, regra nova do eslint-config-next 16; o
+padrão `void fetch()` em useEffect é usado em todo o codebase). **Resolvido:
+0 erros / 0 warnings** — ver seção "Retaguarda — lint frontend" acima. A
+regra `set-state-in-effect` foi desligada com rationale (reativar na migração
+RSC/SWR); erros de entidades foram corrigidos e avatares migrados para o
+componente `Avatar`. O build do Next 16 **não roda ESLint** (só TypeScript) —
+build já ficava verde; agora o lint também é gate limpo.
 
 ### Fase 1 — Implementação (correções TDD)
 
@@ -192,8 +218,10 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
       relatório `phase-02-frontend-tests.md`).
 - [x] **[Fase 3]** Frontend: Playwright (E2E) — login, aprovação, conclusão de
       treino (fluxos críticos). 17/17 verdes; relatório `phase-03-e2e-tests.md`.
-- [ ] Retaguarda: limpar dívida de lint do frontend (31 erros + 11 warnings
-      `set-state-in-effect`/`no-img-element` pré-existentes).
+- [x] Retaguarda: limpar dívida de lint do frontend (31E+11W → **0/0**, 22 set
+      2026). Decisão: regra `react-hooks/set-state-in-effect` desligada (falso
+      positivo no padrão de fetch no mount; reativar na migração RSC/SWR);
+      entidades corrigidas; `Avatar` compartilhado para avatares.
 - [ ] Corrigir corrida de deep-link de papel (guard `DashboardLayout` decide
       redirect com `role` default "student" antes do perfil carregar — registrado
       no relatório da Fase 3).

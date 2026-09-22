@@ -6,6 +6,7 @@ import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
 import LoadError from "@/components/LoadError";
+import Avatar from "@/components/Avatar";
 
 export default function ProfilePage() {
   const { user, profile, getToken, refreshProfile } = useAuth();
@@ -113,7 +114,11 @@ export default function ProfilePage() {
         <h3>Dados do nutricionista</h3>
         {profile.photoURL && (
           <div className="avatar" style={{ width: 64, height: 64, marginBottom: 10 }}>
-            <img src={profile.photoURL} alt={profile.name} style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }} />
+            <Avatar
+              src={profile.photoURL}
+              alt={profile.name}
+              style={{ width: "100%", height: "100%", objectFit: "cover", borderRadius: "50%" }}
+            />
           </div>
         )}
         <div className="frm-row-inline">

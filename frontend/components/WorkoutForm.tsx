@@ -246,7 +246,7 @@ export default function WorkoutForm({
 
       {exercises.length === 0 && (
         <div className="empty-box">
-          Nenhum exercício ainda. Clique em "+ Adicionar exercício".
+          Nenhum exercício ainda. Clique em &quot;+ Adicionar exercício&quot;.
         </div>
       )}
 

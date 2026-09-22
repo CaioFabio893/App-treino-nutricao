@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Plan, UserProfile } from "@/lib/types";
+import Avatar from "@/components/Avatar";
 
 interface ApproveTarget {
   id: string;
@@ -104,7 +105,7 @@ export default function PendingApprovals() {
             <div className="nut-card-head">
               <div className="avatar">
                 {u.photoURL ? (
-                  <img src={u.photoURL} alt={u.name} />
+                  <Avatar src={u.photoURL} alt={u.name} />
                 ) : (
                   u.name?.charAt(0)?.toUpperCase() || "?"
                 )}
