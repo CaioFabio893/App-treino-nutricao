@@ -12,6 +12,7 @@ interface Props {
     | "trophy"
     | "clock"
     | "activity"
+    | "library"
     | "user"
     | "shield"
     | "logout"
@@ -97,6 +98,16 @@ export default function DashIcon({ name, size = 18 }: Props) {
       return (
         <svg {...common}>
           <path d="M3 12h3.5l2-6 4 12 2-9 1.5 3H21" />
+        </svg>
+      );
+    case "library":
+      return (
+        <svg {...common}>
+          <path d="M4 4h11v16H4a1.5 1.5 0 0 1-1.5-1.5V5.5A1.5 1.5 0 0 1 4 4z" />
+          <path d="M15 6h3.5A1.5 1.5 0 0 1 20 7.5v11a1.5 1.5 0 0 1-1.5 1.5H15" />
+          <path d="M15 4v16" />
+          <line x1="6.5" y1="8.5" x2="12" y2="8.5" />
+          <line x1="6.5" y1="12" x2="12" y2="12" />
         </svg>
       );
     case "user":

@@ -11,6 +11,7 @@ import type {
   Diet,
   DietDailyLog,
   DuplicateRequest,
+  Exercise,
   MealCheck,
   Plan,
   Post,
@@ -49,6 +50,7 @@ const LS_KEY = {
   scores: "ll_demo_scores",
   scoreHistory: "ll_demo_score_history",
   plans: "ll_demo_plans",
+  exercises: "ll_demo_exercises",
 };
 
 function getJSON<T>(key: string): T | null {
@@ -532,6 +534,13 @@ OBSERVAÇÕES
     { studentId: "student-maria", cycleId: "2026-Q2", startDate: "2026-04-01", endDate: "2026-06-30", rawPoints: 7.3, days: 91, score: 7.3 },
   ] as ScoreHistoryEntry[]);
 
+  // ── Biblioteca de exercícios (catálogo global — F5) ──
+  setJSON(LS_KEY.exercises, [
+    { id: "ex-supino", name: "Supino reto", description: "Exercício básico de peito", muscleGroup: "Peito", equipment: "Barra" },
+    { id: "ex-agacho", name: "Agachamento livre", description: "Foco em quadríceps", muscleGroup: "Pernas", equipment: "Barra" },
+    { id: "ex-remada", name: "Remada curvada", description: "Costas", muscleGroup: "Costas", equipment: "Halter" },
+  ] as Exercise[]);
+
   localStorage.setItem(LS_KEY.seeded, "1");
 }
 
@@ -1011,6 +1020,62 @@ export function duplicateWorkout(id: string, req: DuplicateRequest, token: strin
     method: "POST",
     body: JSON.stringify(req),
   });
+}
+
+// ── Biblioteca de exercícios (F5) ──────────────────────────────────────────
+
+export function listExercises(token: string): Promise<Exercise[]> {
+  if (DEMO_MODE) {
+    return Promise.resolve(getJSON<Exercise[]>(LS_KEY.exercises) ?? []);
+  }
+  return request<Exercise[]>("/api/exercises", token);
+}
+
+export function getExercise(id: string, token: string): Promise<Exercise> {
+  if (DEMO_MODE) {
+    const list = getJSON<Exercise[]>(LS_KEY.exercises) ?? [];
+    const e = list.find((x) => x.id === id);
+    if (!e) return Promise.reject(new Error("exercicio nao encontrado"));
+    return Promise.resolve(e);
+  }
+  return request<Exercise>(`/api/exercises/${id}`, token);
+}
+
+export function createExercise(e: Exercise, token: string): Promise<Exercise> {
+  if (DEMO_MODE) {
+    const list = getJSON<Exercise[]>(LS_KEY.exercises) ?? [];
+    const neu: Exercise = { ...e, id: `exercise-${Date.now()}`, createdAt: new Date().toISOString() };
+    setJSON(LS_KEY.exercises, [...list, neu]);
+    return Promise.resolve(neu);
+  }
+  return request<Exercise>("/api/exercises", token, {
+    method: "POST",
+    body: JSON.stringify(e),
+  });
+}
+
+export function updateExercise(id: string, e: Exercise, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const list = getJSON<Exercise[]>(LS_KEY.exercises) ?? [];
+    setJSON(
+      LS_KEY.exercises,
+      list.map((x) => (x.id === id ? { ...x, ...e, id } : x))
+    );
+    return Promise.resolve();
+  }
+  return request<void>(`/api/exercises/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(e),
+  });
+}
+
+export function deleteExercise(id: string, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const list = getJSON<Exercise[]>(LS_KEY.exercises) ?? [];
+    setJSON(LS_KEY.exercises, list.filter((x) => x.id !== id));
+    return Promise.resolve();
+  }
+  return request<void>(`/api/exercises/${id}`, token, { method: "DELETE" });
 }
 
 // ── Dietas ──

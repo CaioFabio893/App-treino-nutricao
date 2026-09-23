@@ -42,4 +42,14 @@ const (
 	MaxNoteLength        = 2000  // notas (exercício, refeição, log de dieta)
 	MaxDietContentLength = 20000 // dieta em texto livre
 	MaxRejectReason      = 500   // motivo de recusa de cadastro
+
+	// ── Biblioteca de exercícios (F5) ──
+	// Nome/descrição reutilizam os limites de treino/dieta por coerência; os
+	// campos específicos da biblioteca ganham limites próprios (resíduo F13 #2:
+	// limite granular por campo, em vez de depender só do teto global MaxBody).
+	MaxExerciseNameLength        = MaxNameLength        // 120
+	MaxExerciseDescriptionLength = MaxDescriptionLength // 2000
+	MaxMuscleGroupLength         = 80                   // grupo muscular
+	MaxEquipmentLength           = 80                   // equipamento
+	MaxVideoURLLength            = 500                  // URL de vídeo
 )

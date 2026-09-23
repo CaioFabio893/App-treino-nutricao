@@ -4,7 +4,47 @@
 
 ---
 
-## Fase atual: 13 — Revisão final de segurança, autorização e regressão
+## Fase atual: 14.1 + 5 — Testes PWA + Biblioteca de exercícios
+
+**Status: CONCLUÍDAS (23 set 2026).** Backend `go vet`/`go test` **147/147** ✅ ·
+Firestore rules **64/64** ✅ · Vitest **61/61** ✅ · Playwright E2E **23/23** ✅ ·
+`tsc --noEmit` ✅ · `next build` ✅ · **Lint frontend 0/0** ✅.
+
+- **F14.1 — Testes PWA**: cobertura do service worker (`sw.js` — nunca cacheia
+  `/api/*`/`Authorization`), do `PWA.tsx` (registro/update/`SKIP_WAITING`/
+  reload) e do `PWAInstall.tsx` (instalação), + E2E de precache/offline/não-cache
+  de `/api`. Relatório: `docs/reports/phase-14-1-pwa-tests.md`.
+- **F5 — Biblioteca de exercícios**: catálogo GLOBAL (coleção `exercises/{id}`),
+  CRUD + busca (client-side) + reutilização em treinos via **snapshot**
+  (`WorkoutExercise` embutido — a biblioteca nunca vira referência viva).
+  Backend (model/repo/service/handlers/routes/rules) + frontend (tipos, api,
+  página `/nutritionist/exercises`, item na sidebar, seletor no `WorkoutForm`).
+  Relatório: `docs/reports/phase-5-exercise-library.md`.
+
+**Próximo passo:** F8 (alimentos) continua **bloqueada** por decisão de produto
+(formato da dieta: texto livre vs estruturado); F15.1 (checklist pré-deploy)
+pode ser feita depois; **não** iniciar F15.2 (deploy) automaticamente.
+
+### Fase 14.1 — Testes PWA (23 set 2026)
+
+PWA já implementado transformado em comportamento protegido por testes, **sem
+alterar** `sw.js`/`PWA.tsx`/`PWAInstall.tsx`. `sw.js` testado verbatim via
+`node:vm`; componentes via RTL; E2E dedicado com `serviceWorkers: "allow"`.
++22 testes Vitest (28→50→…), +3 E2E (19→22).
+
+### Fase 5 — Biblioteca de exercícios (23 set 2026)
+
+Catálogo global `exercises/{id}`. Decisão: **sem ownerId** (compartilhado);
+treino guarda **snapshot** (`WorkoutExercise`) — alterar/excluir o exercício da
+biblioteca não afeta treinos. Leitura aprovada; escrita só nutricionista/admin
+via API Go (rules negam cliente). Modelo `ExerciseItem` (o `Exercise` legado do
+modo original permanece intacto). Limites por campo em `service/exercise.go`
+(resíduo F13 #2). +27 testes Go (120→147), +11 rules (53→64), +11 Vitest
+(50→61), +1 E2E (22→23).
+
+---
+
+## Fase 13 — Revisão final de segurança, autorização e regressão
 
 **Status: FASE 13 CONCLUÍDA (22 set 2026).** Backend `go vet`/`go test`
 120/120 ✅ · Firestore rules 53/53 ✅ · Vitest 28/28 ✅ · Playwright E2E
@@ -385,3 +425,6 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 22 set 2026 | 2 | Fase 2 (Vitest) concluída: 28/28 testes frontend verdes; 4 falhas classificadas TESTE INCORRETO e corrigidas sem mudar produto; fix TS2304 no vitest.setup.ts; build/typecheck/backend verdes; relatório phase-02-frontend-tests |
 | 22 set 2026 | 3 | Fase 3 (Playwright E2E) concluída: 17/17 verdes; causa raiz do "Carregando." (allowedDevOrigins do Next 16 + CSP dev) e da flakiness (SW clients.claim → reload → serviceWorkers:block); relatório phase-03-e2e-tests |
 | 22 set 2026 | 3→F13 | **Hardening pré-F13**: corrida de deep-link de papel corrigida (`profileLoaded`), `updatedAt` sem `time.Now()` cru (posts + mutações transacionais), limites de tamanho por campo (`tooLong`/constantes), DTO `PublicProfile` testado, auditoria de payloads, docs de createdAt/regras sincronizadas; gates backend 119 / rules 53 / Vitest 28 / E2E 19 + lint 0/0; relatório pre-f13-hardening |
+| 22 set 2026 | 13 | **F13 concluída** (revisão final de segurança): mass assignment em `PUT /api/me` neutralizado por allowlist + `GetOrCreateProfile` preserva `StartDate`/`EndDate`; gates backend 120 / rules 53 / Vitest 28 / E2E 19 + lint 0/0; relatório phase-13-final-security-regression |
+| 23 set 2026 | 14.1 | **F14.1 (testes PWA)**: SW testado verbatim (`node:vm`), `PWA.tsx`/`PWAInstall.tsx` via RTL, E2E de precache/offline/não-cache de `/api`; +22 Vitest (28→50), +3 E2E (19→22); relatório phase-14-1-pwa-tests |
+| 23 set 2026 | 5 | **F5 (biblioteca de exercícios)**: catálogo global `exercises/{id}` + CRUD/busca + snapshot no treino; backend (model/repo/service/handlers/routes/rules) + frontend (página/sidebar/seletor); +27 Go (120→147), +11 rules (53→64), +11 Vitest (50→61), +1 E2E (22→23); relatório phase-5-exercise-library |

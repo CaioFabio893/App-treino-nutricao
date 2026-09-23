@@ -179,6 +179,15 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("DELETE /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteWorkout))))
 	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateWorkout))))
 
+	// ── Biblioteca de exercícios (catálogo global) ──
+	// Leitura: usuário aprovado (aluno consulta; nunca escreve). Escrita:
+	// somente nutricionista/admin — sempre via API Go (rules negam SDK cliente).
+	mux.HandleFunc("GET /api/exercises", a.Require(a.RequireApproved(h.HandleListExercises)))
+	mux.HandleFunc("GET /api/exercises/{id}", a.Require(a.RequireApproved(h.HandleGetExercise)))
+	mux.HandleFunc("POST /api/exercises", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateExercise))))
+	mux.HandleFunc("PUT /api/exercises/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateExercise))))
+	mux.HandleFunc("DELETE /api/exercises/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteExercise))))
+
 	// ── Dietas (feature diet) ──
 	mux.HandleFunc("GET /api/diets", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDiets))))
 	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))

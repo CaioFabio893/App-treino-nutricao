@@ -140,6 +140,22 @@ export interface WorkoutExercise {
   order: number;
 }
 
+/**
+ * Exercício da biblioteca compartilhada (catálogo global — F5).
+ * Ao selecionar num treino, os dados são COPIADOS para um WorkoutExercise
+ * (snapshot) — a biblioteca nunca vira referência viva no treino.
+ */
+export interface Exercise {
+  id?: string;
+  name: string;
+  description?: string;
+  muscleGroup?: string;
+  equipment?: string;
+  videoUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
 export interface WorkoutDefine {
   id?: string;
   // Vazio/ausente = treino de biblioteca (ainda não atribuído a aluno).

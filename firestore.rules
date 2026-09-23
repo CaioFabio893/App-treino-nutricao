@@ -144,6 +144,15 @@ service cloud.firestore {
       allow write: if false;
     }
 
+    // ── Biblioteca de exercícios (catálogo global — F5) ──
+    // Leitura: aprovados (aluno consulta, mas nunca escreve). Escrita: somente
+    // pela API Go — create/update/delete via SDK de cliente é negado para TODOS
+    // (aluno, nutricionista e admin), preservando "escrita de negócio só via API".
+    match /exercises/{exerciseId} {
+      allow read: if isApprovedUser();
+      allow write: if false;
+    }
+
     // ── Ranking ──
     // Nota corrente: leitura para aprovados; escrita só da API.
     match /scores/{uid} {

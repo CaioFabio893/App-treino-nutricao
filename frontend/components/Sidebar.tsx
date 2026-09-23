@@ -12,6 +12,7 @@ export const NAV_ITEMS = [
   { href: "/nutritionist", label: "Painel", icon: "grid" as const },
   { href: "/nutritionist/students", label: "Alunos", icon: "users" as const },
   { href: "/nutritionist/workouts", label: "Treinos", icon: "dumbbell" as const },
+  { href: "/nutritionist/exercises", label: "Exercícios", icon: "library" as const },
   { href: "/nutritionist/diets", label: "Dietas", icon: "leaf" as const },
   { href: "/nutritionist/feed", label: "Feed", icon: "feed" as const },
   { href: "/nutritionist/ranking", label: "Ranking", icon: "trophy" as const },

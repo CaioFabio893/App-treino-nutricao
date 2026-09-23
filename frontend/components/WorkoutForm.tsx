@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import * as api from "@/lib/api";
-import type { UserProfile, WorkoutDefine, WorkoutExercise } from "@/lib/types";
+import type { Exercise, UserProfile, WorkoutDefine, WorkoutExercise } from "@/lib/types";
+import { exerciseToWorkoutExercise } from "@/lib/exercise";
 import ConfirmModal from "./ConfirmModal";
 
 export const WEEK_DAYS = [
@@ -57,6 +58,46 @@ export default function WorkoutForm({
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // ── Seleção de exercício da biblioteca (F5) ──
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [library, setLibrary] = useState<Exercise[]>([]);
+  const [libraryQuery, setLibraryQuery] = useState("");
+  const [libraryLoading, setLibraryLoading] = useState(false);
+
+  const openPicker = async () => {
+    setPickerOpen(true);
+    setLibraryQuery("");
+    if (libraryLoading) return;
+    setLibraryLoading(true);
+    try {
+      const token = await getToken();
+      setLibrary(await api.listExercises(token));
+    } catch {
+      /* silencioso — o seletor mostra "nenhum exercício" */
+    } finally {
+      setLibraryLoading(false);
+    }
+  };
+
+  const filteredLibrary = useMemo(() => {
+    const q = libraryQuery.trim().toLowerCase();
+    if (!q) return library;
+    return library.filter(
+      (e) =>
+        e.name?.toLowerCase().includes(q) ||
+        e.muscleGroup?.toLowerCase().includes(q) ||
+        e.equipment?.toLowerCase().includes(q)
+    );
+  }, [library, libraryQuery]);
+
+  const addFromLibrary = (e: Exercise) => {
+    setExercises((prev) => [
+      ...prev,
+      exerciseToWorkoutExercise(e, prev.length + 1),
+    ]);
+    setPickerOpen(false);
+  };
 
   // Se veio com "copyId", carrega o treino de origem para preencher os exercícios.
   useEffect(() => {
@@ -382,6 +423,9 @@ export default function WorkoutForm({
       <button type="button" className="btn-sm full" onClick={addExercise}>
         + Adicionar exercício
       </button>
+      <button type="button" className="btn-sm full" onClick={() => void openPicker()}>
+        Buscar na biblioteca
+      </button>
       <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 6 }}>
         Dica: arraste os exercícios para reordenar, ou use ↑ / ↓.
       </div>
@@ -396,6 +440,45 @@ export default function WorkoutForm({
           {busy ? "Salvando…" : "Salvar treino"}
         </button>
       </div>
+
+      {pickerOpen && (
+        <div className="modal-bg open" onClick={() => setPickerOpen(false)}>
+          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-handle" />
+            <div className="modal-title">Biblioteca de exercícios</div>
+            <div className="frm-row" style={{ marginTop: 8 }}>
+              <input
+                type="search"
+                placeholder="Buscar por nome ou grupo muscular…"
+                value={libraryQuery}
+                onChange={(e) => setLibraryQuery(e.target.value)}
+              />
+            </div>
+            <div style={{ maxHeight: 320, overflowY: "auto", marginTop: 8 }}>
+              {libraryLoading ? (
+                <p style={{ fontSize: 12, color: "var(--muted)" }}>Carregando…</p>
+              ) : filteredLibrary.length === 0 ? (
+                <p style={{ fontSize: 12, color: "var(--muted)" }}>
+                  Nenhum exercício encontrado.
+                </p>
+              ) : (
+                filteredLibrary.map((e) => (
+                  <button
+                    key={e.id}
+                    type="button"
+                    className="btn-sm full"
+                    style={{ marginBottom: 6 }}
+                    onClick={() => addFromLibrary(e)}
+                  >
+                    {e.name}
+                    {e.muscleGroup ? ` · ${e.muscleGroup}` : ""}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <ConfirmModal
         open={confirmExercise !== null}

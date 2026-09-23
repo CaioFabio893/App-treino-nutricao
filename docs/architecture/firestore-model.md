@@ -24,6 +24,7 @@ Fonte: `backend/repository/repository.go`, `backend/models/types.go`,
 | `users/{uid}/state/current` | AppState | fixo "current" | API Go |
 | `plans/{planId}` | Plan | auto | API Go (admin) |
 | `workouts/{id}` | WorkoutDefine (exercises embutidos) | auto | API Go |
+| `exercises/{id}` | ExerciseItem (biblioteca global) | auto | API Go |
 | `diets/{id}` | Diet (meals/foods embutidos, ou content) | auto | API Go |
 | `workoutHistory/{id}` | WorkoutHistoryEntry | auto | API Go |
 | `posts/{id}` | Post (likes map, comments array) | auto | API Go |
@@ -62,14 +63,25 @@ exercises[] {id, name, description, sets, repetitions, weight, restSeconds,
   (backend força o `NutritionistID` do registro — seção 3.4, já corrigido).
 - Pode existir como **template** (studentId vazio) para duplicar depois.
 
+### ExerciseItem (`exercises/{id}` — biblioteca global, F5)
+```
+id, name, description, muscleGroup, equipment, videoUrl,
+createdAt, updatedAt
+```
+- Catálogo GLOBAL compartilhado (sem ownerId). Nutricionista/admin mantêm;
+  alunos apenas consultam.
+- Listagem ordenada por `name` (índice automático de campo único — nenhum
+  índice composto manual).
+- Ao selecionar num treino, os dados são **copiados** para `WorkoutExercise`
+  (snapshot) — a biblioteca nunca vira referência viva; alterar/excluir o
+  exercício não afeta treinos existentes.
+
 ### Diet (`diets/{id}`)
 ```
 studentId, nutritionistId, name, description, startDate, endDate,
 content (texto livre) OU meals[] {id, name, time, notes, order, foods[]},
 createdAt, updatedAt
-```
-
-### WorkoutHistoryEntry (`workoutHistory/{id}`)
+```### WorkoutHistoryEntry (`workoutHistory/{id}`)
 ```
 studentId, workoutId, workoutName, nutritionistId, completedAt,
 duration, exercisesCompleted, totalExercises,
@@ -154,6 +166,8 @@ Fase 1 + hardening pré-F13):
 - `posts`, `plans`: LEITURA para usuário aprovado (`isApprovedUser` — status
   `""|active|paused` ou admin; `pending_approval`/`rejected`/`inactive` ficam
   fora); ESCRITA somente API Go (negada a clientes, inclusive admin).
+- `exercises`: LEITURA para usuário aprovado (aluno consulta); ESCRITA somente
+  API Go (negada a clientes — aluno, nutricionista e admin).
 - `dietLogs`, `scores_history`: leitura do próprio aluno + nutricionista do
   aluno + admin (aprovados — `canViewStudentData`); escrita só API Go.
 - `workouts`, `diets`, `workoutHistory`, `scores`: **negados a clientes**

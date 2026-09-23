@@ -72,6 +72,14 @@ só contrato.
 | GET/PUT/DELETE | `/api/workouts/{id}` |
 | POST | `/api/workouts/{id}/duplicate` |
 
+### Biblioteca de exercícios (catálogo global — F5)
+| Método | Rota |
+|---|---|
+| GET | `/api/exercises` |
+| GET | `/api/exercises/{id}` |
+| POST | `/api/exercises` |
+| PUT/DELETE | `/api/exercises/{id}` |
+
 ### Dietas
 | Método | Rota |
 |---|---|

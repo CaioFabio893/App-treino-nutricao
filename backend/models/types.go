@@ -140,6 +140,25 @@ type WorkoutExercise struct {
 	Order       int    `json:"order"`
 }
 
+// ── Biblioteca de exercícios ──
+
+// ExerciseItem é um exercício da biblioteca compartilhada (coleção exercises/{id}).
+// O catálogo é GLOBAL (sem ownerId): nutricionista/admin mantêm; alunos apenas
+// consultam. Ao selecionar um exercício num treino, os dados são COPIADOS para
+// um WorkoutExercise (snapshot) — a biblioteca nunca vira referência viva.
+// (Nome distinto do tipo legado `Exercise` do modo original, que descreve a
+// execução de séries dentro de uma Session.)
+type ExerciseItem struct {
+	ID          string    `json:"id,omitempty"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	MuscleGroup string    `json:"muscleGroup,omitempty"` // grupo muscular (ex.: "Peito", "Costas")
+	Equipment   string    `json:"equipment,omitempty"`   // equipamento (ex.: "Barra", "Halter")
+	VideoURL    string    `json:"videoUrl,omitempty"`    // link http(s) de vídeo (YouTube etc.)
+	CreatedAt   time.Time `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
+}
+
 // ── Dietas ──
 
 // Diet é a dieta criada pelo nutricionista.

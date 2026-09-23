@@ -472,4 +472,74 @@ describe('Regras do Firestore', () => {
       );
     });
   });
+
+  describe('10. Biblioteca de exercícios (F5) — catálogo global', () => {
+    beforeEach(async () => {
+      await seedUser('admin-sys', { role: 'admin' });
+      await seedUser('nutri', { role: 'nutritionist' });
+      await seedUser('aluno-ativo', { role: 'student', status: 'active' });
+      await seedUser('aluno-pendente', { role: 'student', status: 'pending_approval' });
+      await seedUser('aluno-inativo', { role: 'student', status: 'inactive' });
+      await seed({
+        exercises: {
+          supino: { name: 'Supino reto', muscleGroup: 'Peito' },
+        },
+      });
+    });
+
+    it('usuário aprovado (aluno ativo) lê exercício → PERMITIDO', async () => {
+      const aluno = authed('aluno-ativo').firestore();
+      await assertSucceeds(aluno.doc('exercises/supino').get());
+    });
+
+    it('nutricionista lê exercício → PERMITIDO', async () => {
+      const nutri = authed('nutri').firestore();
+      await assertSucceeds(nutri.doc('exercises/supino').get());
+    });
+
+    it('admin lê exercício → PERMITIDO', async () => {
+      const admin = authed('admin-sys').firestore();
+      await assertSucceeds(admin.doc('exercises/supino').get());
+    });
+
+    it('pendente lê exercício → NEGADO', async () => {
+      const p = authed('aluno-pendente').firestore();
+      await assertFails(p.doc('exercises/supino').get());
+    });
+
+    it('inativo lê exercício → NEGADO', async () => {
+      const i = authed('aluno-inativo').firestore();
+      await assertFails(i.doc('exercises/supino').get());
+    });
+
+    it('aluno cria exercício → NEGADO (só API Go)', async () => {
+      const aluno = authed('aluno-ativo').firestore();
+      await assertFails(aluno.doc('exercises/novo').set({ name: 'Agachamento' }));
+    });
+
+    it('nutricionista cria exercício pelo client → NEGADO (só API Go)', async () => {
+      const nutri = authed('nutri').firestore();
+      await assertFails(nutri.doc('exercises/novo').set({ name: 'Agachamento' }));
+    });
+
+    it('admin cria exercício pelo client → NEGADO (só API Go)', async () => {
+      const admin = authed('admin-sys').firestore();
+      await assertFails(admin.doc('exercises/novo').set({ name: 'Agachamento' }));
+    });
+
+    it('aluno atualiza exercício → NEGADO', async () => {
+      const aluno = authed('aluno-ativo').firestore();
+      await assertFails(aluno.doc('exercises/supino').update({ name: 'Mudado' }));
+    });
+
+    it('admin exclui exercício pelo client → NEGADO (só API Go)', async () => {
+      const admin = authed('admin-sys').firestore();
+      await assertFails(admin.doc('exercises/supino').delete());
+    });
+
+    it('não autenticado lê exercício → NEGADO', async () => {
+      const anon = testEnv.unauthenticatedContext().firestore();
+      await assertFails(anon.doc('exercises/supino').get());
+    });
+  });
 });

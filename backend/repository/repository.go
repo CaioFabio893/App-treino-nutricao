@@ -95,6 +95,13 @@ type Repository interface {
 	UpdateDiet(ctx context.Context, id string, d *models.Diet) error
 	DeleteDiet(ctx context.Context, id string) error
 
+	// Biblioteca de exercícios (catálogo global — exercises/{id})
+	CreateExercise(ctx context.Context, e *models.ExerciseItem) (*models.ExerciseItem, error)
+	GetExercise(ctx context.Context, id string) (*models.ExerciseItem, error)
+	ListExercises(ctx context.Context) ([]*models.ExerciseItem, error)
+	UpdateExercise(ctx context.Context, id string, e *models.ExerciseItem) error
+	DeleteExercise(ctx context.Context, id string) error
+
 	// Histórico de treinos
 	CreateHistoryEntry(ctx context.Context, h *models.WorkoutHistoryEntry) (*models.WorkoutHistoryEntry, error)
 	ListHistoryForStudent(ctx context.Context, studentID string) ([]*models.WorkoutHistoryEntry, error)
@@ -658,6 +665,91 @@ func (r *firestoreRepo) UpdateDiet(ctx context.Context, id string, d *models.Die
 
 func (r *firestoreRepo) DeleteDiet(ctx context.Context, id string) error {
 	_, err := r.fs.Collection("diets").Doc(id).Delete(ctx)
+	return err
+}
+
+// ── Biblioteca de exercícios (catálogo global) ──
+
+// exerciseData monta o mapa de escrita de exercises/{id}. Assim como workouts/
+// diets, `createdAt` só é definido na criação (ServerTimestamp); no update usa-se
+// MergeAll SEM createdAt, preservando a data de criação original.
+func exerciseData(e *models.ExerciseItem) map[string]any {
+	return map[string]any{
+		"name":        e.Name,
+		"description": e.Description,
+		"muscleGroup": e.MuscleGroup,
+		"equipment":   e.Equipment,
+		"videoUrl":    e.VideoURL,
+	}
+}
+
+func (r *firestoreRepo) CreateExercise(ctx context.Context, e *models.ExerciseItem) (*models.ExerciseItem, error) {
+	ref, _, err := r.fs.Collection("exercises").Add(ctx, map[string]any{
+		"name":        e.Name,
+		"description": e.Description,
+		"muscleGroup": e.MuscleGroup,
+		"equipment":   e.Equipment,
+		"videoUrl":    e.VideoURL,
+		"createdAt":   firestore.ServerTimestamp,
+		"updatedAt":   firestore.ServerTimestamp,
+	})
+	if err != nil {
+		return nil, err
+	}
+	e.ID = ref.ID
+	return e, nil
+}
+
+func (r *firestoreRepo) GetExercise(ctx context.Context, id string) (*models.ExerciseItem, error) {
+	doc, err := r.fs.Collection("exercises").Doc(id).Get(ctx)
+	if err != nil {
+		if isNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := &models.ExerciseItem{}
+	if err := doc.DataTo(out); err != nil {
+		return nil, err
+	}
+	out.ID = doc.Ref.ID
+	return out, nil
+}
+
+// ListExercises devolve o catálogo global ordenado por nome (índice automático
+// de campo único — nenhum índice composto manual é necessário).
+func (r *firestoreRepo) ListExercises(ctx context.Context) ([]*models.ExerciseItem, error) {
+	iter := r.fs.Collection("exercises").OrderBy("name", firestore.Asc).Documents(ctx)
+	defer iter.Stop()
+	var out []*models.ExerciseItem
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return nil, err
+		}
+		e := &models.ExerciseItem{}
+		if err := doc.DataTo(e); err != nil {
+			continue
+		}
+		e.ID = doc.Ref.ID
+		out = append(out, e)
+	}
+	return ensureNonNilSlice(out), nil
+}
+
+// UpdateExercise atualiza um exercício da biblioteca sem tocar createdAt
+// (MergeAll com os campos editáveis). A alteração NÃO afeta treinos existentes:
+// eles mantêm o snapshot WorkoutExercise copiado no momento da seleção.
+func (r *firestoreRepo) UpdateExercise(ctx context.Context, id string, e *models.ExerciseItem) error {
+	_, err := r.fs.Collection("exercises").Doc(id).Set(ctx, exerciseData(e), firestore.MergeAll)
+	return err
+}
+
+func (r *firestoreRepo) DeleteExercise(ctx context.Context, id string) error {
+	_, err := r.fs.Collection("exercises").Doc(id).Delete(ctx)
 	return err
 }
 

@@ -86,6 +86,13 @@ type chainFakeRepo struct {
 
 	// FASE 1 (feed): posts em memória para as rotas sociais.
 	posts map[string]*models.Post
+
+	// FASE 5 (biblioteca de exercícios): exercícios em memória para as rotas.
+	listExercises     []*models.ExerciseItem
+	exercise          *models.ExerciseItem
+	createdExercise   *models.ExerciseItem
+	updatedExercise   *models.ExerciseItem
+	deletedExerciseID string
 }
 
 // postsMap inicializa (se preciso) o mapa de posts do fake.
@@ -236,6 +243,36 @@ func (f *chainFakeRepo) ListDietsForStudent(_ context.Context, _ string) ([]*mod
 
 func (f *chainFakeRepo) GetPlan(_ context.Context, _ string) (*models.Plan, error) {
 	return f.plan, nil
+}
+
+// ── Biblioteca de exercícios (F5) ──
+
+func (f *chainFakeRepo) ListExercises(_ context.Context) ([]*models.ExerciseItem, error) {
+	return f.listExercises, nil
+}
+
+func (f *chainFakeRepo) GetExercise(_ context.Context, _ string) (*models.ExerciseItem, error) {
+	if f.exercise == nil {
+		return nil, nil
+	}
+	e := *f.exercise
+	return &e, nil
+}
+
+func (f *chainFakeRepo) CreateExercise(_ context.Context, e *models.ExerciseItem) (*models.ExerciseItem, error) {
+	f.createdExercise = e
+	e.ID = "ex-novo"
+	return e, nil
+}
+
+func (f *chainFakeRepo) UpdateExercise(_ context.Context, _ string, e *models.ExerciseItem) error {
+	f.updatedExercise = e
+	return nil
+}
+
+func (f *chainFakeRepo) DeleteExercise(_ context.Context, id string) error {
+	f.deletedExerciseID = id
+	return nil
 }
 
 func (f *chainFakeRepo) CreateUser(_ context.Context, _ string, p *models.UserProfile) error {
@@ -1616,5 +1653,196 @@ func TestChainStudentCannotDeleteOthersPost(t *testing.T) {
 	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("DELETE post alheio (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+// ── Biblioteca de exercícios (F5) ──
+
+func TestChainAdminCreatesExercise(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/exercises", `{"name":"Supino reto","muscleGroup":"Peito","equipment":"Barra"}`, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST exercise (admin) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdExercise == nil || repo.createdExercise.Name != "Supino reto" || repo.createdExercise.MuscleGroup != "Peito" {
+		t.Fatalf("exercício não capturado corretamente: %+v", repo.createdExercise)
+	}
+}
+
+func TestChainNutritionistCreatesExercise(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/exercises", `{"name":"Agachamento","muscleGroup":"Pernas"}`, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST exercise (nutri) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdExercise == nil || repo.createdExercise.Name != "Agachamento" {
+		t.Fatalf("exercício não capturado: %+v", repo.createdExercise)
+	}
+}
+
+func TestChainStudentCannotCreateExercise(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/exercises", `{"name":"Agachamento"}`, "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("POST exercise (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainStudentCannotUpdateExercise(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.exercise = &models.ExerciseItem{ID: "e1", Name: "Supino"}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "PUT", "/api/exercises/e1", `{"name":"Supino inclinado"}`, "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("PUT exercise (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainStudentCannotDeleteExercise(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.exercise = &models.ExerciseItem{ID: "e1", Name: "Supino"}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/exercises/e1", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("DELETE exercise (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainStudentCanListExercises(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.listExercises = []*models.ExerciseItem{{ID: "e1", Name: "Supino reto"}}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/exercises", "", "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("GET exercises (aluno aprovado) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainPendingCannotReadExercises(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusPendingApproval, nil))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/exercises", "", "token-valido")
+	if rr.Code != http.StatusForbidden {
+		t.Fatalf("GET exercises (pendente) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainUnauthenticatedCannotAccessExercises(t *testing.T) {
+	repo := baseRepo(nil)
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/exercises", "", "")
+	if rr.Code != http.StatusUnauthorized {
+		t.Fatalf("GET exercises (sem token) code = %d, want 401 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainCreateExerciseNameRequired(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/exercises", `{"name":""}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("POST exercise (name vazio) code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainCreateExerciseNameTooLong(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"` + strings.Repeat("a", service.MaxExerciseNameLength+1) + `"}`
+	rr := doChainRequest(h, "POST", "/api/exercises", body, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("POST exercise (name longo) code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainCreateExerciseInvalidURL(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "POST", "/api/exercises", `{"name":"Supino","videoUrl":"nao-e-url"}`, "token-valido")
+	if rr.Code != http.StatusBadRequest {
+		t.Fatalf("POST exercise (url inválida) code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainGetExerciseNotFound(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "GET", "/api/exercises/nao-existe", "", "token-valido")
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("GET exercise (inexistente) code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainUpdateExerciseNotFound(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "PUT", "/api/exercises/nao-existe", `{"name":"Supino"}`, "token-valido")
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("PUT exercise (inexistente) code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
+	}
+}
+
+func TestChainAdminUpdatesExercise(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.exercise = &models.ExerciseItem{ID: "e1", Name: "Supino reto"}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "PUT", "/api/exercises/e1", `{"name":"Supino inclinado","muscleGroup":"Peito"}`, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("PUT exercise (admin) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.updatedExercise == nil || repo.updatedExercise.Name != "Supino inclinado" {
+		t.Fatalf("update não capturado: %+v", repo.updatedExercise)
+	}
+}
+
+func TestChainAdminDeletesExercise(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.exercise = &models.ExerciseItem{ID: "e1", Name: "Supino reto"}
+	h := newChainMux(repo)
+
+	rr := doChainRequest(h, "DELETE", "/api/exercises/e1", "", "token-valido")
+	if rr.Code != http.StatusNoContent {
+		t.Fatalf("DELETE exercise (admin) code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.deletedExerciseID != "e1" {
+		t.Fatalf("delete não capturado: %q", repo.deletedExerciseID)
+	}
+}
+
+// Snapshot de biblioteca: treinos carregam uma CÓPIA embutida (WorkoutExercise),
+// nunca uma referência ao exercises/{id}. Garantimos que o modelo de treino não
+// carrega nenhum vínculo vivo com a biblioteca (sem exerciseId) — excluir o
+// exercício da biblioteca não pode afetar o treino.
+func TestChainWorkoutExerciseIsSnapshotNotReference(t *testing.T) {
+	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	h := newChainMux(repo)
+
+	body := `{"name":"Treino A","exercises":[{"name":"Supino reto","sets":4,"repetitions":"10","order":1}]}`
+	rr := doChainRequest(h, "POST", "/api/workouts", body, "token-valido")
+	if rr.Code != http.StatusOK {
+		t.Fatalf("POST workout (snapshot) code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
+	}
+	if repo.createdWorkout == nil || len(repo.createdWorkout.Exercises) != 1 {
+		t.Fatalf("treino não capturado: %+v", repo.createdWorkout)
+	}
+	if repo.createdWorkout.Exercises[0].Name != "Supino reto" {
+		t.Fatalf("snapshot divergente: %+v", repo.createdWorkout.Exercises[0])
 	}
 }
