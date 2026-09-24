@@ -3,6 +3,52 @@
 Migração do app de treino da **Louise Lima** para uma arquitetura profissional
 com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Cloud.
 
+## Status
+
+- **Produção rodando 100% V2** (Cloud Run, `southamerica-east1`): API
+  `treino-api` (revisão `00013-867`, `GO_ENV=production`, CORS restrito às 2
+  origens reais, `RATE_LIMIT=120`) + frontend `treino-web` (revisão
+  `00009-mfg`) + regras Firestore V2 com 9 índices compostos `READY`.
+  Migração técnica V1→V2 **encerrada** (24 set 2026) — ver
+  `docs/progress.md` e `docs/reports/phase-15-3-post-migration.md`.
+- **Gates verdes**: Go `147/147` ✓ · Firestore rules `64/64` ✓ · Vitest
+  `61/61` ✓ · Playwright E2E `23/23` ✓ · `tsc --noEmit` ✓ · `next build` ✓ ·
+  lint `0/0` ✓.
+- **Pendências (decisão de produto, não bloqueiam produção)**: login Google
+  (ADR-002 votado para remover, código ainda expõe o botão — ver F15.3 §7C),
+  F8 alimentos (formato da dieta), validação humana da Louise (login real +
+  PWA em dispositivo).
+
+## Como este repositório é desenvolvido (agentes)
+
+O projeto é desenvolvido com o **opencode** (agentes de IA orquestrados) + SDD
+(Spec-Driven Development), com rastreabilidade total via `docs/progress.md`
+(fonte da verdade de status), `docs/sdd/`, ADRs em `docs/decisions/` e
+relatórios de fase em `docs/reports/`. A configuração fica em:
+
+- **`opencode.json` (local, fora do git)** — define o modelo principal e os
+  agentes por função: `code` (implementação TDD), `review` (auditoria/segurança,
+  read-only), `agentic` (fluxos longos/E2E), `fast` (verificações) e `docs`
+  (relatórios). Regras de roteamento em `.opencode/agent-routing.md` (também
+  local): implentação pesada → `code`, segurança → `review`, fluxo multi-passo
+  → `agentic`, pequeno/mecânico → `fast`, documentação → `docs`, sempre pelo
+  modelo mais barato que resolve.
+- **`CLAUDE.md`** — contexto obrigatório para qualquer agente: stack, fases,
+  prioridades (Correção > Segurança > Testabilidade > Manutenibilidade >
+  Simplicidade > Performance > Velocidade), TDD (Red → Green → Refactor) e os
+  pontos de atenção herdados da V1.
+- **`.opencode/skills/`** — skills de governança (TDD, planos, execução,
+  review, design system, performance, acessibilidade).
+
+**Como o git funciona nesta governança**: executação contínua com commits
+automáticos em **checkpoints verdes** (Conventional Commits, ex.
+`feat:`, `fix:`, `security:`, `test:`, `docs:`) — **sem push/deploy** por
+padrão. O push para este GitHub (**`origin/main`**) acontece **somente quando
+o dono autoriza explicitamente** (como nesta atualização). O agente usa as
+ferramentas de terminal/bash para rodar `git` e os comandos de teste/build;
+nunca altera `opencode.json`/`.opencode/` fora do escopo e nunca versiona
+credenciais (`.env*`, chaves, tokens ficam fora do git).
+
 ## 📸 Screenshots
 
 Capturas reais da aplicação (modo demo, dados de exemplo):
@@ -175,10 +221,10 @@ cd backend
 gcloud builds submit --tag southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-api/treino-api
 
 # Publica no Cloud Run (cota gratuita):
-# ⚠️ PRODUÇÃO DEVE definir ALLOWED_ORIGIN com a origem EXATA do frontend
+# ⚠️ PRODUÇÃO DEVE definir GO_ENV=production e ALLOWED_ORIGIN com a origem EXATA do frontend
 #    (ex.: https://treino-web-XXXXX-southamerica-east1.a.run.app, ou o domínio próprio).
-#    Sem essa variável o backend responde com CORS "*" (permissivo) —
-#    aceitável em dev, não recomendado em produção. NUNCA use "*".
+#    Sem ALLOWED_ORIGIN em produção o boot FALHA (fail-fast) — não existe "permitir todas".
+#    "*" é rejeitado em qualquer ambiente. Fora de produção o default é http://localhost:3000.
 gcloud run deploy treino-api \
   --image southamerica-east1-docker.pkg.dev/SEU_PROJECT_ID/treino-api/treino-api \
   --region southamerica-east1 \
@@ -186,7 +232,7 @@ gcloud run deploy treino-api \
   --allow-unauthenticated \
   --max-instances 1 \
   --memory 128Mi \
-  --set-env-vars "ALLOWED_ORIGIN=https://treino-web-XXXXX-southamerica-east1.a.run.app" \
+  --set-env-vars "GO_ENV=production,ALLOWED_ORIGIN=https://treino-web-XXXXX-southamerica-east1.a.run.app" \
   --update-env-vars "RATE_LIMIT=120"
 ```
 
@@ -568,10 +614,16 @@ aluno passa a acessar o app com as features do plano.
 # Frontend
 cd frontend && npm run dev     # desenvolvimento
 cd frontend && npm run build   # build server (standalone)
+cd frontend && npm run lint    # ESLint (0/0)
+cd frontend && npm test        # Vitest (61/61)
+cd frontend && npm run test:e2e # Playwright E2E (23/23 — sobe emuladores + backend + seed)
 
 # Backend (local, com service account)
 cd backend && go run .
-cd backend && go test ./...   # testes (handlers, repository, service)
+cd backend && go test ./...   # testes (handlers, repository, service) — 147/147
+
+# Firestore rules (emulador; exige Java)
+cd firestore-tests && npm test  # 64/64 — sobe/derruba o emulador sozinho
 
 # Deploy (região padrão usada no projeto: southamerica-east1)
 # frontend: gcloud builds submit frontend --tag southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web

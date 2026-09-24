@@ -30,12 +30,14 @@ o Firebase de verdade (preencha as `NEXT_PUBLIC_FIREBASE_*` e
 
 ## Scripts
 
-| Comando         | O que faz                                          |
-|-----------------|----------------------------------------------------|
-| `npm run dev`   | servidor de desenvolvimento (Turbopack)            |
-| `npm run build` | build de produção (standalone)                     |
-| `npm run start` | serve o build de produção (`next start`)           |
-| `npm run lint`  | ESLint                                             |
+| Comando               | O que faz                                          |
+|-----------------------|----------------------------------------------------|
+| `npm run dev`         | servidor de desenvolvimento (Turbopack)            |
+| `npm run build`       | build de produção (standalone)                     |
+| `npm run start`       | serve o build de produção (`next start`)           |
+| `npm run lint`        | ESLint                                             |
+| `npm test`            | Vitest — testes unitários/componentes (61)         |
+| `npm run test:e2e`    | Playwright E2E (23 — sobe emuladores + backend + seed) |
 
 ## Estrutura
 
@@ -54,6 +56,14 @@ components/           # UI: layouts, cards, modais, formulários, student/
 lib/                  # api, auth (roles), configuração, tipos, dias da semana
 public/               # ícones, manifest PWA, service worker
 ```
+
+## PWA
+
+O app é instalável (manifest + service worker em `public/`): precache do
+shell, network-first com fallback offline e **nunca cacheia `/api/*`** nem
+cabeçalhos `Authorization`. Coberto por testes dedicados (F14.1 — Vitest +
+E2E); veja a seção "Validação humana pendente — PWA" em
+`docs/reports/phase-15-3-post-migration.md` para o checklist em dispositivo.
 
 ## Segurança
 
