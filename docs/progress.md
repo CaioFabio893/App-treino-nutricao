@@ -4,11 +4,21 @@
 
 ---
 
-## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração
+## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security
 
-**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA).** Backend `go vet`/`go test` **147/147** ✅ ·
-Firestore rules **64/64** ✅ · Vitest **61/61** ✅ · Playwright E2E **23/23** ✅ ·
+**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE).** Backend `go vet`/`go test` **147/147** ✅ ·
+Firestore rules **64/64** ✅ · Vitest **63/63** ✅ · Playwright E2E **24/24** ✅ ·
 `tsc --noEmit` ✅ · `next build` ✅ · **Lint frontend 0/0** ✅.
+
+- **F16 — Auditoria e correção "Nova dieta" + Security (24 set 2026):** eixo
+  segurança (secret scanning GitHub — Google API Key `[REDACTED]`: HEAD limpo,
+  chave só no histórico, rotação/limpeza = **ação manual pendente**) + eixo
+  frontend (tela `/nutritionist/diets?new=1` — a11y: htmlFor/id, role=alert,
+  aria-invalid/describedby; labels sem uppercase, token `--d-muted`, weight 600;
+  touch targets `.btn-sm`/`.btn-p`; install prompt PWA reposicionado
+  (bottom 68px/120px + z-index 210) sem sobrepor form/nav; padding-bottom
+  130px em `.nut-main`/`.stu-main`/dashboard). +2 Vitest (61→63), +1 E2E
+  (23→24). Relatório: `docs/reports/phase-16-nova-dieta-security-audit.md`.
 
 - **F14 — Auditoria PWA para produção:** PASS, nenhuma alteração necessária (manifest, service worker, cache, HTTPS via Cloud Run, headers/CSP). Relatório: `docs/reports/phase-14-pwa-production.md`.
 - **F14.1 — Testes PWA:** cobertura do service worker (`sw.js` — nunca cacheia
@@ -22,7 +32,7 @@ Firestore rules **64/64** ✅ · Vitest **61/61** ✅ · Playwright E2E **23/23*
   página `/nutritionist/exercises`, item na sidebar, seletor no `WorkoutForm`).
   Relatório: `docs/reports/phase-5-exercise-library.md`.
 
-**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, decisão de produto sobre Google login (código ainda o expõe — ADR-002 não implementado) e F8; **próximo passo recomendado**: decisões de produto (Google + F8) e commit do working tree quando autorizado.
+**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **F16 (auditoria "Nova dieta" + secret scanning) CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE** (worktree limpo, chave só no histórico: referrer restriction + rotação requerem ação no Google Cloud/Firebase Console); **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, decisão de produto sobre Google login (código ainda o expõe — ADR-002 não implementado), rotação/limite da chave do Firebase e F8; **próximo passo recomendado**: decisões de produto (Google + F8), ações manuais de segurança da F16 e commit do working tree quando autorizado.
 
 ### Fase 14.1 — Testes PWA (23 set 2026)
 
@@ -428,6 +438,43 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 
 ---
 
+## Fase 16 — Auditoria "Nova dieta" (UI/UX/a11y) + Secret Scanning (24 set 2026)
+
+**Status: F16 CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE (segurança).** Backend
+`go vet`/`go test` 147/147 ✅ · Firestore rules 64/64 ✅ · Vitest **63/63** ✅ ·
+Playwright E2E **24/24** ✅ · `tsc --noEmit` ✅ · `next build` ✅ · Lint 0/0 ✅.
+Relatório: `docs/reports/phase-16-nova-dieta-security-audit.md`.
+
+**Eixo segurança (secret scanning GitHub — Google API Key):** alerta do commit
+`5f82005` referente a `docs/reports/phase-15-2-deploy.md` (config pública do
+Firebase Client Web SDK, `NEXT_PUBLIC_FIREBASE_API_KEY`). HEAD já redigido
+(`3d59a6c`) — worktree 100% limpo (0 ocorrências de `AIza…`/`GOOGLE_API_KEY`/
+`PRIVATE KEY`; `NEXT_PUBLIC_*` só como env refs com placeholders; `.env`
+versionado = apenas `.env.example`). Chave **permanece no histórico git**
+(entre `5f82005` e `3d59a6c`, repo não-shallow) e continua tecnicamente válida
+em produção → mitigação mais eficaz é **referrer restriction no Firebase
+Console**; rotação/limpeza de histórico exigem ação manual autorizada
+(Google Cloud Console + force push). Resultado da Fase 21: **PASS — AÇÃO
+MANUAL PENDENTE**.
+
+**Eixo frontend (tela `/nutritionist/diets?new=1`, `DietForm.tsx`):**
+htmlFor/id pareados em todos os campos (`diet-name/student/start/end/content`);
+erros com `role="alert"` + `aria-live`; datas com `aria-invalid`/
+`aria-describedby`; labels sem uppercase, `--d-muted` (#63736C, AA),
+weight 600, `margin-bottom 6px`; inputs padding 12px + focus `--terra`;
+touch targets ampliados (`.btn-sm` 7→16px ≈ 47px, `.btn-p` 13→16px);
+install prompt PWA reposicionado (`.pwa-install-btn` bottom 68px, `.ios` 120px,
+z-index 210 > stu-nav 200) sem sobrepor form/nav; `padding-bottom` 90/110→130px
+em `.nut-main`/`.stu-main`/dashboard → conteúdo rola até o fim. Cards
+`.frm-card` preservados; zero mudanças em API/auth/Firestore/regras de negócio.
++2 Vitest (61→63, `DietForm.test.tsx`) +1 E2E (23→24, `dieta-nova.spec.ts` —
+inclui checagem de sobreposição no botão salvar). **Falha intermitente
+pré-existente documentada:** `zz-aprovacao.spec.ts` (botão "Continuar"
+re-resolve disabled em re-render do ProfileSetup); não correlacionada às
+mudanças (reproduzida com e sem elas; rodada final 24/24 verde).
+
+---
+
 ## Histórico
 
 | Data | Fase | O que aconteceu |
@@ -448,3 +495,4 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 23 set 2026 | 15.2 | **F15.2 (preparação de deploy)**: 8 gates revalidados, auditoria do caminho de deploy 100% consistente, docs corrigidas (.env.example, README), inventário real confirmado; relatório phase-15-2-deploy |
 | 24 set 2026 | 15.2 | **F15.2 (MIGRATION V1→V2 EM PRODUÇÃO — executada)**: autorização explícita do dono; API V2 (revisão 00013-867) + frontend V2 (00009-mfg) + regras Firestore/9 índices publicados (64/64); `GO_ENV=production`, CORS 2 origens, `RATE_LIMIT=120`; smoke/E2E de produção verdes (/health, CORS, auth 401, 403 não-aprovado, Firestore 403, PWA, CSP); valores públicos `NEXT_PUBLIC_FIREBASE_*` reais extraídos do bundle de produção; cleanup completo de usuário temporário de teste; URLs finais preservadas; produção 100% V2; sem commit/push |
 | 24 set 2026 | 15.3 | **F15.3 (fechamento pós-migração)**: auditoria READ-ONLY PASS — revisões/tráfego V2 corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes; migração técnica ENCERRADA; documentados checklists de validação humana (login real, PWA), estado real do Google login (código ainda o expõe; ADR-002 pendente) e F8 bloqueada com decisões registradas; Git classificado (docs a versionar × config local); relatório phase-15-3-post-migration |
+| 24 set 2026 | 16 | **F16 (auditoria "Nova dieta" + secret scanning)**: eixo segurança — alerta GitHub Google API Key `[REDACTED]` no `phase-15-2-deploy.md` (commit `5f82005`): HEAD já redigido (`3d59a6c`), worktree limpo, chave só no histórico → **PASS — AÇÃO MANUAL PENDENTE** (referrer restriction + rotação manual); eixo frontend — DietForm a11y (htmlFor/id, role=alert, aria-invalid/describedby), labels sem uppercase, touch targets, install prompt PWA reposicionado (z-index 210, sem sobrepor nav), padding-bottom 130px; +2 Vitest (61→63) +1 E2E (23→24); falha intermitente pré-existente do zz-aprovacao documentada; relatório phase-16-nova-dieta-security-audit |
