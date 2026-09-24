@@ -140,21 +140,30 @@ export default function DietForm({
         </div>
       </div>
 
-      {error && <div className="err-text">{error}</div>}
+      {error && (
+        <div className="err-text" id="diet-error" role="alert" aria-live="polite">
+          {error}
+        </div>
+      )}
 
       <div className="frm-card">
         <h3>Dados da dieta</h3>
         <div className="frm-row">
-          <label>Nome da dieta</label>
+          <label htmlFor="diet-name">Nome da dieta</label>
           <input
+            id="diet-name"
             value={name}
             placeholder='Ex.: "Plano alimentar - Outubro"'
             onChange={(e) => setName(e.target.value)}
           />
         </div>
         <div className="frm-row">
-          <label>Aluno</label>
-          <select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
+          <label htmlFor="diet-student">Aluno</label>
+          <select
+            id="diet-student"
+            value={studentId}
+            onChange={(e) => setStudentId(e.target.value)}
+          >
             <option value="">Sem aluno (biblioteca)</option>
             {students.map((s) => (
               <option key={s.id} value={s.id}>
@@ -165,24 +174,36 @@ export default function DietForm({
         </div>
         <div className="frm-row-inline">
           <div className="frm-row">
-            <label>Data de início</label>
+            <label htmlFor="diet-start">Data de início</label>
             <input
+              id="diet-start"
               type="date"
               value={startDate}
+              aria-invalid={dateRangeInvalid}
+              aria-describedby={dateRangeInvalid ? "diet-range-error" : undefined}
               onChange={(e) => setStartDate(e.target.value)}
             />
           </div>
           <div className="frm-row">
-            <label>Data de término</label>
+            <label htmlFor="diet-end">Data de término</label>
             <input
+              id="diet-end"
               type="date"
               value={endDate}
+              aria-invalid={dateRangeInvalid}
+              aria-describedby={dateRangeInvalid ? "diet-range-error" : undefined}
               onChange={(e) => setEndDate(e.target.value)}
             />
           </div>
         </div>
         {dateRangeInvalid && (
-          <div className="err-text" style={{ marginTop: -4 }}>
+          <div
+            className="err-text"
+            id="diet-range-error"
+            role="alert"
+            aria-live="polite"
+            style={{ marginTop: -4 }}
+          >
             A data de início não pode ser posterior à data de término.
           </div>
         )}
@@ -191,10 +212,11 @@ export default function DietForm({
       <div className="frm-card" style={{ marginTop: 12 }}>
         <h3>Conteúdo da dieta</h3>
         <div className="frm-row">
-          <label>
+          <label htmlFor="diet-content">
             Plano alimentar (texto livre) <span style={{ color: "var(--muted)" }}>· copiar e colar</span>
           </label>
           <textarea
+            id="diet-content"
             className="diet-content-input"
             rows={16}
             value={content}

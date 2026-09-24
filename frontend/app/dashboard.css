@@ -155,7 +155,7 @@
 }
 .dash-topbar-logout:hover { background: var(--d-surface-2); color: var(--d-text); }
 
-.dashboard .nut-main { max-width: 1120px; margin: 0; padding: 22px 26px 60px; width: 100%; }
+.dashboard .nut-main { max-width: 1120px; margin: 0; padding: 22px 26px 130px; width: 100%; }
 
 @media (max-width: 900px) {
   .dash-burger { display: flex; }
@@ -166,7 +166,7 @@
   .dash-sidebar.open { transform: translateX(0); box-shadow: 4px 0 28px rgba(0,0,0,.3); }
   .dash-sidebar-close { display: block; }
   .dash-topbar { padding: calc(12px + env(safe-area-inset-top, 0px)) 16px 12px 58px; }
-  .dashboard .nut-main { padding: 16px 16px 60px; }
+  .dashboard .nut-main { padding: 16px 16px 130px; }
 }
 
 /* ── Cabeçalho de página: tipografia sóbria em vez do serif itálico ── */

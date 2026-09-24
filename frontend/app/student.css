@@ -96,7 +96,7 @@
 .stu-topbar-logout:hover { color: var(--terra); border-color: var(--terra); background: var(--peach); }
 
 /* Conteúdo: mesmo respiro do painel (max-width 720px) */
-.stu-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 14px 110px; }
+.stu-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 14px 130px; }
 
 /* Bottom nav fixa, estilo app mobile */
 .stu-nav {
