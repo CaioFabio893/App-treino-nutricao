@@ -7,7 +7,6 @@ import { AuthProvider, useAuth } from "@/lib/auth";
 vi.mock("@/lib/firebase", () => ({
   firebaseAuth: null,
   firebaseConfigured: false,
-  googleProvider: undefined,
 }));
 vi.mock("@/lib/config", () => ({ DEMO_MODE: true }));
 

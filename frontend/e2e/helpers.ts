@@ -25,16 +25,14 @@ export async function login(page: Page, email: string, password: string) {
   await page.getByRole("button", { name: "Entrar", exact: true }).click();
 }
 
-/** Cria conta nova (mode signup) — o cadastro nasce como pending_approval. */
+/** Cria conta nova (rota /cadastro) — o cadastro nasce como pending_approval. */
 export async function signup(page: Page, email: string, password: string) {
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Cadastre-se", exact: true }).click();
-  // A troca para o modo de cadastro é estado local do componente; aguarda o
-  // formulário de cadastro (heading "Criar conta") para garantir que o clique
-  // registrou antes de preencher/submeter (evita corrida de hidratação).
+  await page.goto("/cadastro");
+  // A tela de cadastro tem e-mail, senha e confirmação de senha.
   await expect(page.getByRole("heading", { name: "Criar conta" })).toBeVisible();
-  await page.getByPlaceholder("voce@email.com").fill(email);
-  await page.getByPlaceholder("••••••").fill(password);
+  await page.getByLabel("E-mail").fill(email);
+  await page.getByLabel("Senha", { exact: true }).fill(password);
+  await page.getByLabel("Confirmar senha", { exact: true }).fill(password);
   await page.getByRole("button", { name: "Criar conta", exact: true }).click();
 }
 
