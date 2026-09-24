@@ -18,7 +18,7 @@
 | `ALLOWED_ORIGIN` | `https://treino-web-834622951375.southamerica-east1.run.app,https://treino-web-jn4epizxfq-rj.a.run.app` |
 | `RATE_LIMIT` | `120` |
 | `NEXT_PUBLIC_API_URL` | `https://treino-api-834622951375.southamerica-east1.run.app` |
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | `AIzaSyA8i9LQx5FItebKre2RopvEicrEN-8ss74` |
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | `[REDACTED]` (config pública Web SDK do Firebase — redigida após alerta de Secret Scanning; aplicar restrição de referrer no console do Firebase) |
 | `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | `treino-louise.firebaseapp.com` |
 | `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | `treino-louise` |
 | `NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET` | `treino-louise.firebasestorage.app` |
