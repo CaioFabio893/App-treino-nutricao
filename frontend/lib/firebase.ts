@@ -3,7 +3,7 @@
 // Inicialização do Firebase (lado do cliente).
 // As variáveis NEXT_PUBLIC_FIREBASE_* vêm do arquivo frontend/.env.local.
 import { initializeApp, getApps, getApp } from "firebase/app";
-import { getAuth, GoogleAuthProvider, connectAuthEmulator } from "firebase/auth";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
 
 const config = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -35,7 +35,3 @@ if (firebaseAuth && process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR === "1") {
     disableWarnings: true,
   });
 }
-
-// Provider de login com Google (usuários de telefone). Usado no botão
-// "Entrar com Google" da tela de login e no fluxo de cadastro novo.
-export const googleProvider = app ? new GoogleAuthProvider() : null;

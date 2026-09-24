@@ -4,11 +4,29 @@
 
 ---
 
-## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security
+## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 + F17 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security + Login sem Google/Cadastro/Recuperação
 
-**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE).** Backend `go vet`/`go test` **147/147** ✅ ·
-Firestore rules **64/64** ✅ · Vitest **63/63** ✅ · Playwright E2E **24/24** ✅ ·
-`tsc --noEmit` ✅ · `next build` ✅ · **Lint frontend 0/0** ✅.
+**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE), F17 CONCLUÍDA — login sem Google + cadastro com confirmação + recuperação de senha (PASS).** Backend `go vet`/`go test` **147/147** ✅ ·
+Firestore rules **64/64** ✅ · Vitest **98/98** ✅ · Playwright E2E **29/29** ✅ ·
+`tsc --noEmit` ✅ · `next build` ✅ (25 rotas) · **Lint frontend 0/0** ✅.
+
+- **F17 — Login sem Google, cadastro com confirmação e recuperação de senha
+  (24 set 2026):** ADR-002 implementado no frontend. Login (`/login`) sem
+  botão/divisor Google — apenas e-mail/senha, com toggle mostrar/ocultar senha
+  (`components/PasswordInput.tsx`, olho SVG + aria-label) e links
+  "Esqueci minha senha" (→ `/recuperar-senha`) e "Criar nova conta"
+  (→ `/cadastro`). `/cadastro` novo: e-mail + senha + confirmação (2 inputs
+  independentes), validação "As senhas não coincidem." apenas pós-1º submit e
+  depois ao vivo, `aria-invalid`/`aria-describedby`/`role=alert`, `noValidate`.
+  `/recuperar-senha` novo: `sendPasswordResetEmail` com sucesso genérico
+  (anti-enumeração — `user-not-found`/`missing-email` → sucesso), estados
+  inválido/rede/invalid-email, `role=status`, link de volta. Removidos
+  `loginWithGoogle`/`signInWithPopup` de `lib/auth.tsx` e `googleProvider` de
+  `lib/firebase.ts`; `resetPassword()` adicionado; `lib/auth-errors.ts` com
+  erros amigáveis em PT. `PendingApprovals.tsx` mantém o rótulo "login Google"
+  apenas para exibição de contas legadas V1 (`authProvider === "google.com"`) —
+  não é UI de login. Backend NÃO alterado. +35 Vitest (63→98), +5 E2E (24→29),
+  relatório: `docs/reports/phase-17-auth-email-senha.md`.
 
 - **F16 — Auditoria e correção "Nova dieta" + Security (24 set 2026):** eixo
   segurança (secret scanning GitHub — Google API Key `[REDACTED]`: HEAD limpo,
@@ -32,7 +50,7 @@ Firestore rules **64/64** ✅ · Vitest **63/63** ✅ · Playwright E2E **24/24*
   página `/nutritionist/exercises`, item na sidebar, seletor no `WorkoutForm`).
   Relatório: `docs/reports/phase-5-exercise-library.md`.
 
-**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **F16 (auditoria "Nova dieta" + secret scanning) CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE** (worktree limpo, chave só no histórico: referrer restriction + rotação requerem ação no Google Cloud/Firebase Console); **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, decisão de produto sobre Google login (código ainda o expõe — ADR-002 não implementado), rotação/limite da chave do Firebase e F8; **próximo passo recomendado**: decisões de produto (Google + F8), ações manuais de segurança da F16 e commit do working tree quando autorizado.
+**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **F16 (auditoria "Nova dieta" + secret scanning) CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE** (worktree limpo, chave só no histórico: referrer restriction + rotação requerem ação no Google Cloud/Firebase Console); **F17 (login sem Google + cadastro + recuperação) CONCLUÍDA** — ADR-002 implementado no frontend, usuários V1 Google seguem logando pela conta existente (provedor permanece válido no backend), produção ainda com botão Google (alteração NÃO feita em produção — sem deploy nesta fase); **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, rotação/limite da chave do Firebase e F8; **próximo passo recomendado**: decisão de produto sobre F8 e ações manuais de segurança da F16.
 
 ### Fase 14.1 — Testes PWA (23 set 2026)
 

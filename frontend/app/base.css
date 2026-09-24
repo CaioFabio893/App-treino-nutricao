@@ -277,23 +277,41 @@ input, textarea { font-family: var(--sans); }
 }
 .mode-switch { text-align: center; margin-top: 16px; font-size: 12px; color: var(--muted); }
 .mode-switch button { background: none; border: none; color: var(--terra); font-weight: 600; cursor: pointer; font-size: 12px; }
+.mode-switch-link { color: var(--terra); font-weight: 600; text-decoration: none; font-size: 12px; }
+.mode-switch-link:hover { text-decoration: underline; }
 
-/* Botão "Entrar com Google" + divisor (login) */
-.btn-google {
-  width: 100%; display: flex; align-items: center; justify-content: center; gap: 10px;
-  background: var(--white); color: var(--text);
-  border: 1.5px solid var(--border); border-radius: 24px;
-  padding: 10px 16px; font-size: 14px; font-weight: 600;
-  cursor: pointer; transition: background .2s, border-color .2s;
+/* Campo de senha com botão mostrar/ocultar */
+.pw-field { position: relative; }
+.pw-field .pw-input { padding-right: 46px; }
+.pw-toggle {
+  position: absolute; top: 50%; right: 4px; transform: translateY(-50%);
+  width: 40px; height: 40px; border: none; background: none;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); cursor: pointer; border-radius: 12px;
+  transition: color .15s, background .15s;
 }
-.btn-google:hover:not(:disabled) { background: var(--cream); border-color: var(--terra); }
-.btn-google:disabled { opacity: 0.6; cursor: default; }
-.login-divider {
-  display: flex; align-items: center; gap: 10px;
-  margin: 16px 0; color: var(--muted); font-size: 11px;
+.pw-toggle:hover { color: var(--terra); background: var(--peach); }
+.pw-toggle:focus-visible { outline: 2px solid var(--terra); outline-offset: 1px; }
+
+/* Cabeçalho do campo com ação à direita (ex.: "Esqueci minha senha") */
+.inp-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px; }
+.inp-head label { margin-bottom: 0 !important; }
+.forgot-link { font-size: 10px; color: var(--terra); font-weight: 600; text-decoration: none; letter-spacing: 0.5px; }
+.forgot-link:hover { text-decoration: underline; }
+
+/* Erro de campo (validação) — mesmo idioma visual do .login-err */
+.field-err { color: var(--fail); font-size: 11px; margin-top: 6px; line-height: 1.4; }
+.inp-row input[aria-invalid="true"], .pw-field input[aria-invalid="true"] { border-color: var(--fail); }
+
+/* Sucesso (recuperação de senha) */
+.login-ok {
+  background: var(--ok-bg); border: 1px solid #b3d49a; color: var(--ok);
+  font-size: 12px; font-weight: 500; padding: 12px 14px;
+  border-radius: var(--r-sm); line-height: 1.5;
 }
-.login-divider::before,
-.login-divider::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+.recover-hint { font-size: 11px; color: var(--muted); margin-top: 12px; line-height: 1.5; }
+.recover-sent .modal-acts { flex-direction: column; }
+.recover-back-link { text-decoration: none; text-align: center; }
 
 /* ── SETUP / LOADING ── */
 .setup-card {

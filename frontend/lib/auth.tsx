@@ -12,11 +12,11 @@ import type { User } from "firebase/auth";
 import {
   createUserWithEmailAndPassword,
   onAuthStateChanged,
+  sendPasswordResetEmail,
   signInWithEmailAndPassword,
-  signInWithPopup,
   signOut as fbSignOut,
 } from "firebase/auth";
-import { firebaseAuth, firebaseConfigured, googleProvider } from "./firebase";
+import { firebaseAuth, firebaseConfigured } from "./firebase";
 import { DEMO_MODE } from "./config";
 import { ApiError, getMe as apiGetMe } from "./api";
 import type { Feature, Role, UserProfile } from "./types";
@@ -40,8 +40,8 @@ interface AuthCtx {
   refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
   signup: (email: string, password: string) => Promise<User>;
-  /** Login com conta Google (popup). Cadastro novo entra como pending_approval. */
-  loginWithGoogle: () => Promise<User>;
+  /** Envia o e-mail oficial de redefinição de senha (Firebase Auth). */
+  resetPassword: (email: string) => Promise<void>;
   logout: () => Promise<void>;
   /** ID token atualizado do Firebase Auth (usado no header Authorization). */
   getToken: () => Promise<string>;
@@ -152,13 +152,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return cred.user;
   }, []);
 
-  const loginWithGoogle = useCallback(async () => {
-    if (DEMO_MODE) return DEMO_USER;
-    if (!firebaseAuth || !googleProvider) throw new Error("Firebase não configurado");
-    // Popup de conta Google. O usuário cai no fluxo normal: perfil novo →
-    // GET /api/me devolve needsProfile → criado com status pending_approval.
-    const cred = await signInWithPopup(firebaseAuth, googleProvider);
-    return cred.user;
+  const resetPassword = useCallback(async (email: string) => {
+    if (DEMO_MODE) return;
+    if (!firebaseAuth) throw new Error("Firebase não configurado");
+    await sendPasswordResetEmail(firebaseAuth, email);
   }, []);
 
   const logout = useCallback(async () => {
@@ -219,13 +216,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       refreshProfile,
       login,
       signup,
-      loginWithGoogle,
+      resetPassword,
       logout,
       getToken,
       demoAs,
       setDemoAs,
     }),
-    [user, initializing, profileLoaded, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, loginWithGoogle, logout, getToken, demoAs]
+    [user, initializing, profileLoaded, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, resetPassword, logout, getToken, demoAs]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
