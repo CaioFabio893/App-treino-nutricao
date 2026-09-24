@@ -4,13 +4,14 @@
 
 ---
 
-## Fase atual: 14.1 + 5 — Testes PWA + Biblioteca de exercícios
+## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração
 
-**Status: CONCLUÍDAS (23 set 2026).** Backend `go vet`/`go test` **147/147** ✅ ·
+**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA).** Backend `go vet`/`go test` **147/147** ✅ ·
 Firestore rules **64/64** ✅ · Vitest **61/61** ✅ · Playwright E2E **23/23** ✅ ·
 `tsc --noEmit` ✅ · `next build` ✅ · **Lint frontend 0/0** ✅.
 
-- **F14.1 — Testes PWA**: cobertura do service worker (`sw.js` — nunca cacheia
+- **F14 — Auditoria PWA para produção:** PASS, nenhuma alteração necessária (manifest, service worker, cache, HTTPS via Cloud Run, headers/CSP). Relatório: `docs/reports/phase-14-pwa-production.md`.
+- **F14.1 — Testes PWA:** cobertura do service worker (`sw.js` — nunca cacheia
   `/api/*`/`Authorization`), do `PWA.tsx` (registro/update/`SKIP_WAITING`/
   reload) e do `PWAInstall.tsx` (instalação), + E2E de precache/offline/não-cache
   de `/api`. Relatório: `docs/reports/phase-14-1-pwa-tests.md`.
@@ -21,9 +22,7 @@ Firestore rules **64/64** ✅ · Vitest **61/61** ✅ · Playwright E2E **23/23*
   página `/nutritionist/exercises`, item na sidebar, seletor no `WorkoutForm`).
   Relatório: `docs/reports/phase-5-exercise-library.md`.
 
-**Próximo passo:** F8 (alimentos) continua **bloqueada** por decisão de produto
-(formato da dieta: texto livre vs estruturado); F15.1 (checklist pré-deploy)
-pode ser feita depois; **não** iniciar F15.2 (deploy) automaticamente.
+**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, decisão de produto sobre Google login (código ainda o expõe — ADR-002 não implementado) e F8; **próximo passo recomendado**: decisões de produto (Google + F8) e commit do working tree quando autorizado.
 
 ### Fase 14.1 — Testes PWA (23 set 2026)
 
@@ -41,6 +40,22 @@ via API Go (rules negam cliente). Modelo `ExerciseItem` (o `Exercise` legado do
 modo original permanece intacto). Limites por campo em `service/exercise.go`
 (resíduo F13 #2). +27 testes Go (120→147), +11 rules (53→64), +11 Vitest
 (50→61), +1 E2E (22→23).
+
+### Fase 14 — PWA em produção (auditoria) (23 set 2026)
+
+Auditoria READ-ONLY do PWA para produção. **Veredito: PASS** — nenhuma alteração necessária. `manifest.json` completo (name, short_name, id, start_url, scope, display standalone, ícones any+maskable, screenshots, lang pt-BR); `sw.js` com precache do shell, network-first com fallback offline, nunca cacheia `/api/*`/`Authorization`/métodos não-GET/origens externas; `SKIP_WAITING` via mensagem + `clients.claim()`; headers PWA em `next.config.ts` (sw.js/manifest no-cache, ícones immutable, CSP sem `unsafe-eval`); HTTPS garantido pelo Cloud Run. Coberto por testes F14.1 (Vitest 22) + E2E (service worker real, offline, não-cache de /api). Relatório: `docs/reports/phase-14-pwa-production.md`.
+
+### Fase 15.1 — Auditoria pré-deploy (23 set 2026)
+
+Auditoria completa READ-ONLY (HEAD `248e83e`, commit `feat: add shared exercise library`). 8 gates sequenciais verdes: `go test ./...` 147/147, `go vet ./...` limpo, Firestore rules 64/64, Vitest 61/61, Playwright E2E 23/23, `tsc --noEmit` limpo, `next build` OK (21 rotas standalone), lint 0/0. Achados: 2 BAIXO + 2 INFORMATIVO (sem CRÍTICO/ALTO/MÉDIO); classificação READY. Produção INALTERADA, deploy 0, push 0, nenhum commit criado. `opencode.json` preservado (não commitado); relatório em `docs/reports/phase-15-1-pre-deploy-audit.md`. A revisão final de segurança dedicada (agente `review`, item §16/§18.3) foi concluída no mesmo dia: PASS, sem regressão, 1 achado novo INFORMATIVO (`ALLOWED_ORIGIN "vazio = todas"` em `frontend/.env.example` — em produção vazio = boot falha; não bloqueante, correção recomendada quando o arquivo for tocado), relatório em `docs/reports/phase-15-1-final-security-review.md`.
+
+### Fase 15.2 — Migration V1→V2 em produção + Preparação de deploy (24 set 2026)
+
+Preparação completa de deploy Cloud Run (projeto `treino-louise`, região `southamerica-east1`) **+ migração autorizada e executada**. Preparação: 8 gates revalidados sequenciais verdes (nota operacional `-p 1` para linker Go; correção de cache Turbopack/E2E) e auditoria do caminho de deploy 100% consistente; correções de doc `.env.example`/`README.md`. **Deploy executado (autorização explícita do dono):** (1) API `treino-api` V2 — build Cloud Build (digest `6789bdbf…`) + deploy revisão `00013-867` com `GO_ENV=production`, `ALLOWED_ORIGIN=https://treino-web-834622951375.southamerica-east1.run.app,https://treino-web-jn4epizxfq-rj.a.run.app`, `RATE_LIMIT=120`; (2) frontend `treino-web` V2 — build Cloud Build com valores reais `NEXT_PUBLIC_FIREBASE_*` extraídos do bundle público de produção (apiKey `AIzaSyA8i9LQx5FItebKre2RopvEicrEN-8ss74`, authDomain `treino-louise.firebaseapp.com`, projectId `treino-louise`, storageBucket `treino-louise.firebasestorage.app`, senderId `834622951375`, appId `1:834622951375:web:fd5f73b4f2aaefffc38cba`, `NEXT_PUBLIC_API_URL` apontando para a API real) — revisão `00009-mfg`; (3) `firebase deploy --only firestore` — regras V2 64/64 + 9 índices publicados (todos READY). **Smoke/E2E de produção todos verdes:** `/health` 200, CORS 2 origens 200 + origem maliciosa 403, `/api/me` token inválido 401, headers de segurança, CSP correto, manifest/sw.js/PWA servidos, `serviceWorker.register` no bundle, Firestore REST nega leitura/escrita cliente sem Auth (403), cadeia Auth real validada via signUp temporário (RANKING 403 por não-aprovado, `/api/me` cria perfil pending) com cleanup completo (deleteAccount + doc órfão removido, 404 confirmado). URLs finais preservadas: `treino-api-834622951375.southamerica-east1.run.app` e `treino-web-834622951375.southamerica-east1.run.app`. **Produção agora roda 100% V2; V1 sobrescrita (revisões históricas retidas, sem rollback automático).** Sem commit/push (governança). Relatório: `docs/reports/phase-15-2-deploy.md`.
+
+### Fase 15.3 — Fechamento pós-migração (24 set 2026)
+
+Auditoria READ-ONLY pós-deploy + documentação das validações humanas. **Veredito: PASS — migração técnica ENCERRADA.** Re-verificado: API `treino-api-00013-867` e web `treino-web-00009-mfg` (ambas Ready=True, latestRevision, 100% tráfego); env correto (`GO_ENV=production`, `ALLOWED_ORIGIN` 2 origens, `RATE_LIMIT=120`); `/health` 200; Firestore 9/9 índices READY + rules V2 negando cliente; zero dados de teste (Firestore 404 + Auth removido); zero processos órfãos locais (java/node ausentes, portas 8080/9099 livres); zero builds pendentes. Correção de documentação: F15.2 §0.6 relatava que a V2 "não oferece o botão Google" — **incorreto**: o código V2 em produção AINDA expõe o botão e o fluxo Google ativos (`login/page.tsx:99-124`, `auth.tsx:155-162`, `firebase.ts:41`; backend aceita `password|google.com`) — ADR-002 não implementado, classificado INFORMATIVO mantido (F15.1) e decisão de produto pendente (sem bloqueio: usuários V1 Google continuam logando). Documentados: checklist humano de login real/fluxos (A), checklist PWA em dispositivo (B), estado objetivo do Google (C — 3 opções técnicas sem prescrição), F8 mantida bloqueada com decisões pendentes registradas (D), e classificação do Git (E): docs/relatórios a versionar × `opencode.json`/`.opencode/agent-routing.md` (config local, não commitar) × artefatos ignorados (`.next`, `test-results`, `.env.local`). Relatório: `docs/reports/phase-15-3-post-migration.md`.
 
 ---
 
@@ -428,3 +443,8 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 | 22 set 2026 | 13 | **F13 concluída** (revisão final de segurança): mass assignment em `PUT /api/me` neutralizado por allowlist + `GetOrCreateProfile` preserva `StartDate`/`EndDate`; gates backend 120 / rules 53 / Vitest 28 / E2E 19 + lint 0/0; relatório phase-13-final-security-regression |
 | 23 set 2026 | 14.1 | **F14.1 (testes PWA)**: SW testado verbatim (`node:vm`), `PWA.tsx`/`PWAInstall.tsx` via RTL, E2E de precache/offline/não-cache de `/api`; +22 Vitest (28→50), +3 E2E (19→22); relatório phase-14-1-pwa-tests |
 | 23 set 2026 | 5 | **F5 (biblioteca de exercícios)**: catálogo global `exercises/{id}` + CRUD/busca + snapshot no treino; backend (model/repo/service/handlers/routes/rules) + frontend (página/sidebar/seletor); +27 Go (120→147), +11 rules (53→64), +11 Vitest (50→61), +1 E2E (22→23); relatório phase-5-exercise-library |
+| 23 set 2026 | 15.1 | **F15.1 (auditoria pré-deploy)**: auditoria completa READ-ONLY, 8 gates verdes (147/147, 64/64, 61/61, 23/23, tsc, build, lint 0/0), achados 2 baixos + 2 informativos, classificação READY, produção inalterada, `opencode.json` preservado; relatório phase-15-1-pre-deploy-audit |
+| 23 set 2026 | 14 | **F14 (auditoria PWA em produção)**: PASS, nenhuma alteração necessária — manifest, service worker, cache, HTTPS via Cloud Run, headers/CSP; relatório phase-14-pwa-production |
+| 23 set 2026 | 15.2 | **F15.2 (preparação de deploy)**: 8 gates revalidados, auditoria do caminho de deploy 100% consistente, docs corrigidas (.env.example, README), inventário real confirmado; relatório phase-15-2-deploy |
+| 24 set 2026 | 15.2 | **F15.2 (MIGRATION V1→V2 EM PRODUÇÃO — executada)**: autorização explícita do dono; API V2 (revisão 00013-867) + frontend V2 (00009-mfg) + regras Firestore/9 índices publicados (64/64); `GO_ENV=production`, CORS 2 origens, `RATE_LIMIT=120`; smoke/E2E de produção verdes (/health, CORS, auth 401, 403 não-aprovado, Firestore 403, PWA, CSP); valores públicos `NEXT_PUBLIC_FIREBASE_*` reais extraídos do bundle de produção; cleanup completo de usuário temporário de teste; URLs finais preservadas; produção 100% V2; sem commit/push |
+| 24 set 2026 | 15.3 | **F15.3 (fechamento pós-migração)**: auditoria READ-ONLY PASS — revisões/tráfego V2 corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes; migração técnica ENCERRADA; documentados checklists de validação humana (login real, PWA), estado real do Google login (código ainda o expõe; ADR-002 pendente) e F8 bloqueada com decisões registradas; Git classificado (docs a versionar × config local); relatório phase-15-3-post-migration |
