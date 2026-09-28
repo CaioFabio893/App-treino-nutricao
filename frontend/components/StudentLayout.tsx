@@ -11,10 +11,12 @@ import { navAppIcons } from "./icons/AppIcons";
 import type { Feature } from "@/lib/types";
 
 // Navegação inferior do aluno (rotas reais, não abas em estado local).
-// Treinos é o tier gratuito (sem feature de plano); Dietas, Comunidade e
-// Ranking dependem das features snapshotadas no perfil. O backend também valida.
-const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "leaf" | "feed" | "trophy"; feature?: Feature }[] = [
+// Programa é o tier gratuito (agrupa os treinos atribuídos, sem feature de
+// plano); Treinos mostra o dia a dia; Dietas, Comunidade e Ranking dependem
+// das features snapshotadas no perfil. O backend também valida.
+const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed" | "trophy"; feature?: Feature }[] = [
   { href: "/dashboard", label: "Início", icon: "grid" },
+  { href: "/programas", label: "Programa", icon: "program" },
   { href: "/treinos", label: "Treinos", icon: "dumbbell" },
   { href: "/dietas", label: "Dietas", icon: "leaf", feature: "diet" },
   { href: "/comunidade", label: "Comunidade", icon: "feed", feature: "community" },

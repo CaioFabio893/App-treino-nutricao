@@ -1,8 +1,8 @@
 # API — Proposta profissional (V2)
 
-Status: Proposta na Fase 0 (aprovação pendente). Base = rotas reais da V1
-(`backend/main.go`, `backend/handlers/`). Endpoints NÃO implementados ainda —
-só contrato.
+Status: Proposta implementada (F19 — Programa de Treino). Base = rotas reais da V1
+(`backend/main.go`, `backend/handlers/`). Endpoints documentados conforme
+são implementados; contratos mantidos para compatibilidade com o frontend.
 
 ## Princípios do contrato
 
@@ -14,7 +14,7 @@ só contrato.
    - 401 `{"error":{"code":"unauthorized","message":"token ausente/invalido"}}`;
    - 403 `{"error":{"code":"forbidden","message":"cadastro pendente" | "recurso nao incluido no plano" | "sem permissao"}}`;
    - 404 `{"error":{"code":"not_found","message":"..."}}`;
-   - 409 `{"error":{"code":"plan_in_use","message":"plano em uso"}}` (exclusão);
+   - 409 `{"error":{"code":"conflict","message":"..."}}` (conflito de atribuição);
    - 500 `{"error":{"code":"internal","message":"erro interno"}}`.
 4. **Paginação**: listagens devolvem cursor/offset consistentes (padrão V1 já
    usado no feed: `cursor` `<milli>,<id>`; histórico: `offset/limit`). V2
@@ -114,25 +114,48 @@ só contrato.
 | GET | `/api/scores/history` |
 | GET | `/api/public/profile/{id}` |
 
+### Programas de Treino (F19)
+| Método | Rota | Quem pode | Descrição |
+|---|---|---|---|
+| GET | `/api/programs` | qualquer aprovado | Lista: nutricionista vê os próprios; aluno vê só os atribuídos |
+| POST | `/api/programs` | nutritionist/admin | Cria programa |
+| POST | `/api/programs/import` | nutritionist/admin | Importa programa via markdown; parse no servidor (`pkg programmd`) |
+| GET | `/api/programs/{id}` | dono (aluno), nutricionista dono ou admin | Detalhes do programa |
+| PUT | `/api/programs/{id}` | nutricionista dono/admin | Atualiza metadados + ordem das referências; **vínculos imutáveis** (`nutritionistId` e `studentId` vêm sempre do registro — reatribuição só via `POST /assign`) |
+| DELETE | `/api/programs/{id}` | nutricionista dono/admin | Exclui programa (NÃO apaga os treinos referenciados) |
+| POST | `/api/programs/{id}/assign` | nutricionista dono/admin | Atribui programa ao aluno; materializa cópias dos treinos; 409 se já atribuído a outro |
+| POST | `/api/programs/{id}/duplicate` | nutricionista dono/admin | Duplica programa como biblioteca |
+
 ## Gate de autorização por rota (padrão V1)
 
 - Rotas de negócio exigem `RequireApproved`; recursos por feature exigem
   `RequireFeature(diet|community|ranking)`; escrita de conteúdo (workouts,
   diets, plans, users, approve/reject/assign) exige `Allow(nutritionist,
-  admin)` ou `Allow(admin)` conforme caso.
+  admin)` ou `Allow(admin)` conforme caso. Programas são **free tier**
+  (sem feature de plano) — leitura exige aprovado, escrita exige
+  `nutritionist`/`admin` + `RequireApproved`.
 - **Ordem dos middlewares é crítica** (ver `system-architecture.md`):
   `Require` SEMPRE fora dos gates.
 - Ownership: nutricionista acessa somente recursos onde é
   `nutritionistId`; aluno somente os próprios; admin tudo (funções puras em
   `service/access.go`).
+- **Programa referencia treino, não o embute**: como o programa só guarda
+  `workoutId`, toda rota que grava ou materializa o programa
+  (`POST /api/programs`, `PUT`, `assign`, `duplicate`) confere a posse de cada
+  treino referenciado (`Service.ValidateProgramWorkoutOwnership` +
+  `src.NutritionistID == p.NutritionistID`). Sem isso, a nutritiousiona A
+  monto um programa sobre o treino da B e o `assign` criaria uma cópia do
+  conteúdo alheio. Treino inexistente → **404**; treino de outra →
+  **403** (a resposta não revela o dono).
 
 ## Payloads de referência (V1 — manter contrato)
 
 `UserProfile`, `Plan`, `WorkoutDefine`, `Diet`, `WorkoutHistoryEntry`,
 `Post`/`PostComment`, `DietDailyLog`, `ScoreRecord`, `RankingResponse`,
-`PublicProfile` — ver `backend/models/types.go`. O V2 não muda nomes de campo
-já consumidos pelo frontend (evita quebra de contrato) e documenta cada um
-neste arquivo conforme a Fase 1 avança.
+`PublicProfile`, `TrainingProgram`, `ProgramWorkout`, `ImportProgramRequest`,
+`AssignProgramRequest` — ver `backend/models/types.go`. O V2 não muda nomes
+de campo já consumidos pelo frontend (evita quebra de contrato) e documenta
+cada um neste arquivo conforme a Fase 1 avança.
 
 ## Décisions de API para a Fase 1 (pendentes de definição)
 

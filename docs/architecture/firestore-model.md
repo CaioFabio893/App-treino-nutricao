@@ -31,6 +31,7 @@ Fonte: `backend/repository/repository.go`, `backend/models/types.go`,
 | `dietLogs/{studentID_date}` | DietDailyLog | determinística | API Go |
 | `scores/{uid}` | ScoreRecord | uid | API Go |
 | `scores_history/{uid}/cycles/{cycleID}` | ScoreHistoryEntry | cycleID | API Go |
+| `programs/{id}` | TrainingProgram (referências ordenadas a WorkoutDefine) | auto | API Go (nutritionist/admin) |
 
 ## Detalhes por entidade
 
@@ -81,7 +82,29 @@ createdAt, updatedAt
 studentId, nutritionistId, name, description, startDate, endDate,
 content (texto livre) OU meals[] {id, name, time, notes, order, foods[]},
 createdAt, updatedAt
-```### WorkoutHistoryEntry (`workoutHistory/{id}`)
+```
+
+### TrainingProgram (`programs/{id}` — F19)
+```
+id, name, description, objective, notes, source,
+nutritionistId, studentId, workouts[] {workoutId, order, label, name, dayOfWeek},
+createdAt, updatedAt
+```
+- Um programa de treino **NÃO é entidade nova**: cada elemento de `workouts[]`
+  é uma referência a um `WorkoutDefine` já existente em `workouts/{id}`.
+  O programa guarda apenas uma lista ordenada de referências (`ProgramWorkout`).
+  Isso mantém uma única implementação de treino (histórico, execução, impressão,
+  UI do aluno continuam apontando para `workouts/{id}`) e permite reordenar,
+  duplicar e reatribuir materializando cópias.
+- `studentId` vazio = programa de biblioteca (nutricionista); definido = programa
+  atribuído a um aluno (cópia dos treinos via assign).
+- `notes` armazena PRs, periodização e estrutura semanal **verbatim** do markdown.
+- `source` indica a origem da importação (ex.: `"treino.md"`).
+- Ownership imutável (nutricionista não transfere via body).
+- Acesso cliente: **totalmente negado** (`allow read, write: if false`) —
+  todo acesso passa pela API Go (Admin SDK).
+
+### WorkoutHistoryEntry (`workoutHistory/{id}`)
 ```
 studentId, workoutId, workoutName, nutritionistId, completedAt,
 duration, exercisesCompleted, totalExercises,
@@ -120,7 +143,7 @@ scores_history/{uid}/cycles/{cycleID}: studentId, cycleId, startDate, endDate,
 - Ciclo: trimestre civil (`cycleFor`); fechamento preguiçoso arquiva quando o
   ciclo muda (`RecomputeScore`).
 
-## Índices compostos (`firestore.indexes.json` — 9 versionados)
+## Índices compostos (`firestore.indexes.json` — 11 versionados)
 
 | # | Coleção | Campos | Direção | Query que usa |
 |---|---|---|---|---|
@@ -133,6 +156,8 @@ scores_history/{uid}/cycles/{cycleID}: studentId, cycleId, startDate, endDate,
 | 7 | workoutHistory | studentId, completedAt | Asc, Desc | `ListHistoryForStudent` |
 | 8 | workoutHistory | nutritionistId, completedAt | Asc, Desc | `ListHistoryForNutritionist` |
 | 9 | workoutHistory | studentId, completedAt | Asc, Asc | `ListHistoryForStudentSince` |
+| 10 | programs | nutritionistId, createdAt | Asc, Desc | `ListProgramsForNutritionist` |
+| 11 | programs | studentId, createdAt | Asc, Desc | `ListProgramsForStudent` |
 
 > **Achado da Fase 0 (3.2/3.3 adicional):** a query `ListStudents` em
 > `repository.go` combina `role == student` **e** `nutritionistID == uid`
@@ -172,8 +197,10 @@ Fase 1 + hardening pré-F13):
   aluno + admin (aprovados — `canViewStudentData`); escrita só API Go.
 - `workouts`, `diets`, `workoutHistory`, `scores`: **negados a clientes**
   (leitura e escrita — só API Go).
+- `programs`: **negados a clientes** (leitura e escrita — só API Go).
+  Todo acesso de programas passa pela API Go (Admin SDK ignora as regras).
 - Toda escrita de dados de negócio passa pela API Go desde 20 set 2026 (regras
-  testadas no Emulator — `firestore-tests/`, 53 testes).
+  testadas no Emulator — `firestore-tests/`, 76 testes).
 
 ## Notas para o V2 (direção)
 

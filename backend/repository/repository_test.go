@@ -163,6 +163,20 @@ func TestIterHelpersReturnEmptyArrayWhenCollectionEmpty(t *testing.T) {
 			t.Fatalf("JSON = %q, want []", s)
 		}
 	})
+
+	// F19: a listagem de programas segue o mesmo contrato — [] e nunca null.
+	t.Run("programsFromIter", func(t *testing.T) {
+		out, err := programsFromIter(emptyIterator{})
+		if err != nil {
+			t.Fatalf("err = %v", err)
+		}
+		if out == nil {
+			t.Fatal("devolveu nil (serializaria null)")
+		}
+		if s := mustJSON(t, out); s != "[]" {
+			t.Fatalf("JSON = %q, want []", s)
+		}
+	})
 }
 
 // TestUserProfileDataPreservesCreatedAt — FASE 4 (I1): a escrita de users/{uid}

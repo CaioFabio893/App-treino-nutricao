@@ -245,6 +245,50 @@ export interface CompleteWorkoutRequest {
   caption?: string;
 }
 
+// ── Programas de treino (F19) ────────────────────────────────────────────
+// Um TrainingProgram é a COLEÇÃO que agrupa vários treinos. Cada item de
+// `workouts` é uma REFERÊNCIA a um WorkoutDefine existente — o programa não
+// duplica o conteúdo do treino. `label`/`name`/`dayOfWeek` são snapshot do
+// momento do vínculo, para a listagem continuar legível se o treino mudar.
+
+export interface ProgramWorkout {
+  workoutId: string;
+  order: number;
+  label?: string;
+  name?: string;
+  dayOfWeek?: string;
+}
+
+export interface TrainingProgram {
+  id?: string;
+  /** vazio = programa de biblioteca (não atribuído a nenhum aluno) */
+  studentId: string;
+  nutritionistId: string;
+  name: string;
+  description?: string;
+  objective?: string;
+  workouts?: ProgramWorkout[];
+  /** trechos da fonte preservados verbatim (PRs, periodização, estrutura semanal) */
+  notes?: string;
+  /** proveniência da importação (ex.: "treino.md") */
+  source?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ImportProgramRequest {
+  markdown: string;
+  source?: string;
+  name?: string;
+  /** opcional: já atribui a um aluno */
+  studentId?: string;
+  nutritionistId?: string;
+}
+
+export interface AssignProgramRequest {
+  studentId: string;
+}
+
 export const WEEK_DAYS = [
   { value: "monday", label: "Segunda" },
   { value: "tuesday", label: "Terca" },

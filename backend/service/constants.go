@@ -52,4 +52,11 @@ const (
 	MaxMuscleGroupLength         = 80                   // grupo muscular
 	MaxEquipmentLength           = 80                   // equipamento
 	MaxVideoURLLength            = 500                  // URL de vídeo
+
+	// ── Programas de treinamento (F19) ──
+	// Notas do programa recebem o mesmo teto da dieta em texto livre, porque é
+	// onde entra o material preservado da fonte (PRs, periodização, estrutura
+	// semanal) quando o programa vem de um arquivo importado.
+	MaxNotesLength     = MaxDietContentLength // 20000
+	MaxProgramWorkouts = 60                   // treinos por programa
 )

@@ -107,6 +107,20 @@ export function ProfileIcon(props: IconProps) {
   );
 }
 
+/**
+ * Programa = agrupamento de treinos. Três cartões empilhados sugerem a
+ * coleção (o programa guarda referências ordenadas a treinos existentes).
+ */
+export function ProgramIcon(props: IconProps) {
+  return (
+    <svg {...baseProps} {...props}>
+      <rect x="3" y="4" width="18" height="5" rx="1.6" />
+      <rect x="3" y="12" width="18" height="5" rx="1.6" />
+      <path d="M6 21h12" />
+    </svg>
+  );
+}
+
 // Mapa dos nomes usados na navegação (Sidebar/bottom nav) para os ícones
 // padronizados acima. Nomes sem equivalente continuam no DashIcon — o
 // consumidor usa este mapa apenas como primeiro plano, com fallback.
@@ -116,6 +130,7 @@ export const navAppIcons: Record<
 > = {
   grid: DashboardIcon,
   dumbbell: WorkoutIcon,
+  program: ProgramIcon,
   leaf: DietIcon,
   feed: CommunityIcon,
   trophy: RankingIcon,

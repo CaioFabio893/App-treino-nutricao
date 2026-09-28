@@ -129,6 +129,12 @@ service cloud.firestore {
     match /workouts/{document=**} {
       allow read, write: if false;
     }
+    // Programas de treinamento (F19): igual a treinos, o programa é lido e
+    // escrito exclusivamente pela API Go (o SDK de cliente não acessa nem
+    // para leitura — a listagem de programas do aluno passa pela API).
+    match /programs/{document=**} {
+      allow read, write: if false;
+    }
     match /diets/{document=**} {
       allow read, write: if false;
     }

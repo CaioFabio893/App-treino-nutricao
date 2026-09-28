@@ -5,6 +5,7 @@
 import type {
   AppState,
   ApproveUserRequest,
+  AssignProgramRequest,
   CommentRequest,
   CompleteWorkoutRequest,
   CreatePostRequest,
@@ -12,6 +13,7 @@ import type {
   DietDailyLog,
   DuplicateRequest,
   Exercise,
+  ImportProgramRequest,
   MealCheck,
   Plan,
   Post,
@@ -23,9 +25,11 @@ import type {
   Role,
   ScoreHistoryEntry,
   SessionData,
+  TrainingProgram,
   UpsertDietLogRequest,
   UserProfile,
   WorkoutDefine,
+  WorkoutExercise,
   WorkoutHistoryEntry,
 } from "./types";
 import { DEMO_MODE } from "./config";
@@ -40,9 +44,10 @@ const LS_KEY = {
   session: (w: number, d: string) => `ll_demo_session_${w}_${d}`,
   prs: "ll_demo_prs",
   state: "ll_demo_state",
-  seeded: "ll_demo_seeded_v5",
+  seeded: "ll_demo_seeded_v6",
   students: "ll_demo_students",
   workouts: "ll_demo_workouts",
+  programs: "ll_demo_programs",
   diets: "ll_demo_diets",
   history: "ll_demo_history",
   posts: "ll_demo_posts",
@@ -392,6 +397,43 @@ OBSERVAÇÕES
 
   setJSON(LS_KEY.students, students);
   setJSON(LS_KEY.workouts, [...workouts, ...workoutsMaria]);
+
+  // Programas (F19): coleções que agrupam TREINOS já existentes por referência
+  // — `studentId` vazio = programa de biblioteca, disponível para atribuir.
+  const programs: TrainingProgram[] = [
+    {
+      id: "program-hipertrofia",
+      studentId: "student-joao",
+      nutritionistId: "demo-user",
+      name: "Hipertrofia — Ciclo 2",
+      description: "Louise Lima (Ciclo 2)",
+      objective: "Hipertrofia geral com cinco dias de treino e periodização de 4 semanas.",
+      workouts: [
+        { workoutId: "workout-a", order: 1, label: "A", name: "Treino A — Peito e Tríceps", dayOfWeek: "monday" },
+        { workoutId: "workout-b", order: 2, label: "B", name: "Treino B — Costas e Bíceps", dayOfWeek: "tuesday" },
+        { workoutId: "workout-c", order: 3, label: "C", name: "Treino C — Pernas", dayOfWeek: "wednesday" },
+        { workoutId: "workout-d", order: 4, label: "D", name: "Treino D — Ombro e Trapézio", dayOfWeek: "friday" },
+        { workoutId: "workout-g", order: 5, label: "E", name: "Treino E — Recuperação Ativa", dayOfWeek: "sunday" },
+      ],
+      notes: "Semana 1 e 2 com carga progressiva; semana 3 com mudança de exercise; semana 4 com reduction — 50% do volume habitual.",
+      source: "treino.md",
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: "program-base-lower",
+      studentId: "",
+      nutritionistId: "demo-user",
+      name: "Base Glúteos e Pernas",
+      description: "Modelo de biblioteca para iniciar alunas.",
+      objective: "Hipertrofia de inferiores com foco em quadríceps e glúteos.",
+      workouts: [
+        { workoutId: "workout-m1", order: 1, label: "A", name: "Treino A — Glúteos e Pernas", dayOfWeek: "monday" },
+      ],
+      createdAt: new Date().toISOString(),
+    },
+  ];
+  setJSON(LS_KEY.programs, programs);
+
   setJSON(LS_KEY.diets, [...diets, ...dietsMaria]);
   setJSON(LS_KEY.history, history);
 
@@ -1017,6 +1059,326 @@ export function duplicateWorkout(id: string, req: DuplicateRequest, token: strin
     return Promise.resolve(copy);
   }
   return request<WorkoutDefine>(`/api/workouts/${id}/duplicate`, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+// ── Programas de treino (F19) ────────────────────────────────────────────
+// Um programa é uma coleção de TREINOS: `workouts` guarda apenas REFERÊNCIAS a
+// `workouts/{id}`. Atribuir a um aluno materializa CÓPIAS dos treinos do
+// modelo (o original fica na biblioteca) e repassa as referências para as cópias.
+
+/** Id sintético do modo demo (o backend usa o id do Firestore). */
+function demoProgramId(): string {
+  return `program-${Date.now()}${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function demoWorkouts(): WorkoutDefine[] {
+  return getJSON<WorkoutDefine[]>(LS_KEY.workouts) ?? [];
+}
+
+function demoSaveWorkouts(list: WorkoutDefine[]) {
+  setJSON(LS_KEY.workouts, list);
+}
+
+function demoPrograms(): TrainingProgram[] {
+  return getJSON<TrainingProgram[]>(LS_KEY.programs) ?? [];
+}
+
+function demoSavePrograms(list: TrainingProgram[]) {
+  setJSON(LS_KEY.programs, list);
+}
+
+/**
+ * Programa visível para o token: nutricionista vê os próprios, aluno só os
+ * que estão atribuídos a ele. Espelha o filtro do backend (escopo por papel).
+ */
+function visiblePrograms(token: string): TrainingProgram[] {
+  const me = demoMe(token);
+  const all = demoPrograms();
+  if (me.role === "student") return all.filter((p) => p.studentId === me.id);
+  return all;
+}
+
+export function listPrograms(token: string): Promise<TrainingProgram[]> {
+  if (DEMO_MODE) {
+    return Promise.resolve(visiblePrograms(token));
+  }
+  return request<TrainingProgram[]>("/api/programs", token);
+}
+
+export function getProgram(id: string, token: string): Promise<TrainingProgram> {
+  if (DEMO_MODE) {
+    const p = visiblePrograms(token).find((x) => x.id === id);
+    if (!p) return Promise.reject(new Error("programa nao encontrado"));
+    return Promise.resolve(p);
+  }
+  return request<TrainingProgram>(`/api/programs/${id}`, token);
+}
+
+export function createProgram(p: TrainingProgram, token: string): Promise<TrainingProgram> {
+  if (DEMO_MODE) {
+    const now = new Date().toISOString();
+    const neu: TrainingProgram = {
+      ...p,
+      id: demoProgramId(),
+      studentId: p.studentId || "",
+      createdAt: now,
+      updatedAt: now,
+    };
+    demoSavePrograms([...demoPrograms(), neu]);
+    return Promise.resolve(neu);
+  }
+  return request<TrainingProgram>("/api/programs", token, {
+    method: "POST",
+    body: JSON.stringify(p),
+  });
+}
+
+export function updateProgram(id: string, p: TrainingProgram, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    const list = demoPrograms();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx === -1) return Promise.reject(new Error("programa nao encontrado"));
+    // id/studentId/createdAt são imutáveis: preservados do registro existente.
+    const atual = list[idx];
+    list[idx] = { ...atual, ...p, id, studentId: atual.studentId, createdAt: atual.createdAt, updatedAt: new Date().toISOString() };
+    demoSavePrograms(list);
+    return Promise.resolve();
+  }
+  return request<void>(`/api/programs/${id}`, token, {
+    method: "PUT",
+    body: JSON.stringify(p),
+  });
+}
+
+export function deleteProgram(id: string, token: string): Promise<void> {
+  if (DEMO_MODE) {
+    // Apagar o programa NÃO apaga os treinos já materializados.
+    demoSavePrograms(demoPrograms().filter((x) => x.id !== id));
+    return Promise.resolve();
+  }
+  return request<void>(`/api/programs/${id}`, token, { method: "DELETE" });
+}
+
+/** Duplica um treino de biblioteca para um aluno (usado por assign/duplicate). */
+function demoMaterializeWorkout(
+  id: string,
+  studentId: string,
+  newName: string
+): (WorkoutDefine & { id: string }) | null {
+  const workoutList = demoWorkouts();
+  const src = workoutList.find((x) => x.id === id);
+  if (!src) return null;
+  const copy = {
+    ...src,
+    id: `workout-${Date.now()}${Math.random().toString(36).slice(2, 6)}`,
+    name: newName,
+    studentId,
+    createdAt: new Date().toISOString(),
+    exercises: src.exercises?.map((e) => ({ ...e, id: undefined })),
+  };
+  demoSaveWorkouts([...workoutList, copy]);
+  return copy;
+}
+
+export function assignProgram(id: string, studentId: string, token: string): Promise<TrainingProgram> {
+  if (DEMO_MODE) {
+    const list = demoPrograms();
+    const idx = list.findIndex((x) => x.id === id);
+    if (idx === -1) return Promise.reject(new Error("programa nao encontrado"));
+    const src = list[idx];
+    if (!studentId) return Promise.reject(new Error("aluno obrigatorio"));
+    if (src.studentId && src.studentId !== studentId) {
+      return Promise.reject(new Error("programa ja atribuido a outro aluno"));
+    }
+    if (src.studentId === studentId) return Promise.resolve(src); // idempotente
+
+    const refs: TrainingProgram["workouts"] = [];
+    for (const ref of src.workouts ?? []) {
+      const copy = demoMaterializeWorkout(ref.workoutId, studentId, ref.name ?? "Treino");
+      if (!copy) return Promise.reject(new Error(`treino ${ref.workoutId} nao encontrado`));
+      refs.push({ ...ref, workoutId: copy.id });
+    }
+    const next: TrainingProgram = { ...src, studentId, workouts: refs, updatedAt: new Date().toISOString() };
+    list[idx] = next;
+    demoSavePrograms(list);
+    return Promise.resolve(next);
+  }
+  return request<TrainingProgram>(`/api/programs/${id}/assign`, token, {
+    method: "POST",
+    body: JSON.stringify({ studentId } satisfies AssignProgramRequest),
+  });
+}
+
+export function duplicateProgram(id: string, req: DuplicateRequest, token: string): Promise<TrainingProgram> {
+  if (DEMO_MODE) {
+    const list = demoPrograms();
+    const src = list.find((x) => x.id === id);
+    if (!src) return Promise.reject(new Error("programa nao encontrado"));
+    // Clonagem de biblioteca: cópias dos treinos e um programa sem aluno.
+    const now = new Date().toISOString();
+    const refs: TrainingProgram["workouts"] = [];
+    for (const ref of src.workouts ?? []) {
+      const copy = demoMaterializeWorkout(ref.workoutId, "", ref.name ?? "Treino");
+      if (!copy) return Promise.reject(new Error(`treino ${ref.workoutId} nao encontrado`));
+      refs.push({ ...ref, workoutId: copy.id });
+    }
+    const clone: TrainingProgram = {
+      ...src,
+      id: demoProgramId(),
+      name: req.newName || `${src.name} (copia)`,
+      studentId: "",
+      workouts: refs,
+      createdAt: now,
+      updatedAt: now,
+    };
+    demoSavePrograms([...list, clone]);
+    return Promise.resolve(clone);
+  }
+  return request<TrainingProgram>(`/api/programs/${id}/duplicate`, token, {
+    method: "POST",
+    body: JSON.stringify(req),
+  });
+}
+
+/**
+ * Importa um programa em markdown.
+ *
+ * Em produção o PARSING é do backend Go (programmd) — o cliente só envia o texto
+ * e recebe o programa com os treinos já criados. No modo demo não há backend,
+ * então um parser mínimo reproduz o mesmo formato (## TREINO X + tabela) para a
+ * tela funcionar offline. Divergir do backend aqui é aceitável: a demo é um
+ * mock, e o E2E da importação roda contra a API real.
+ */
+function demoParseProgramMarkdown(md: string, source: string) {
+  const lines = md.split(/\r?\n/);
+  const nameMatch = md.match(/^#\s+(.+)$/m);
+  const focoMatch = md.match(/\*\*Foco:\s*(.+?)\*\*/);
+  const name = nameMatch?.[1]?.trim() ?? "Programa importado";
+  const objetivo = focoMatch?.[1]?.trim();
+
+  const workoutList: (WorkoutDefine & { id: string })[] = [];
+  const refs: NonNullable<TrainingProgram["workouts"]> = [];
+  const notes: string[] = [];
+  const days = ["monday", "tuesday", "wednesday", "thursday", "friday", "saturday", "sunday"];
+
+  let atual: { titulo: string; exercicios: WorkoutExercise[]; descricao: string[] } | null = null;
+  let emNotas = false;
+
+  const fechar = () => {
+    if (!atual || atual.exercicios.length === 0) return;
+    const treino = atual.titulo;
+    workoutList.push({
+      id: `workout-import-${workoutList.length}-${Date.now()}`,
+      studentId: "",
+      nutritionistId: "",
+      name: treino,
+      objective: objetivo,
+      description: atual.descricao.join("\n"),
+      dayOfWeek: days[workoutList.length],
+      exercises: atual.exercicios,
+      createdAt: new Date().toISOString(),
+    });
+    refs.push({
+      workoutId: workoutList[workoutList.length - 1].id,
+      order: workoutList.length,
+      label: treino.match(/^TREINO\s+([A-Z])/i)?.[1],
+      name: treino.replace(/^TREINO\s+/i, ""),
+      dayOfWeek: days[workoutList.length - 1],
+    });
+    atual = null;
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+
+    if (/^##\s+TREINO\s+/i.test(line)) {
+      fechar();
+      emNotas = false;
+      atual = { titulo: line.replace(/^##\s+/, ""), exercicios: [], descricao: [] };
+      continue;
+    }
+    // Seções após os treinos (Estrutura semanal / PRs / Periodização) → notas.
+    if (/^##\s+/i.test(line) && atual) {
+      fechar();
+      emNotas = true;
+      notes.push(line.replace(/^##\s+/, ""));
+      continue;
+    }
+    if (/^##\s+/i.test(line) && !atual) {
+      emNotas = true;
+      notes.push(line.replace(/^##\s+/, ""));
+      continue;
+    }
+    if (!line || line === "---") continue;
+
+      if (atual && emNotas === false) {
+        if (line.startsWith("|")) {
+          const cells = line.split("|").map((c) => c.trim()).filter((c) => c !== "");
+          // cabeçalho, separador e a coluna "#" (índice da linha) não são dados
+          if (cells.length < 4) continue;
+          if (/^:?-+:?$/.test(cells[0]) || /^#$/i.test(cells[0])) continue;
+          if (/^exerc/i.test(cells[1])) continue;
+          const [exercicio, series, reps, obs] = cells.slice(1);
+          if (!exercicio) continue;
+          atual.exercicios.push({
+            name: exercicio,
+            sets: Number(series) || 0,
+            repetitions: reps ?? "",
+            weight: "",
+            restSeconds: 0,
+            notes: obs ?? "",
+            order: atual.exercicios.length + 1,
+          });
+          continue;
+        }
+      // Bloco de cardio (não vira exercício fictício) — vai para a descrição.
+      atual.descricao.push(line.replace(/^[-*]\s*/, "").replace(/\*\*/g, ""));
+      continue;
+    }
+
+    if (emNotas) notes.push(line.replace(/^[-*]\s*/, "").replace(/\*\*/g, ""));
+  }
+  fechar();
+
+  if (workoutList.length === 0) throw new Error("nenhum treino encontrado no markdown");
+  return { name, objective: objetivo, source, workouts: workoutList, refs, notes: notes.join("\n") };
+}
+
+export function importProgram(req: ImportProgramRequest, token: string): Promise<TrainingProgram> {
+  if (DEMO_MODE) {
+    // Erros de parsing viram Promise rejeitada (nunca throw síncrono): os
+    // callers tratam tudo via catch/await e um throw síncrono escaparia do
+    // tratamento de erro da UI.
+    let parsed: ReturnType<typeof demoParseProgramMarkdown>;
+    try {
+      if (!req.markdown?.trim()) throw new Error("markdown vazio");
+      parsed = demoParseProgramMarkdown(req.markdown, req.source || "markdown");
+    } catch (e) {
+      return Promise.reject(e);
+    }
+    const now = new Date().toISOString();
+    const lista = demoWorkouts();
+    const novos = parsed.workouts.map((w) => ({ ...w, studentId: req.studentId || "", nutritionistId: demoMe(token).id }));
+    demoSaveWorkouts([...lista, ...novos]);
+    const program: TrainingProgram = {
+      id: demoProgramId(),
+      studentId: req.studentId || "",
+      nutritionistId: req.nutritionistId || demoMe(token).id,
+      name: req.name || parsed.name,
+      objective: parsed.objective,
+      source: parsed.source,
+      notes: parsed.notes,
+      workouts: parsed.refs.map((r, i) => ({ ...r, workoutId: novos[i].id })),
+      createdAt: now,
+      updatedAt: now,
+    };
+    demoSavePrograms([...demoPrograms(), program]);
+    return Promise.resolve(program);
+  }
+  return request<TrainingProgram>("/api/programs/import", token, {
     method: "POST",
     body: JSON.stringify(req),
   });

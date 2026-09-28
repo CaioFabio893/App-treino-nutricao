@@ -140,6 +140,42 @@ type WorkoutExercise struct {
 	Order       int    `json:"order"`
 }
 
+// ── Programas de treinamento (F19) ──
+
+// TrainingProgram agrupa vários TREINOS em um programa (coleção programs/{id}).
+//
+// Decisão de modelagem (F19): um treino do programa NÃO é uma entidade nova —
+// é um `WorkoutDefine` já existente em `workouts/{id}`. O programa guarda apenas
+// uma lista ORDENADA de REFERÊNCIAS (`Workouts []ProgramWorkout`). Isso mantém
+// uma única implementação de treino (histórico, execução, impressão e UI do aluno
+// continuam apontando para `workouts/{id}`) e permite, no futuro, reordenar
+// treinos sem duplicar conteúdo, duplicar um programa e reatribuí-lo a outro aluno
+// materializando cópias dos treinos.
+type TrainingProgram struct {
+	ID             string            `json:"id,omitempty"`
+	StudentID      string            `json:"studentId"`                          // vazio = programa de biblioteca (não atribuído)
+	NutritionistID string            `json:"nutritionistId"`
+	Name           string            `json:"name"`
+	Description    string            `json:"description,omitempty"`
+	Objective      string            `json:"objective,omitempty"`
+	Workouts       []*ProgramWorkout `json:"workouts,omitempty"`
+	Notes          string            `json:"notes,omitempty"` // trechos da fonte preservados verbatim (PRs, periodização, estrutura semanal)
+	Source         string            `json:"source,omitempty"` // proveniência da importação (ex.: nome do arquivo)
+	CreatedAt      time.Time         `json:"createdAt,omitempty"`
+	UpdatedAt      time.Time         `json:"updatedAt,omitempty"`
+}
+
+// ProgramWorkout é a referência a um treino do programa (workouts/{id}).
+// Label/Name/DayOfWeek são SNAPSHOT do momento do vínculo, para a listagem do
+// programa continuar legível mesmo que o treino seja renomeado depois.
+type ProgramWorkout struct {
+	WorkoutID string `json:"workoutId"`
+	Order     int    `json:"order"`
+	Label     string `json:"label,omitempty"`     // "A", "B", ... (rótulo vindo da fonte)
+	Name      string `json:"name,omitempty"`      // nome do treino no momento do vínculo
+	DayOfWeek string `json:"dayOfWeek,omitempty"` // "monday".."sunday"
+}
+
 // ── Biblioteca de exercícios ──
 
 // ExerciseItem é um exercício da biblioteca compartilhada (coleção exercises/{id}).
@@ -265,6 +301,23 @@ type CompleteWorkoutRequest struct {
 	TotalExercises     int               `json:"totalExercises"`
 	Exercises          []HistoryExercise `json:"exercises,omitempty"`
 	Caption            string            `json:"caption,omitempty"` // legenda opcional do post automático
+}
+
+// ImportProgramRequest é o payload de POST /api/programs/import.
+// `Markdown` é o programa de treino no formato markdown: o backend parseia
+// (pacote programmd) e cria os treinos + o programa. `NutritionistID` só é
+// respeitado quando quem chama é admin (nutricionista sempre fica com o próprio uid).
+type ImportProgramRequest struct {
+	Markdown       string `json:"markdown"`
+	Source         string `json:"source,omitempty"`         // ex.: "treino.md"
+	Name           string `json:"name,omitempty"`           // sobrescreve o nome extraído do markdown
+	StudentID      string `json:"studentId,omitempty"`      // opcional: já atribui a um aluno
+	NutritionistID string `json:"nutritionistId,omitempty"` // admin apenas
+}
+
+// AssignProgramRequest é o payload de POST /api/programs/{id}/assign.
+type AssignProgramRequest struct {
+	StudentID string `json:"studentId"`
 }
 
 // ── Rede social ──

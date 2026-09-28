@@ -542,4 +542,88 @@ describe('Regras do Firestore', () => {
       await assertFails(anon.doc('exercises/supino').get());
     });
   });
+
+  describe('11. Programas de treinamento (F19) — só API Go', () => {
+    // O programa é uma lista ordenada de TREINOS (workouts/{id}); assim como
+    // treinos e dietas, ele é gerenciado exclusivamente pela API Go (Admin SDK
+    // ignora as regras). Nenhum papel — nem admin — acessa pelo SDK de cliente,
+    // nem para LEITURA: a listagem de programas do aluno passa pela API.
+    beforeEach(async () => {
+      await seedUser('admin-sys', { role: 'admin' });
+      await seedUser('nutri', { role: 'nutritionist' });
+      await seedUser('aluno-ativo', { role: 'student', status: 'active' });
+      await seedUser('aluno-pendente', { role: 'student', status: 'pending_approval' });
+      await seed({
+        programs: {
+          'prog-ciclo-2': {
+            nutritionistId: 'nutri',
+            studentId: 'aluno-ativo',
+            name: 'Louise Lima (Ciclo 2)',
+            workouts: [{ workoutId: 'w1', order: 1, label: 'A' }],
+          },
+        },
+      });
+    });
+
+    it('aluno ativo lê programa → NEGADO (só API Go)', async () => {
+      const a = authed('aluno-ativo').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2').get());
+    });
+
+    it('nutricionista lê programa (mesmo sendo o dono) → NEGADO', async () => {
+      const n = authed('nutri').firestore();
+      await assertFails(n.doc('programs/prog-ciclo-2').get());
+    });
+
+    it('admin lê programa → NEGADO', async () => {
+      const a = authed('admin-sys').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2').get());
+    });
+
+    it('pendente lê programa → NEGADO', async () => {
+      const p = authed('aluno-pendente').firestore();
+      await assertFails(p.doc('programs/prog-ciclo-2').get());
+    });
+
+    it('aluno lista programas → NEGADO', async () => {
+      const a = authed('aluno-ativo').firestore();
+      await assertFails(a.collection('programs').get());
+    });
+
+    it('admin lista programas → NEGADO', async () => {
+      const a = authed('admin-sys').firestore();
+      await assertFails(a.collection('programs').get());
+    });
+
+    it('nutricionista cria programa pelo client → NEGADO', async () => {
+      const n = authed('nutri').firestore();
+      await assertFails(n.doc('programs/novo').set({ name: 'Programa X' }));
+    });
+
+    it('admin cria programa pelo client → NEGADO', async () => {
+      const a = authed('admin-sys').firestore();
+      await assertFails(a.doc('programs/novo').set({ name: 'Programa X' }));
+    });
+
+    it('dono (nutricionista) atualiza programa → NEGADO', async () => {
+      const n = authed('nutri').firestore();
+      await assertFails(n.doc('programs/prog-ciclo-2').update({ name: 'Renomeado' }));
+    });
+
+    it('admin exclui programa → NEGADO', async () => {
+      const a = authed('admin-sys').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2').delete());
+    });
+
+    it('escrita em subcaminho de programa → NEGADO', async () => {
+      const a = authed('admin-sys').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2/workouts/w1').set({ name: 'x' }));
+      await assertFails(a.doc('programs/prog-ciclo-2/workouts/w1').get());
+    });
+
+    it('não autenticado lê programa → NEGADO', async () => {
+      const anon = testEnv.unauthenticatedContext().firestore();
+      await assertFails(anon.doc('programs/prog-ciclo-2').get());
+    });
+  });
 });

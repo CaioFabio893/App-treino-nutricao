@@ -7,7 +7,7 @@ Contexto obrigatório para agentes trabalhando neste repositório.
 
 Reescrita profissional (V2) do app "Treino & Nutrição" da **Louise Lima**
 (plataforma de treino + nutrição para alunos). A V1 funciona em produção e
-vive **neste mesmo repositório** (branch `main`) — o V2 é um rebuild aprovado
+vive **nestee mesmo repositório** (branch `main`) — o V2 é um rebuild aprovado
 da V1, e não uma adição à V1.
 
 - **V1 (atual, funcional)**: Next.js 16.3.5 (React 19.2.8 + TypeScript) no
@@ -35,13 +35,16 @@ da V1, e não uma adição à V1.
 
 ## Fase atual (IMPORTANTE)
 
-**Fase 3 — Testes E2E (Playwright): CONCLUÍDA (22 set 2026).**
+**F19 — Programa de Treino CONCLUÍDA (26 set 2026).**
 Fase 0 (análise/planejamento) concluída e aprovada; Fase 1 (correções TDD +
-security rules + hardening) concluída; Fase 2 (Vitest 28/28) concluída;
-Fase 3 (Playwright E2E 17/17) concluída. Relatório em
-`docs/reports/phase-03-e2e-tests.md`.
-**Próximo passo:** retaguarda de lint (31E+11W) + decidir próximas fases
-(F5 exercícios / F8 alimentos / F13 revisão / F14 PWA / F15 produção).
+security rules + hardening) concluída; Fase 2 (Vitest) concluída;
+Fase 3 (Playwright E2E) concluída; F14 (PWA), F15.2 (migration), F15.3
+(fechamento pós-migração), F16 (auditoria "Nova dieta"), F17 (login sem
+Google) e F19 (Programa de Treino) concluídas. Backend `go vet`/`go test`
+**208/208** · Firestore rules **76/76** · Vitest **131/131** ·
+Playwright E2E **30/30** · `tsc --noEmit` ✅ · `next build` ✅ ·
+**Lint frontend 0/0** ✅.
+**Próximo passo:** decisão de produto sobre F8 e ações manuais de segurança da F16.
 
 Governança desde 20 set 2026: **execução contínua** — commits automáticos em
 checkpoints verdes (Conventional Commits), **sem push/deploy**, sem tocar na
@@ -51,21 +54,22 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 ## Stack e comandos
 
 - Backend: Go 1.23+, mod `treino-louise/backend`. Testes: `go test ./...`
-  (91 testes na V1 — chain de integração real sem Firebase em `main_test.go`).
+  (208 testes na V2 incluindo chain de integração, service, parser,
+  repository e demais).
 - Firestore rules: testes em `firestore-tests/` (`cd firestore-tests; npm test` —
-  sobe o emulador, roda 53 testes e derruba; exige Java + `firebase emulators:exec`).
+  sobe o emulador, roda 76 testes e derruba; exige Java + `firebase emulators:exec`).
 - Frontend: Next.js 16 (standalone), `npm run dev` / `npm run build` /
-  `npm run lint` / `npm test` (Vitest — 28 testes, Fase 2) / `npm run test:e2e`
-  (Playwright — 17 testes, Fase 3; sobe emuladores + backend + seed). V1 tinha
-  zero testes de frontend; V2 mantém Vitest (unit/component) + Playwright (E2E).
+  `npm run lint` / `npm test` (Vitest — 131 testes) / `npm run test:e2e`
+  (Playwright — 30 testes; sobe emuladores + backend + seed).
 - Firestore: regras em `firestore.rules`; índices em `firestore.indexes.json`
-  (9 compostos). Emuladores configurados em `firebase.json` (Firestore
+  (11 compostos). Emuladores configurados em `firebase.json` (Firestore
   127.0.0.1:8080) — rodar testes de regras contra o emulador, nunca produção.
 - Ambiente: Windows + PowerShell (sem `rg` — usar ferramenta de grep do agente).
 - `firestore.rules` protege contra acesso direto de cliente; a API Go usa
   Admin SDK (ignora regras) — **toda escrita de dados de negócio passa pela
   API Go** (desde a execução 20 set 2026, `users` update/delete e `plans`
-  via SDK cliente são negados até para admin).
+  via SDK cliente são negados até para admin; `programs` é totalmente negada ao
+  cliente — todo acesso passa pela API Go).
 
 ## Pontos de atenção herdados da V1 (não repetir na V2)
 
@@ -95,13 +99,23 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
    600 req/min/IP — **nunca escreva fallback com `*`**. Deploy no Cloud Run
    precisa de `GO_ENV=production` + `ALLOWED_ORIGIN=<domínio exato do front>`.
 10. **Allowlist de `users` update** (`allowedSelfProfileUpdate`): via SDK de
-     cliente o dono só altera `name`/`email`/`photoURL`/`bio`
-     (`affectedKeys().hasOnly`); `createdAt`/`authProvider`/campos
-     administrativos mudam somente pela API Go. Não adicionar campo novo à
-     allowlist sem fluxo real que o envie e sem teste de regras. A regra vale
-     **também para o `PUT /api/me` (F13)**: o handler zera toda campo não
-     editável (`role`/`status`/`planID`/`features`/`nutritionistID`/
-     `startDate`/`endDate`/aprovação/`createdAt`) e `AuthProvider` vem sempre
-     do ID token — nunca do body. `GetOrCreateProfile` preserva do registro
-     existente os dois campos que o body podia gravar antes da F13
-     (`StartDate`/`EndDate` — ambos alimentam cálculo de pontuação).
+      cliente o dono só altera `name`/`email`/`photoURL`/`bio`
+      (`affectedKeys().hasOnly`); `createdAt`/`authProvider`/campos
+      administrativos mudam somente pela API Go. Não adicionar campo novo à
+      allowlist sem fluxo real que o envie e sem teste de regras. A regra vale
+      **também para o `PUT /api/me` (F13)**: o handler zera toda campo não
+      editável (`role`/`status`/`planID`/`features`/`nutritionistID`/
+      `startDate`/`endDate`/aprovação/`createdAt`) e `AuthProvider` vem sempre
+      do ID token — nunca do body. `GetOrCreateProfile` preserva do registro
+      existente os dois campos que o body podia gravar antes da F13
+       (`StartDate`/`EndDate` — ambos alimentam cálculo de pontuação).
+11. **Programa referencia treino, não o embute (F19)**: `programs/{id}` guarda
+    só `workoutId`+ordem, então **toda** rota que grava ou materializa programa
+    (`POST /api/programs`, `PUT`, `assign`, `duplicate`) tem de conferir a posse
+    de cada treino referenciado — `Service.ValidateProgramWorkoutOwnership` e
+    `src.NutritionistID == p.NutritionistID` no `AssignProgram`/`DuplicateProgram`
+    (admin libera). Sem isso a nutricionista A monta programa sobre o treino da B
+    e o `assign` materializa cópia do conteúdo alheio (exfiltração). Além disso
+    `PUT /api/programs/{id}` trata `nutritionistId` **e** `studentId` como
+    **incondicionalmente** do registro: reatribuir aluno só por
+    `POST /assign`, que cria as cópias e recusa (409) trocar de aluno.

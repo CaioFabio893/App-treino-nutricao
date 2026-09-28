@@ -86,6 +86,16 @@ type Repository interface {
 	UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error
 	DeleteWorkout(ctx context.Context, id string) error
 
+	// Programas de treinamento (F19) — lista ordenada de referências a treinos
+	// existentes (workouts/{id}); o conteúdo do treino NÃO é duplicado aqui.
+	CreateProgram(ctx context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error)
+	GetProgram(ctx context.Context, id string) (*models.TrainingProgram, error)
+	ListProgramsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.TrainingProgram, error)
+	ListProgramsForStudent(ctx context.Context, studentID string) ([]*models.TrainingProgram, error)
+	ListPrograms(ctx context.Context) ([]*models.TrainingProgram, error)
+	UpdateProgram(ctx context.Context, id string, p *models.TrainingProgram) error
+	DeleteProgram(ctx context.Context, id string) error
+
 	// Dietas
 	CreateDiet(ctx context.Context, d *models.Diet) (*models.Diet, error)
 	GetDiet(ctx context.Context, id string) (*models.Diet, error)
@@ -565,6 +575,112 @@ func (r *firestoreRepo) UpdateWorkout(ctx context.Context, id string, w *models.
 
 func (r *firestoreRepo) DeleteWorkout(ctx context.Context, id string) error {
 	_, err := r.fs.Collection("workouts").Doc(id).Delete(ctx)
+	return err
+}
+
+// ── Programas de treinamento (F19) ──
+//
+// O programa NÃO duplica o treino: `workouts` é uma lista ordenada de
+// referências (ProgramWorkout.WorkoutID) para documentos de workouts/{id}. As
+// cópias materializadas na atribuição usam o mesmo formato dos treinos normais.
+
+func (r *firestoreRepo) CreateProgram(ctx context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error) {
+	ref, _, err := r.fs.Collection("programs").Add(ctx, map[string]any{
+		"studentId":      p.StudentID,
+		"nutritionistId": p.NutritionistID,
+		"name":           p.Name,
+		"description":    p.Description,
+		"objective":      p.Objective,
+		"workouts":       p.Workouts,
+		"notes":          p.Notes,
+		"source":         p.Source,
+		"createdAt":      firestore.ServerTimestamp,
+		"updatedAt":      firestore.ServerTimestamp,
+	})
+	if err != nil {
+		return nil, err
+	}
+	p.ID = ref.ID
+	return p, nil
+}
+
+func (r *firestoreRepo) GetProgram(ctx context.Context, id string) (*models.TrainingProgram, error) {
+	doc, err := r.fs.Collection("programs").Doc(id).Get(ctx)
+	if err != nil {
+		if isNotFound(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	out := &models.TrainingProgram{}
+	if err := doc.DataTo(out); err != nil {
+		return nil, err
+	}
+	out.ID = doc.Ref.ID
+	return out, nil
+}
+
+func (r *firestoreRepo) ListProgramsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.TrainingProgram, error) {
+	iter := r.fs.Collection("programs").
+		Where("nutritionistId", "==", nutritionistID).
+		OrderBy("createdAt", firestore.Desc).
+		Documents(ctx)
+	return programsFromIter(iter)
+}
+
+func (r *firestoreRepo) ListProgramsForStudent(ctx context.Context, studentID string) ([]*models.TrainingProgram, error) {
+	iter := r.fs.Collection("programs").
+		Where("studentId", "==", studentID).
+		OrderBy("createdAt", firestore.Desc).
+		Documents(ctx)
+	return programsFromIter(iter)
+}
+
+func (r *firestoreRepo) ListPrograms(ctx context.Context) ([]*models.TrainingProgram, error) {
+	iter := r.fs.Collection("programs").OrderBy("createdAt", firestore.Desc).Documents(ctx)
+	return programsFromIter(iter)
+}
+
+func programsFromIter(iter docIterator) ([]*models.TrainingProgram, error) {
+	defer iter.Stop()
+	var out []*models.TrainingProgram
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return nil, err
+		}
+		p := &models.TrainingProgram{}
+		if err := doc.DataTo(p); err != nil {
+			continue
+		}
+		p.ID = doc.Ref.ID
+		out = append(out, p)
+	}
+	return ensureNonNilSlice(out), nil
+}
+
+// UpdateProgram não envia createdAt: o MergeAll sem esse campo preserva o valor
+// gravado na criação (regra: createdAt NUNCA é sobrescrito).
+func (r *firestoreRepo) UpdateProgram(ctx context.Context, id string, p *models.TrainingProgram) error {
+	_, err := r.fs.Collection("programs").Doc(id).Set(ctx, map[string]any{
+		"studentId":      p.StudentID,
+		"nutritionistId": p.NutritionistID,
+		"name":           p.Name,
+		"description":    p.Description,
+		"objective":      p.Objective,
+		"workouts":       p.Workouts,
+		"notes":          p.Notes,
+		"source":         p.Source,
+		"updatedAt":      firestore.ServerTimestamp,
+	}, firestore.MergeAll)
+	return err
+}
+
+func (r *firestoreRepo) DeleteProgram(ctx context.Context, id string) error {
+	_, err := r.fs.Collection("programs").Doc(id).Delete(ctx)
 	return err
 }
 

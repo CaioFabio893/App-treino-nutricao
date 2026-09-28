@@ -16,6 +16,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -93,6 +94,18 @@ type chainFakeRepo struct {
 	createdExercise   *models.ExerciseItem
 	updatedExercise   *models.ExerciseItem
 	deletedExerciseID string
+
+	// F19 (programas de treinamento): o programa é uma lista ordenada de
+	// TREINOS que já existem em workouts/{id}, então o fake precisa de uma
+	// "coleção" de treinos endereçada por id para a atribuição materializar
+	// cópias, além dos stubs de CRUD do próprio programa.
+	listPrograms     []*models.TrainingProgram
+	program          *models.TrainingProgram
+	createdProgram   *models.TrainingProgram
+	updatedProgram   *models.TrainingProgram
+	deletedProgramID string
+	createdWorkouts  []*models.WorkoutDefine
+	workoutsByID     map[string]*models.WorkoutDefine
 }
 
 // postsMap inicializa (se preciso) o mapa de posts do fake.
@@ -147,7 +160,13 @@ func (f *chainFakeRepo) GetUserProfile(_ context.Context, uid string) (*models.U
 	return f.profile, nil
 }
 
-func (f *chainFakeRepo) GetWorkout(_ context.Context, _ string) (*models.WorkoutDefine, error) {
+func (f *chainFakeRepo) GetWorkout(ctx context.Context, id string) (*models.WorkoutDefine, error) {
+	if f.workoutsByID != nil {
+		if w, ok := f.workoutsByID[id]; ok {
+			cp := *w
+			return &cp, nil
+		}
+	}
 	if f.workout == nil {
 		return nil, nil
 	}
@@ -183,8 +202,70 @@ func (f *chainFakeRepo) CreateDiet(_ context.Context, d *models.Diet) (*models.D
 
 func (f *chainFakeRepo) CreateWorkout(_ context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error) {
 	f.createdWorkout = w
-	w.ID = "w-novo"
+	f.createdWorkouts = append(f.createdWorkouts, w)
+	// Ids sequenciais: a importação de um programa cria VÁRIOS treinos e as
+	// referências do programa precisam de ids distintos (o primeiro mantém
+	// "w-novo" para não mudar o que os testes existentes observam).
+	if len(f.createdWorkouts) == 1 {
+		w.ID = "w-novo"
+	} else {
+		w.ID = fmt.Sprintf("w-novo-%d", len(f.createdWorkouts))
+	}
+	if f.workoutsByID == nil {
+		f.workoutsByID = map[string]*models.WorkoutDefine{}
+	}
+	f.workoutsByID[w.ID] = w
 	return w, nil
+}
+
+// ── Programas de treinamento (F19) ──
+
+func (f *chainFakeRepo) GetProgram(_ context.Context, _ string) (*models.TrainingProgram, error) {
+	if f.program == nil {
+		return nil, nil
+	}
+	p := *f.program
+	return &p, nil
+}
+
+func (f *chainFakeRepo) CreateProgram(_ context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error) {
+	f.createdProgram = p
+	p.ID = "prog-novo"
+	return p, nil
+}
+
+func (f *chainFakeRepo) UpdateProgram(_ context.Context, _ string, p *models.TrainingProgram) error {
+	f.updatedProgram = p
+	return nil
+}
+
+func (f *chainFakeRepo) DeleteProgram(_ context.Context, id string) error {
+	f.deletedProgramID = id
+	return nil
+}
+
+func (f *chainFakeRepo) ListPrograms(_ context.Context) ([]*models.TrainingProgram, error) {
+	return f.listPrograms, nil
+}
+
+func (f *chainFakeRepo) ListProgramsForNutritionist(_ context.Context, _ string) ([]*models.TrainingProgram, error) {
+	return f.listPrograms, nil
+}
+
+func (f *chainFakeRepo) ListProgramsForStudent(_ context.Context, _ string) ([]*models.TrainingProgram, error) {
+	return f.listPrograms, nil
+}
+
+// getWorkoutByID é o espelho de GetWorkout endereçado por id (necessário para a
+// atribuição de programa, que resolve cada referência).
+func (f *chainFakeRepo) getWorkoutByID(ctx context.Context, id string) (*models.WorkoutDefine, error) {
+	if f.workoutsByID != nil {
+		if w, ok := f.workoutsByID[id]; ok {
+			cp := *w
+			return &cp, nil
+		}
+	}
+	return f.GetWorkout(ctx, id)
 }
 
 func (f *chainFakeRepo) ListDietsForNutritionist(_ context.Context, _ string) ([]*models.Diet, error) {

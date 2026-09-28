@@ -4,11 +4,12 @@
 
 ---
 
-## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 + F17 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security + Login sem Google/Cadastro/Recuperação
+## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 + F17 + F19 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security + Login sem Google/Cadastro/Recuperação + Programa de Treino
 
-**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE), F17 CONCLUÍDA — login sem Google + cadastro com confirmação + recuperação de senha (PASS).** Backend `go vet`/`go test` **147/147** ✅ ·
-Firestore rules **64/64** ✅ · Vitest **98/98** ✅ · Playwright E2E **29/29** ✅ ·
-`tsc --noEmit` ✅ · `next build` ✅ (25 rotas) · **Lint frontend 0/0** ✅.
+**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE), F17 CONCLUÍDA — login sem Google + cadastro com confirmação + recuperação de senha (PASS), F19 CONCLUÍDA — Programa de Treino (import markdown + assign + duplicate).** Backend `go vet`/`go test` **208/208** ✅ · Firestore rules **76/76** ✅ · Vitest **131/131** ✅ · Playwright E2E **30/30** ✅ · `tsc --noEmit` ✅ · `next build` ✅ (25 rotas) · **Lint frontend 0/0** ✅.
+
+- **F19 — Programa de Treino (26 set 2026):** a nutricionista importa automaticamente um programa de treino escrito em markdown (`treino.md`), sem digitar exercício por exercício. Modelo `TrainingProgram` (coleção `programs/{id}`) contém lista ordenada de referências a `WorkoutDefine` existentes (`ProgramWorkout{WorkoutID, Order, Label, Name, DayOfWeek}`) — um treino do programa NÃO é entidade nova, é um `WorkoutDefine` já existente em `workouts/{id}`; o programa guarda apenas referências. Parser `backend/programmd/parser.go` converte markdown (`# Nome`, `**Foco: …**`, `## TREINO X — Nome` + tabela `| # | Exercício | Séries | Reps | Observação |`) em estrutura validada. Requests: `ImportProgramRequest{markdown, source, name, studentId, nutritionistId}`, `AssignProgramRequest{studentId}`. Duplicação reaproveita `DuplicateRequest{newName, newStudentId}` existente. Programas são free tier (sem feature de plano). Leitura exige aprovado; escrita exige `nutritionist`/`admin` + `RequireApproved`. Rotas: `/nutritionist/programs`, `/nutritionist/programs/[id]`, `/programas`, `/programas/[id]`. Componentes: `ProgramDetail.tsx` (read-only), `ProgramForm.tsx` (metadados + ordem), `ProgramImport.tsx` (textarea/arquivo .md), `StudentProgramsPage.tsx`. `lib/programDays.ts` com rótulos PT-BR. `ProgramIcon` adicionado em `components/icons/`. Bugs corrigidos: `CreateProgramFromImport` criava treinos órfãos sem `NutritionistID` (403 na abertura do programa — corrigido no service + teste de regressão); parser demo lia coluna `#` como nome do exercício (`cells.slice(1)`); `importProgram` no modo demo lançava erro síncrono (agora retorna Promise rejeitada); **auditoria de segurança pós-entrega**: programa podia referenciar treino de outra nutricionista (exfiltração — o `assign` materializava cópia do treino alheio; corrigido com `ValidateProgramWorkoutOwnership` + check no `AssignProgram`/`DuplicateProgram`) e o `PUT /api/programs/{id` aceitava `studentId` do body, burlando o 409 do `assign` (vínculo agora incondicional do registro; reatribuição só via `POST /assign`) — 6 testes de regressão, RED confirmado antes do fix. Resultado do arquivo real: 1 programa, 5 treinos (A–E), 30 exercícios (A=5, B=5, C=7, D=6, E=7).
+  Relatório: `docs/reports/phase-19-training-programs.md`.
 
 - **F17 — Login sem Google, cadastro com confirmação e recuperação de senha
   (24 set 2026):** ADR-002 implementado no frontend. Login (`/login`) sem
@@ -50,7 +51,7 @@ Firestore rules **64/64** ✅ · Vitest **98/98** ✅ · Playwright E2E **29/29*
   página `/nutritionist/exercises`, item na sidebar, seletor no `WorkoutForm`).
   Relatório: `docs/reports/phase-5-exercise-library.md`.
 
-**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2** (API `treino-api-00013-867` + web `treino-web-00009-mfg`, regras Firestore/9 índices publicados, `GO_ENV=production`, CORS com as 2 origens, `RATE_LIMIT=120`, smoke/E2E de produção verdes); F15.3 (fechamento pós-migração) **CONCLUÍDA** — auditoria READ-ONLY PASS (revisões/tráfego corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes), migração técnica ENCERRADA; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **F16 (auditoria "Nova dieta" + secret scanning) CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE** (worktree limpo, chave só no histórico: referrer restriction + rotação requerem ação no Google Cloud/Firebase Console); **F17 (login sem Google + cadastro + recuperação) CONCLUÍDA** — ADR-002 implementado no frontend, usuários V1 Google seguem logando pela conta existente (provedor permanece válido no backend), produção ainda com botão Google (alteração NÃO feita em produção — sem deploy nesta fase); **pendências humanas**: validação de produção pela Louise (login real + fluxos), PWA em dispositivo, rotação/limite da chave do Firebase e F8; **próximo passo recomendado**: decisão de produto sobre F8 e ações manuais de segurança da F16.
+**Próximo passo:** F8 (alimentos) segue **bloqueada** por decisão de produto (formato da dieta: texto livre vs estruturado); F15.2 (migração V1→V2) **CONCLUÍDA — produção rodando 100% V2**; F15.3 (fechamento pós-migração) **CONCLUÍDA**; F14 (auditoria PWA) CONCLUÍDA com PASS sem alterações; **F16 (auditoria "Nova dieta" + secret scanning) CONCLUÍDA — PASS — AÇÃO MANUAL PENDENTE**; **F17 (login sem Google + cadastro + recuperação) CONCLUÍDA**; **F19 (Programa de Treino) CONCLUÍDA**; **próximo passo recomendado**: decisão de produto sobre F8 e ações manuais de segurança da F16.
 
 ### Fase 14.1 — Testes PWA (23 set 2026)
 
@@ -369,23 +370,24 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 
 - [x] Configurar Firestore Emulator + testes de regras (seção 25 do plano).
 - [x] Hardening de produção: ALLOWED_ORIGIN obrigatório, rate limit default,
-      allowlist de users (relatório `phase-01-hardening.md`).
+       allowlist de users (relatório `phase-01-hardening.md`).
 - [x] Decisão do achado A3: NÃO criar `users(role, nutritionistID)` (index-merge).
 - [x] Integrar e commitar o working tree V2 existente (dashboard/ranking/dietas
-      texto/auto-create /api/me).
+       texto/auto-create /api/me).
 - [x] **[Fase 2]** Frontend: setup Vitest e primeiros testes (28/28 verdes;
-      relatório `phase-02-frontend-tests.md`).
+       relatório `phase-02-frontend-tests.md`).
 - [x] **[Fase 3]** Frontend: Playwright (E2E) — login, aprovação, conclusão de
-      treino (fluxos críticos). 17/17 verdes; relatório `phase-03-e2e-tests.md`.
+       treino (fluxos críticos). 17/17 verdes; relatório `phase-03-e2e-tests.md`.
 - [x] Retaguarda: limpar dívida de lint do frontend (31E+11W → **0/0**, 22 set
-      2026). Decisão: regra `react-hooks/set-state-in-effect` desligada (falso
-      positivo no padrão de fetch no mount; reativar na migração RSC/SWR);
-      entidades corrigidas; `Avatar` compartilhado para avatares.
+       2026). Decisão: regra `react-hooks/set-state-in-effect` desligada (falso
+       positivo no padrão de fetch no mount; reativar na migração RSC/SWR);
+       entidades corrigidas; `Avatar` compartilhado para avatares.
 - [x] Corrigir corrida de deep-link de papel (guard `DashboardLayout` decide
-      redirect com `role` default "student" antes do perfil carregar — corrigido
-      no hardening pré-F13 via `profileLoaded`; ver seção acima).
+       redirect com `role` default "student" antes do perfil carregar — corrigido
+       no hardening pré-F13 via `profileLoaded`; ver seção acima).
+- [x] **[F19]** Programa de Treino: import markdown, assign, duplicate, rotas frontend, regras Firestore, testes — 208 Go / 131 Vitest / 76 rules / 30 E2E (26 set 2026).
 - [ ] Harmonizar pergunta em aberto do status `blocked` vs `paused/inactive`
-      (achado A10 — regras já negam status fora da whitelist).
+       (achado A10 — regras já negam status fora da whitelist).
 - [ ] Seguir com as demais correções/implementações do SDD da Fase 1.
 
 ---
@@ -448,11 +450,11 @@ atendido por index-merge; ver seção "Decisão A3 — índice composto" no rela
 ### Próximos passos
 
 - [ ] **Checkpoint Fase 0**: revisar docs acima com o dono do projeto e
-      validar recomendações em aberto (status `blocked` vs `paused/inactive`,
-      plano vazio default, etc. — ver `docs/security/plans.md` "Perguntas em
-      aberto").
+       validar recomendações em aberto (status `blocked` vs `paused/inactive`,
+       plano vazio default, etc. — ver `docs/security/plans.md` "Perguntas em
+       aberto").
 - [ ] APÓS OK: iniciar Fase 1 (definir escopo/SDD no `docs/sdd/` e
-      implementação TDD camada por camada). Nada é implementado antes do OK.
+       implementação TDD camada por camada). Nada é implementado antes do OK.
 
 ---
 
@@ -514,3 +516,4 @@ mudanças (reproduzida com e sem elas; rodada final 24/24 verde).
 | 24 set 2026 | 15.2 | **F15.2 (MIGRATION V1→V2 EM PRODUÇÃO — executada)**: autorização explícita do dono; API V2 (revisão 00013-867) + frontend V2 (00009-mfg) + regras Firestore/9 índices publicados (64/64); `GO_ENV=production`, CORS 2 origens, `RATE_LIMIT=120`; smoke/E2E de produção verdes (/health, CORS, auth 401, 403 não-aprovado, Firestore 403, PWA, CSP); valores públicos `NEXT_PUBLIC_FIREBASE_*` reais extraídos do bundle de produção; cleanup completo de usuário temporário de teste; URLs finais preservadas; produção 100% V2; sem commit/push |
 | 24 set 2026 | 15.3 | **F15.3 (fechamento pós-migração)**: auditoria READ-ONLY PASS — revisões/tráfego V2 corretos, 9/9 índices READY, zero dados de teste, zero processos órfãos, zero builds pendentes; migração técnica ENCERRADA; documentados checklists de validação humana (login real, PWA), estado real do Google login (código ainda o expõe; ADR-002 pendente) e F8 bloqueada com decisões registradas; Git classificado (docs a versionar × config local); relatório phase-15-3-post-migration |
 | 24 set 2026 | 16 | **F16 (auditoria "Nova dieta" + secret scanning)**: eixo segurança — alerta GitHub Google API Key `[REDACTED]` no `phase-15-2-deploy.md` (commit `5f82005`): HEAD já redigido (`3d59a6c`), worktree limpo, chave só no histórico → **PASS — AÇÃO MANUAL PENDENTE** (referrer restriction + rotação manual); eixo frontend — DietForm a11y (htmlFor/id, role=alert, aria-invalid/describedby), labels sem uppercase, touch targets, install prompt PWA reposicionado (z-index 210, sem sobrepor nav), padding-bottom 130px; +2 Vitest (61→63) +1 E2E (23→24); falha intermitente pré-existente do zz-aprovacao documentada; relatório phase-16-nova-dieta-security-audit |
+| 26 set 2026 | 19 | **F19 (Programa de Treino)**: import markdown (`programmd/parser.go`), modelo `TrainingProgram`/`ProgramWorkout`, 8 endpoints da API, CLI `programimport`, regras Firestore (`programs` negada ao cliente), 12 testes de regras novos; bugs corrigidos (treinos orfaos, parser demo `cells.slice(1)`, erro sincrono); 208 Go / 131 Vitest / 76 rules / 30 E2E; relatório phase-19-training-programs |

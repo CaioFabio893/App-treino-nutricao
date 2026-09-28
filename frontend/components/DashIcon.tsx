@@ -7,6 +7,7 @@ interface Props {
     | "grid"
     | "users"
     | "dumbbell"
+    | "program"
     | "leaf"
     | "feed"
     | "trophy"
@@ -60,6 +61,14 @@ export default function DashIcon({ name, size = 18 }: Props) {
           <rect x="5.5" y="7.5" width="2.4" height="9" rx="0.8" />
           <rect x="16.1" y="7.5" width="2.4" height="9" rx="0.8" />
           <line x1="8" y1="12" x2="16" y2="12" />
+        </svg>
+      );
+    case "program":
+      return (
+        <svg {...common}>
+          <rect x="3" y="4" width="18" height="5" rx="1.6" />
+          <rect x="3" y="12" width="18" height="5" rx="1.6" />
+          <path d="M6 21h12" />
         </svg>
       );
     case "leaf":

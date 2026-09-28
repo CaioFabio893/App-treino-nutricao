@@ -179,6 +179,25 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("DELETE /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteWorkout))))
 	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateWorkout))))
 
+	// ── Programas de treinamento (F19 — free tier, como treinos) ──
+	//
+	// O programa é uma lista ORDENADA de treinos que já existem em
+	// workouts/{id}; ele não duplica o conteúdo do treino. Por isso as rotas
+	// abaixo não criam entity nova: a navegação programa -> treino -> exercício
+	// reutiliza GET /api/workouts/{id}.
+	//
+	// "import" é literal e "duplicate" fica sob {id}: no ServeMux do Go 1.22+
+	// o padrão literal tem precedência, então POST /api/programs/import nunca
+	// colide com POST /api/programs/{id}/duplicate.
+	mux.HandleFunc("GET /api/programs", a.Require(a.RequireApproved(h.HandleListPrograms)))
+	mux.HandleFunc("POST /api/programs", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateProgram))))
+	mux.HandleFunc("POST /api/programs/import", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleImportProgram))))
+	mux.HandleFunc("GET /api/programs/{id}", a.Require(a.RequireApproved(h.HandleGetProgram)))
+	mux.HandleFunc("PUT /api/programs/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateProgram))))
+	mux.HandleFunc("DELETE /api/programs/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteProgram))))
+	mux.HandleFunc("POST /api/programs/{id}/assign", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleAssignProgram))))
+	mux.HandleFunc("POST /api/programs/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateProgram))))
+
 	// ── Biblioteca de exercícios (catálogo global) ──
 	// Leitura: usuário aprovado (aluno consulta; nunca escreve). Escrita:
 	// somente nutricionista/admin — sempre via API Go (rules negam SDK cliente).
