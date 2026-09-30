@@ -325,9 +325,6 @@ gcloud run deploy treino-web \
   --memory 512Mi
 ```
 
-> **NEXT_PUBLIC_DEMO** fica de fora de propósito: em produção o modo demo deve
-> estar desligado, e o `.env.local` que o ativa não entra na imagem.
-
 O link final fica em `https://treino-web-834622951375.southamerica-east1.run.app`
 (ou no domínio próprio configurado).
 

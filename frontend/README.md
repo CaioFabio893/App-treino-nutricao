@@ -14,20 +14,6 @@ cp .env.example .env.local   # no Windows: copy .env.example .env.local
 npm run dev                  # abre http://localhost:3000
 ```
 
-### Modo demo (sem Firebase)
-
-No `.env.local`, basta:
-
-```
-NEXT_PUBLIC_DEMO=1
-```
-
-O app simula o backend Go inteiro em memória/localStorage (sem rede), com
-dados de exemplo — login, treinos, dietas, feed, ranking e painel do
-nutricionista funcionam. Troque para `NEXT_PUBLIC_DEMO=0` quando for conectar
-o Firebase de verdade (preencha as `NEXT_PUBLIC_FIREBASE_*` e
-`NEXT_PUBLIC_API_URL` conforme o guia da raiz).
-
 ## Scripts
 
 | Comando               | O que faz                                          |
@@ -36,14 +22,14 @@ o Firebase de verdade (preencha as `NEXT_PUBLIC_FIREBASE_*` e
 | `npm run build`       | build de produção (standalone)                     |
 | `npm run start`       | serve o build de produção (`next start`)           |
 | `npm run lint`        | ESLint                                             |
-| `npm test`            | Vitest — testes unitários/componentes (61)         |
-| `npm run test:e2e`    | Playwright E2E (23 — sobe emuladores + backend + seed) |
+| `npm test`            | Vitest — testes unitários/componentes (104)        |
+| `npm run test:e2e`    | Playwright E2E (30 — sobe emuladores + backend + seed) |
 
 ## Estrutura
 
 ```
 app/
-  page.tsx            # home: redireciona por papel (demo)
+  page.tsx            # home: redireciona por papel
   login/              # login (Firebase)
   (aluno)/            # área do aluno: treinos, dietas, comunidade
   admin/              # área de gestão (admin): painel, alunos, treinos, dietas,

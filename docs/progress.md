@@ -4,9 +4,36 @@
 
 ---
 
+## 30/09/2026 — F4 da simplificação executada + gates e documentação sincronizados
+
+- **F4 (simplificação) executada e commitada em `061514b`**: remoção do papel
+  `nutritionist` e do campo `NutritionistID`; área de gestão migrada de
+  `app/nutritionist/*` para `app/admin/*` (13 rotas 1:1 + `admin/usuarios`);
+  acesso agora é admin-vs-aluno via `CanAccessResource(uid, role, studentID)`;
+  aprovação aceita somente `RoleStudent` (anti-escalada).
+- **F4 foi feita fora da ordem do plano** (`docs/simplificacao/03-plano.md`
+  previa F4 por último), então os gates projetados do plano estão obsoletos.
+- **Correção de E2E**: 6 specs usavam o ator `nutritionist`; 24/30 → **30/30**.
+- **Documentação sincronizada** com o modelo de 2 papéis e com os gates medidos
+  de 30/09/2026 (go **206/206** · rules **86/86** · Vitest **104/104** · E2E
+  **30/30** · lint **0/0**); matriz de permissões reescrita com evidência
+  `arquivo:linha`.
+- **Pendências reais registradas**: 4 índices órfãos por `nutritionistId` em
+  `firestore.indexes.json` (F6); `GET /api/students/{id}` sem
+  `RequireApproved`; rotação da chave Firebase exposta no histórico git;
+  ADR-002 (só e-mail/senha) decidido mas **não executado**; decisões de
+  produto D1–D9 em `docs/decisions/product-decisions.md`.
+- Artefatos: [`PROJECT_STATE.md`](../PROJECT_STATE.md),
+  [`AGENT_PLAN.md`](../AGENT_PLAN.md),
+  [`docs/codex-handoff.md`](codex-handoff.md).
+
+---
+
 ## Fase atual: 14 + 14.1 + 5 + 15.1 + 15.2 + 15.3 + F16 + F17 + F19 — PWA + Testes PWA + Biblioteca de exercícios + Auditoria pré-deploy + Migration V1→V2 + Fechamento pós-migração + Auditoria Nova dieta/Security + Login sem Google/Cadastro/Recuperação + Programa de Treino
 
-**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE), F17 CONCLUÍDA — login sem Google + cadastro com confirmação + recuperação de senha (PASS), F19 CONCLUÍDA — Programa de Treino (import markdown + assign + duplicate).** Backend `go vet`/`go test` **208/208** ✅ · Firestore rules **76/76** ✅ · Vitest **131/131** ✅ · Playwright E2E **30/30** ✅ · `tsc --noEmit` ✅ · `next build` ✅ (25 rotas) · **Lint frontend 0/0** ✅.
+**Status: F14 (auditoria produção) CONCLUÍDA, F14.1 CONCLUÍDA, F5 CONCLUÍDA, F15.1 CONCLUÍDA, F15.2 CONCLUÍDA — MIGRATION V1→V2 EXECUTADA EM PRODUÇÃO (24 set 2026), F15.3 CONCLUÍDA — fechamento pós-migração (auditoria READ-ONLY PASS, migração técnica ENCERRADA), F16 CONCLUÍDA — auditoria/correção "Nova dieta" + secret scanning (PASS — AÇÃO MANUAL PENDENTE), F17 CONCLUÍDA — login sem Google + cadastro com confirmação + recuperação de senha (PASS), F19 CONCLUÍDA — Programa de Treino (import markdown + assign + duplicate).** Backend `go vet`/`go test` **206/206** ✅ · Firestore rules **86/86** ✅ · Vitest **104/104** ✅ · Playwright E2E **30/30** ✅ · `tsc --noEmit` ✅ · `next build` ✅ (25 rotas) · **Lint frontend 0/0** ✅. **2 papéis (`admin`/`student`)** — papel `nutritionist` e campo `NutritionistID` não existem mais (F4). **Fase atual: refatoração "simplificação" F0–F7** (`docs/simplificacao/`), com F4 executada (entrada de 30/09/2026 logo abaixo).
+
+> **Nota de 30/09/2026:** o campo `nutritionistId` citado abaixo e o papel `nutritionist` foram removidos pela F4 da simplificação; o texto abaixo é registro do estado na época (26/09/2026).
 
 - **F19 — Programa de Treino (26 set 2026):** a nutricionista importa automaticamente um programa de treino escrito em markdown (`treino.md`), sem digitar exercício por exercício. Modelo `TrainingProgram` (coleção `programs/{id}`) contém lista ordenada de referências a `WorkoutDefine` existentes (`ProgramWorkout{WorkoutID, Order, Label, Name, DayOfWeek}`) — um treino do programa NÃO é entidade nova, é um `WorkoutDefine` já existente em `workouts/{id}`; o programa guarda apenas referências. Parser `backend/programmd/parser.go` converte markdown (`# Nome`, `**Foco: …**`, `## TREINO X — Nome` + tabela `| # | Exercício | Séries | Reps | Observação |`) em estrutura validada. Requests: `ImportProgramRequest{markdown, source, name, studentId, nutritionistId}`, `AssignProgramRequest{studentId}`. Duplicação reaproveita `DuplicateRequest{newName, newStudentId}` existente. Programas são free tier (sem feature de plano). Leitura exige aprovado; escrita exige `nutritionist`/`admin` + `RequireApproved`. Rotas: `/nutritionist/programs`, `/nutritionist/programs/[id]`, `/programas`, `/programas/[id]`. Componentes: `ProgramDetail.tsx` (read-only), `ProgramForm.tsx` (metadados + ordem), `ProgramImport.tsx` (textarea/arquivo .md), `StudentProgramsPage.tsx`. `lib/programDays.ts` com rótulos PT-BR. `ProgramIcon` adicionado em `components/icons/`. Bugs corrigidos: `CreateProgramFromImport` criava treinos órfãos sem `NutritionistID` (403 na abertura do programa — corrigido no service + teste de regressão); parser demo lia coluna `#` como nome do exercício (`cells.slice(1)`); `importProgram` no modo demo lançava erro síncrono (agora retorna Promise rejeitada); **auditoria de segurança pós-entrega**: programa podia referenciar treino de outra nutricionista (exfiltração — o `assign` materializava cópia do treino alheio; corrigido com `ValidateProgramWorkoutOwnership` + check no `AssignProgram`/`DuplicateProgram`) e o `PUT /api/programs/{id` aceitava `studentId` do body, burlando o 409 do `assign` (vínculo agora incondicional do registro; reatribuição só via `POST /assign`) — 6 testes de regressão, RED confirmado antes do fix. Resultado do arquivo real: 1 programa, 5 treinos (A–E), 30 exercícios (A=5, B=5, C=7, D=6, E=7).
   Relatório: `docs/reports/phase-19-training-programs.md`.

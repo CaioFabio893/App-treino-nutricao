@@ -17,4 +17,4 @@ build=OK 2026-09-30T03:45
 
 # historico: 29/09 mediu-se go=206 vitest=104 rules=86 tsc/lint/build OK.
 # e2e ficou VERMELHO (24/30) em 30/09 por causa da refatoracao de papeis e foi
-# corrigido no mesmo dia -> e2e=30. Nenhum numero deste arquivo eherdado de doc.
+# corrigido no mesmo dia -> e2e=30. Nenhum numero deste arquivo e herdado de doc.
