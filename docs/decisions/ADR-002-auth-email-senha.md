@@ -1,7 +1,8 @@
-> Estado de implementação 30/09/2026: UI Google retirada (F17); backend
-> ainda compatível com tokens Google. Não bloquear/desligar antes de comprovar
-> vinculação de senha das contas existentes mantendo UID. Sequência operacional
-> em docs/reports/simplificacao-handoff.md; nenhuma migração foi executada.
+> Implementado em produção 30/09/2026: UI sem Google; backend exige claim
+> password verificada e consulta revogação/estado da conta. Após reset autorizado,
+> só permaneceu o admin do dono, que já tinha senha, com UID preservado.
+> Não houve migração necessária nem senha alterada. Google não configurado.
+> Evidência em docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 # ADR-002 — V2 autentica com e-mail/senha apenas (sem Google)
 

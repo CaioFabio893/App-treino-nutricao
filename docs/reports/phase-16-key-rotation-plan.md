@@ -1,3 +1,8 @@
+> Execução posterior autorizada e concluída em 30/09/2026: chave substituta
+> restrita, antiga excluída e comprovada inválida. Relatório e rollback em
+> production-reset-and-rollout-2026-09-30.md nesta pasta. Plano original abaixo
+> preservado como registro da tarefa que inicialmente era só planejamento.
+
 # K6 — Plano de contenção e rotação da chave Firebase Web
 
 Data: 30 set 2026 (America/Sao_Paulo). **Só planejamento: nenhuma ação no console, deploy, teste de produção, rotação ou reescrita executada.** A única escrita autorizada nesta tarefa é este documento; PROJECT_STATE.md não foi alterado devido à restrição explícita da tarefa.

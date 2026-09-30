@@ -1,54 +1,30 @@
-# Continuação operacional após a simplificação local
+# Entrega e próximos passos — 30/09/2026
 
-30/09/2026. Plano de retomada; nenhum comando contra produção executado.
+Publicação, rotação e reset de produção concluídos após autorização do dono.
+Relatório completo: production-reset-and-rollout-2026-09-30.md nesta pasta.
+Estado/revisões/testes em PROJECT_STATE.md e .gates.
 
-## O que já está pronto
+App: https://treino-web-834622951375.southamerica-east1.run.app
+Entrar com caiofabio893@gmail.com e a senha existente. A conta continua admin;
+UID, senha e perfil preservados. Duas outras contas e nove documentos removidos.
+Treinos/dietas/programas/exercícios começam vazios. Cadastre conteúdo e novos
+alunos pelo painel. Nenhuma conta de teste ficou no projeto.
 
-F1–F7 implementadas e revisadas. Checkpoints locais no git log. Aplicação
-simplificada com dois papéis, aluno em leitura, cinco coleções e três índices.
-K2 em simplificacao-f6-reindex-plan.md; K3/K4/K5 em
-simplificacao-f7-acceptance-review.md; K6 em phase-16-key-rotation-plan.md.
-Correções adicionais em simplificacao-post-f7-corrections.md. Estado em
-PROJECT_STATE.md; contagens reais em .gates. Configs OpenCode preservadas.
+Feche abas antigas/reabra a PWA para carregar a versão nova: a chave Firebase
+antiga foi revogada. Não há outra publicação conhecida pendente.
 
-## Sequência para uma execução futura
+Falta somente validação do dono/Louise e PWA em dispositivos físicos reais.
+Login, renovação, admin/aluno, isolamento e viewport mobile foram testados
+automaticamente em produção; isso não substitui o aceite humano.
 
-1. Confirmar projeto, database, serviços, revisão publicada e todos os
-   consumidores V1/V2. Registrar configuração de rules/índices/envs sem valores
-   secretos. Preparar ambiente isolado e rollback de tráfego antes de publicar.
-2. Executar contenção/restrição/rotação K6 na ordem do plano. A chave antiga é
-   pública Web e recuperável no histórico; redação não prova revogação.
-   Não misturar rotação e limpeza de dados. Validar auth/build com chave nova.
-3. Seguir K2: índices necessários aditivos e READY, validar queries reais,
-   rollout da aplicação e regras, observar erros e PWA, manter índices antigos
-   durante a janela de rollback. Só removê-los após cessar consumidores antigos.
-4. Migração Google: inventariar contas sem senha, mantendo UID e vínculos dos
-   dados. Confirmar método de vinculação/reset de senha na documentação Firebase
-   vigente e testar em ambiente isolado antes de aplicar. Não criar outra conta
-   com mesmo e-mail como atalho. Verificar login por senha e recuperação de cada
-   conta migrada. Só então retirar aceitação google.com no backend e desligar
-   o provedor; UI já não oferece Google. A política futura deve usar o provedor
-   da claim do ID token verificado, não o campo de auditoria AuthProvider do
-   perfil (que pode continuar google.com depois de a conta ganhar senha). Sem essa evidência, preservar backend
-   compatível como está. Não enviar mensagens a usuários sem instrução explícita.
-5. D6 permanece NÃO APAGAR. K1 depende de seleção por coleção; mesmo após escolha,
-   export/backup e teste de restauração precedem qualquer deleção. Retirar código
-   não exige apagar dados. Nenhuma coleção foi apagada nesta continuidade.
-6. Validação humana: Louise/admin cria/atribui treino/dieta/programa; dois alunos
-   consultam seus próprios dados e não acessam alheios; paused lê, inactive não.
-   Validar vídeos, impressão, atualização PWA e dispositivos reais. Registrar
-   resultado e revisão do rollout, sem afirmar produção pronta só pelos emuladores.
+Backup remoto completo anterior ao reset:
+gs://run-sources-treino-louise-southamerica-east1/ops-backups/2026-09-30-before-reset
+Snapshots e scripts privados em:
+C:/Users/caiof/AppData/Local/TreinoLouiseOps/2026-09-30/
+Não publicar backups, não executar reset.ps1 novamente. Recuperação de dados/
+Auth depende de import com reconciliação; ler o relatório antes. Não voltar
+tráfego a imagem com chave antiga: é preciso reconstruir com a nova chave.
 
-## Como retomar localmente sem refazer trabalho
-
-Ler PROJECT_STATE.md e git status/log. Não reimplementar fases concluídas.
-Executar somente verificações justificadas por nova mudança/falha. Não rodar
-rules e E2E juntos; não editar fontes enquanto E2E usa Next dev (HMR pode
-remontar formulários). Nenhuma dependência nova foi instalada; retirada de
-recharts alterou somente manifesto/lockfile offline. Instalação limpa futura
-normal acompanha package-lock; não é requisito para retomar documentação.
-
-Rollback local: reverter checkpoint pertinente; preservar configurações
-preexistentes. Rollback remoto depende das revisões/configs registradas na etapa
-1 e dos índices antigos mantidos. A configuração final local não autoriza um
-force-push, reescrita de histórico ou publicação automática.
+Código e relatórios commitados localmente, sem push/force-push/reescrita.
+Configs OpenCode e configuração Windows preservadas. Índices legados e imagens
+anteriores mantidos para recuperação; backups não foram apagados.

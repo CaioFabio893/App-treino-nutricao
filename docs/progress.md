@@ -1,3 +1,9 @@
+> Atualização operacional 30/09/2026: simplificação publicada, chave Web rotacionada
+> e antiga inválida, dados/duas contas excluídos após backup por autorização do dono.
+> Só caiofabio893@gmail.com admin preservado. API00016-gic / web00013-ven, 100%.
+> Correções auth/redirect c05e1e8; Go188, Vitest124, E2E31, produção61+8 PASS.
+> Ver docs/reports/production-reset-and-rollout-2026-09-30.md, PROJECT_STATE.md
+> e .gates. Registros abaixo são históricos; não repetir reset/scripts destrutivos.
 # Progresso — Treino & Nutrição V2
 
 **Fonte da verdade de status.** Atualizar a cada fase concluída/decisão.

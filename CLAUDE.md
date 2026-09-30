@@ -1,8 +1,9 @@
-> Estado local 30/09/2026: F1–F7 concluídas, gates em .gates.
+> Produção 30/09/2026: F1–F7 publicadas, reset/rotação concluídos, gates em .gates.
 > Aluno somente leitura; cinco coleções, três índices; autorização testada.
 > Usar PROJECT_STATE.md e política atual docs/security/plans.md.
 > Trechos históricos abaixo podem descrever contratos aposentados.
-> Produção, console, credenciais e dados reais não foram alterados.
+> Só admin do dono preservado. API password-only e verifica revogação.
+> Relatório atual: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 # CLAUDE.md — Treino & Nutrição V2
 

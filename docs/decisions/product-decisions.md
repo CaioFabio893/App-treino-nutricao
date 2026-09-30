@@ -2,8 +2,11 @@
 
 Continuidade autorizada sem OK entre fases. Defaults D1–D5/D7/D8 aplicados
 localmente; respostas humanas na tabela continuam em branco. F1–F7 concluídas.
-D6 segue NÃO APAGAR; K1 depende de seleção por coleção. Google já saiu da UI,
-mas migração/bloqueio do provedor não foram executados em produção.
+D6 foi respondida em 30/09: dono autorizou apagar dados e demais contas,
+preservando só caiofabio893@gmail.com como admin. Reset, backup e publicação
+executados; detalhes em docs/reports/production-reset-and-rollout-2026-09-30.md.
+Única conta preservada já tinha senha; API agora exige provedor password
+e verifica revogação. Não havia migração Google a realizar para ela.
 
 ## Como responder
 
@@ -101,7 +104,7 @@ mas migração/bloqueio do provedor não foram executados em produção.
 
 ## D6 — apagar os dados de produção? (ATENÇÃO: APAGA DADO REAL)
 
-**Esta é a única decisão que apaga dado de verdade. Não existe "desfazer" depois de confirmado. A execução NÃO acontece agora: ela será feita depois, com um plano revisado, e nada é apagado sem a sua resposta aqui.**
+**Respondida e executada em 30/09/2026:** "pode excluir dados e contas, so me deixe como adm, caiofabio893@gmail.com, os demias eu adicono depois". Backup completo concluído antes da exclusão. Nove documentos e duas contas removidos; só conta/perfil do dono mantidos. Não há botão desfazer; recuperação exige restaurar backups e reconciliar dados posteriores. As perguntas abaixo registram o escopo inicialmente proposto, ampliado pelo dono para reset dos dados de negócio e demais contas.
 
 **Pergunta 1 (a):** Apagar o histórico de treino (`workoutHistory/`) e o diário alimentar (`dietLogs/`) dos participantes?
 **Pergunta 2 (b):** Apagar a comunidade, ou seja, os posts (`posts/`)? (depende da D-seção "comunidade" — fase F2)
@@ -159,7 +162,7 @@ mas migração/bloqueio do provedor não foram executados em produção.
 
 **Pergunta:** Executar o ADR-002 (remover o login com Google) agora ou depois da simplificação?
 
-**Contexto:** a V2 é e-mail/senha por decisão já tomada, mas hoje o backend ainda aceita `password|google.com` (`backend/middleware/auth.go`) e a UI já retirou o botão Google (F17).
+**Estado 30/09/2026:** UI sem Google e backend com claim verificada password apenas. Conta preservada já tinha senha; demais contas removidas por autorização do dono. Google não configurado no projeto consultado. Verificador em `backend/middleware/firebase_verifier.go` também rejeita contas desabilitadas/excluídas e sessões revogadas.
 
 **Opções:**
 - **A — Agora:** tira o Google já, mas mistura duas mudanças grandes no mesmo período.
@@ -184,9 +187,9 @@ mas migração/bloqueio do provedor não foram executados em produção.
 | D3 |  |  |  |
 | D4 |  |  |  |
 | D5 |  |  |  |
-| D6a (workoutHistory / dietLogs) |  |  |  |
-| D6b (posts) |  |  |  |
-| D6c (plans) |  |  |  |
+| D6a (workoutHistory / dietLogs) | A | Dono autorizou reset de dados e contas, mantendo só seu admin; backup realizado | 2026-09-30 |
+| D6b (posts) | A | Mesma autorização explícita de reset | 2026-09-30 |
+| D6c (plans) | A | Mesma autorização explícita de reset | 2026-09-30 |
 | D7 |  |  |  |
 | D8 |  |  |  |
 | D9 |  |  |  |

@@ -1,6 +1,8 @@
-> Atualização de continuidade: F1–F7 concluídas localmente, com gates verdes.
+> Atualização: F1–F7 publicadas, rotação/reset concluídos com autorização explícita.
+> D6 foi respondida: preservar só caiofabio893@gmail.com como admin.
 > Codex autorizado a implementar e revisar sem OK entre fases. Divisão e
 > contagens antigas abaixo são histórico. Usar PROJECT_STATE.md e .gates.
+> Relatório: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 # Estratégia OpenCode + Codex
 

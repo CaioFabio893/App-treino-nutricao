@@ -1,23 +1,22 @@
-> Estado local F6 (30/09/2026): cinco coleções vivas e três índices compostos.
+> Produção atualizada em 30/09/2026: cinco coleções vivas e três índices compostos.
 > Gamificação, comunidade, planos, histórico e diário retirados do código.
 > Aluno consulta treinos/dietas; gestão usa admin. Trechos V1 abaixo são
 > históricos; contrato atual em docs/reports/simplificacao-f6-reindex-plan.md.
-> Nada publicado nem apagado em produção.
+> Publicação/rotação/reset concluídos. Só conta/perfil do dono admin preservados.
+> Relatório: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 # Treino Louise — App profissional (Go + Next.js + Firestore)
 
 Migração do app de treino da **Louise Lima** para uma arquitetura profissional
-com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Cloud.
+com login e dados na nuvem, usando infraestrutura Google Cloud.
 
 ## Status
 
-- Simplificação F1–F7 concluída localmente. Gates em .gates; nenhuma publicação
-  realizada nesta continuidade.
-- Último registro histórico de produção: 24/09/2026, serviços treino-api e
-  treino-web em southamerica-east1. Revisões reais atuais não foram revalidadas.
-  Consultar phase-15-3-post-migration.md e confirmar antes do rollout.
-- Login local e-mail/senha. Google já saiu da UI; migração das contas e bloqueio
-  do provedor no backend/console continuam pendentes.
+- Simplificação F1–F7 publicada. API treino-api-00016-gic e web
+  treino-web-00013-ven, 100% tráfego; testes em .gates.
+- Chave Firebase Web rotacionada e antiga comprovadamente inválida.
+- Reset autorizado: só caiofabio893@gmail.com como admin, negócio vazio.
+- Login por senha; backend verifica revogação/exclusão e provedor verificado.
 - Validação humana de Louise e PWA em dispositivo continua etapa operacional.
 
 ## Simplificação local
@@ -25,7 +24,7 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 F1–F7 concluídas localmente. Dois papéis admin/student.
 Aluno consulta treinos, programas e dietas; administração gerencia os dados.
 Planos, comunidade, gamificação, histórico e diário alimentar retirados.
-Estado e testes em PROJECT_STATE.md, .gates e docs/progress.md. Sem deploy.
+Estado e testes em PROJECT_STATE.md, .gates e docs/progress.md. Produção publicada.
 
 ## Como este repositório é desenvolvido (agentes)
 
