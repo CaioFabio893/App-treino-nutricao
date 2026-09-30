@@ -376,14 +376,14 @@ describe('Regras do Firestore', () => {
       await assertFails(alunoB.doc('dietLogs/logA').get());
     });
 
-    it('aluno-a lê o próprio dietLog → PERMITIDO', async () => {
+    it('aluno-a lê o próprio dietLog legado → NEGADO', async () => {
       const alunoA = authed('aluno-a').firestore();
-      await assertSucceeds(alunoA.doc('dietLogs/logA').get());
+      await assertFails(alunoA.doc('dietLogs/logA').get());
     });
 
-    it('admin lê dietLog de qualquer aluno → PERMITIDO', async () => {
+    it('admin lê dietLog legado de qualquer aluno → NEGADO', async () => {
       const admin = authed('admin-sys').firestore();
-      await assertSucceeds(admin.doc('dietLogs/logA').get());
+      await assertFails(admin.doc('dietLogs/logA').get());
     });
 
     it('admin NÃO pode escrever em dado de aluno pelo client → NEGADO (só API Go)', async () => {
@@ -750,5 +750,21 @@ describe('Regras do Firestore', () => {
       const a = authed('aluno-pausado').firestore();
       await assertFails(a.doc('users/aluno-pausado').update({ status: 'active' }));
     });
+  });
+  describe('F5 — histórico e diário aposentados', () => {
+    for (const role of ['student', 'admin']) {
+      it(`${role} não lê nem escreve coleções legadas`, async () => {
+        await seedUser('legacy-reader', { role });
+        await seed({ workoutHistory: { old: { studentId: 'legacy-reader' } }, dietLogs: { old: { studentId: 'legacy-reader' } } });
+        const store = authed('legacy-reader').firestore();
+        for (const collection of ['workoutHistory', 'dietLogs']) {
+          await assertFails(store.doc(`${collection}/old`).get());
+          await assertFails(store.collection(collection).get());
+          await assertFails(store.doc(`${collection}/new`).set({ studentId: 'legacy-reader' }));
+          await assertFails(store.doc(`${collection}/old`).update({ note: 'x' }));
+          await assertFails(store.doc(`${collection}/old`).delete());
+        }
+      });
+    }
   });
 });

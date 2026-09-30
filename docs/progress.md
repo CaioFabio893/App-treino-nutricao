@@ -4,6 +4,13 @@
 
 ---
 
+## 30/09/2026 — F5 somente leitura concluída (Codex)
+
+Treinos consultáveis com séries/carga/descanso/vídeos; removida execução,
+histórico e diário alimentar. Gestão adaptada sem dependências aposentadas.
+Go 181, Vitest 104, rules 92, E2E 28 (1,3 min), tsc/lint/build OK.
+Sem produção. Relatório simplificacao-f5-checkpoint.md. Próximo F6/F7.
+
 ## 30/09/2026 — F3 planos/features removidos (Codex)
 
 Aprovação e acesso a treinos/dietas não dependem mais de plano. CRUD/atribuição

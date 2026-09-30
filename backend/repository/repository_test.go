@@ -58,22 +58,18 @@ func TestEnsureNonNilSliceSerializesAsArray(t *testing.T) {
 // pelos endpoints (planos, usuários/alunos, treinos, dietas, diet-logs).
 func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 	var (
-		plans    []*models.WorkoutDefine
 		profiles []*models.UserProfile
 		workouts []*models.WorkoutDefine
 		diets    []*models.Diet
-		logs     []*models.DietDailyLog
 	)
 
 	cases := []struct {
 		name string
 		got  any
 	}{
-		{"plans", ensureNonNilSlice(plans)},
 		{"profiles", ensureNonNilSlice(profiles)},
 		{"workouts", ensureNonNilSlice(workouts)},
 		{"diets", ensureNonNilSlice(diets)},
-		{"dietLogs", ensureNonNilSlice(logs)},
 	}
 
 	for _, c := range cases {
@@ -214,78 +210,5 @@ func TestUserProfileDataUsesServerTimestampOnCreate(t *testing.T) {
 	}
 	if got := createdAt; got != firestore.ServerTimestamp {
 		t.Errorf("createdAt = %v, want firestore.ServerTimestamp (perfil novo)", got)
-	}
-}
-
-// ── Dieta diária: dietLogData (item 3.3) ──
-//
-// PutDietLog regravava createdAt com firestore.ServerTimestamp a CADA save,
-// perdendo a data real de criação (achado A1 do relatório). Depois da
-// correção, createdAt é preservado quando o log já tem data (spell do
-// userProfileData) e só usa ServerTimestamp em log novo (CreatedAt zero).
-
-func TestDietLogDataPreservesCreatedAt(t *testing.T) {
-	past := time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC)
-	log := &models.DietDailyLog{StudentID: "s1", Date: "2026-07-01", CreatedAt: past}
-
-	m := dietLogData(log)
-	createdAt, ok := m["createdAt"]
-	if !ok {
-		t.Fatal("mapa sem chave createdAt")
-	}
-	tv, ok := createdAt.(time.Time)
-	if !ok {
-		t.Fatalf("createdAt = %T (%v), want time.Time preservado (atualização de log existente)", createdAt, createdAt)
-	}
-	if !tv.Equal(past) {
-		t.Errorf("createdAt = %v, want %v (data de criação preservada)", tv, past)
-	}
-}
-
-func TestDietLogDataUsesServerTimestampOnCreate(t *testing.T) {
-	// Log novo (CreatedAt zero) deve usar o sentinela do Firestore, nunca um
-	// valor fixo — o servidor preenche a data real de criação.
-	fresh := &models.DietDailyLog{StudentID: "s2", Date: "2026-07-02"}
-	m := dietLogData(fresh)
-	createdAt, ok := m["createdAt"]
-	if !ok {
-		t.Fatal("mapa sem chave createdAt")
-	}
-	if got := createdAt; got != firestore.ServerTimestamp {
-		t.Errorf("createdAt = %v, want firestore.ServerTimestamp (log novo)", got)
-	}
-}
-
-// TestDietLogDataKeepsOtherFields garante que a extração do mapa não perde
-// campos de negócio do log (status, refeições, donos).
-func TestDietLogDataKeepsOtherFields(t *testing.T) {
-	log := &models.DietDailyLog{
-		StudentID:  "s1",
-		DietID:     "d1",
-		DietName:   "Dieta A",
-		Date:       "2026-07-01",
-		Status:     models.DietPartial,
-		MealChecks: []*models.MealCheck{{MealID: "m1", Followed: true}},
-		Note:       "nota",
-		CreatedAt:  time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
-	}
-	m := dietLogData(log)
-	if m["studentId"] != "s1" {
-		t.Errorf("dono errado: studentId=%v", m["studentId"])
-	}
-	if m["dietId"] != "d1" || m["dietName"] != "Dieta A" {
-		t.Errorf("vínculo de dieta errado: %v / %v", m["dietId"], m["dietName"])
-	}
-	if m["date"] != "2026-07-01" {
-		t.Errorf("date = %v", m["date"])
-	}
-	if m["status"] != string(models.DietPartial) {
-		t.Errorf("status = %v, want %v", m["status"], string(models.DietPartial))
-	}
-	if _, ok := m["mealChecks"]; !ok {
-		t.Error("mapa sem mealChecks")
-	}
-	if m["note"] != "nota" {
-		t.Errorf("note errada: %v", m["note"])
 	}
 }

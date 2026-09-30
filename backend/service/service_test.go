@@ -1,4 +1,4 @@
-﻿package service
+package service
 
 import (
 	"testing"
@@ -48,29 +48,6 @@ func TestWorkoutDayMatchesLocalDayAtNight(t *testing.T) {
 	today := local.In(AppLoc).Format("2006-01-02")
 	if today != "2026-07-15" {
 		t.Errorf("Now().Format = %s, want 2026-07-15", today)
-	}
-}
-
-func TestAggregateStatus(t *testing.T) {
-	meals := func(followed ...bool) []*models.MealCheck {
-		out := make([]*models.MealCheck, 0, len(followed))
-		for i, f := range followed {
-			out = append(out, &models.MealCheck{MealID: string(rune('a' + i)), MealName: "M", Followed: f})
-		}
-		return out
-	}
-
-	if got := AggregateStatus(nil); got != models.DietNotFollowed {
-		t.Errorf("agg(nil) = %s, want not_followed", got)
-	}
-	if got := AggregateStatus(meals(false, false)); got != models.DietNotFollowed {
-		t.Errorf("agg(all no) = %s, want not_followed", got)
-	}
-	if got := AggregateStatus(meals(true, true)); got != models.DietFollowed {
-		t.Errorf("agg(all yes) = %s, want followed", got)
-	}
-	if got := AggregateStatus(meals(true, false, true)); got != models.DietPartial {
-		t.Errorf("agg(mixed) = %s, want partial", got)
 	}
 }
 

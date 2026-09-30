@@ -210,45 +210,12 @@ func run() error {
 		return fmt.Errorf("dieta A: %w", err)
 	}
 
-	// ── Logs de dieta (determinam pontuação) ──
-	todayStr := now.Format("2006-01-02")
-	yesterdayStr := now.AddDate(0, 0, -1).Format("2006-01-02")
-	mkLog := func(studentKey, date string, status models.DietLogStatus) {
-		if err := repo.PutDietLog(ctx, &models.DietDailyLog{
-			StudentID: uid[studentKey],
-			DietName:  "Plano Alimentar E2E", Date: date, Status: status,
-		}); err != nil {
-			log.Fatalf("dietLog %s %s: %v", studentKey, date, err)
-		}
-		log.Printf("  dietLog %-10s %s %s", studentKey, date, status)
-	}
-	mkLog("studentA", todayStr, models.DietFollowed)
-	mkLog("studentA", yesterdayStr, models.DietFollowed)
-	mkLog("studentB", yesterdayStr, models.DietPartial)
-
-	// ── Histórico de treinos (determinam pontuação) ──
-	mkHistory := func(studentKey string, w *models.WorkoutDefine, daysAgo int) {
-		if _, err := repo.CreateHistoryEntry(ctx, &models.WorkoutHistoryEntry{
-			StudentID: uid[studentKey], WorkoutID: w.ID, WorkoutName: w.Name,
-			Duration: 45, ExercisesCompleted: len(w.Exercises), TotalExercises: len(w.Exercises),
-			Exercises: []models.HistoryExercise{
-				{Name: w.Exercises[0].Name, Order: 1, Sets: []models.HistorySet{{Weight: "40", Reps: "10", Done: true}}},
-			},
-		}); err != nil {
-			log.Fatalf("history %s: %v", studentKey, err)
-		}
-		log.Printf("  history %-10s %s %dd atrás", studentKey, w.Name, daysAgo)
-	}
-	mkHistory("studentA", workoutA, 0)
-	mkHistory("studentA", workoutA2, 1)
-	mkHistory("studentB", workoutB, 1)
-
 	fmt.Printf(`
 e2eseed: seed concluído
   admin        %-26s %s
-  studentA     %-26s %s  (plano Completo)
-  studentB     %-26s %s  (plano Essencial)
-  studentC     %-26s %s  (plano só Treinos)
+  studentA     %-26s %s
+  studentB     %-26s %s
+  studentC     %-26s %s
   pending      %-26s %s
   rejected     %-26s %s
   senha comum:  %s

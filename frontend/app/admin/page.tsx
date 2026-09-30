@@ -4,17 +4,16 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { UserProfile, WorkoutDefine, Diet, WorkoutHistoryEntry } from "@/lib/types";
+import type { UserProfile, WorkoutDefine, Diet } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/Skeleton";
 
 interface Stats {
   students: UserProfile[];
   workouts: WorkoutDefine[];
   diets: Diet[];
-  history: WorkoutHistoryEntry[];
 }
 
-const empty: Stats = { students: [], workouts: [], diets: [], history: [] };
+const empty: Stats = { students: [], workouts: [], diets: [] };
 
 export default function AdminDashboard() {
   const { getToken, profile } = useAuth();
@@ -25,13 +24,12 @@ export default function AdminDashboard() {
   const load = useCallback(async () => {
     try {
       const token = await getToken();
-      const [students, workouts, diets, history] = await Promise.all([
+      const [students, workouts, diets] = await Promise.all([
         api.listStudents(token),
         api.listWorkouts(token),
         api.listDiets(token),
-        api.listHistory(token),
       ]);
-      setData({ students, workouts, diets, history });
+      setData({ students, workouts, diets });
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar");
@@ -48,8 +46,6 @@ export default function AdminDashboard() {
 
   const activeStudents = data.students.filter((s) => s.status === "active").length;
 
-  // Últimos 5 eventos (treinos concluídos).
-  const recent = data.history.slice(0, 5);
 
   return (
     <div>
@@ -80,21 +76,6 @@ export default function AdminDashboard() {
         <div className="stat-cell">
           <div className="stat-num">{data.diets.length}</div>
           <div className="stat-lbl">Dietas</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num">{data.history.length}</div>
-          <div className="stat-lbl">Concluídos</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num">
-            {data.history.length
-              ? Math.round(
-                  data.history.reduce((a, b) => a + (b.duration || 0), 0) /
-                    data.history.length
-                )
-              : 0}
-          </div>
-          <div className="stat-lbl">Duração média (min)</div>
         </div>
       </div>
 
@@ -127,30 +108,6 @@ export default function AdminDashboard() {
         </div>
       </Link>
 
-      <div className="section-label">Atividade recente</div>
-      {recent.length === 0 ? (
-        <div className="empty-box">Nenhum treino concluído ainda.</div>
-      ) : (
-        <div className="timeline">
-          {recent.map((h) => {
-            const student = data.students.find((s) => s.id === h.studentId);
-            const workout = data.workouts.find((w) => w.id === h.workoutId);
-            const when = h.completedAt
-              ? new Date(h.completedAt).toLocaleDateString("pt-BR")
-              : "—";
-            return (
-              <div key={h.id} className="tl-item">
-                <div className="tl-date">{when}</div>
-                <div className="tl-text">
-                  <b>{student?.name ?? "Aluno"}</b> concluiu{" "}
-                  <b>{workout?.name ?? "treino"}</b>
-                  {h.duration ? ` em ${h.duration} min` : ""}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
     </div>
   );
 }

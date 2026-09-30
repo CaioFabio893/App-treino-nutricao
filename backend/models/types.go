@@ -164,36 +164,6 @@ type Food struct {
 	Notes    string  `json:"notes,omitempty"`
 }
 
-// ── Histórico ──
-
-// HistorySet registra a execução real de um exercício (peso/repetições feitas).
-type HistorySet struct {
-	Weight string `json:"weight,omitempty"` // ex.: "60 kg"
-	Reps   string `json:"reps,omitempty"`   // ex.: "10"
-	Done   bool   `json:"done"`
-}
-
-// HistoryExercise registra o que o aluno marcou de um exercício do treino.
-type HistoryExercise struct {
-	Name  string       `json:"name"`
-	Order int          `json:"order"`
-	Sets  []HistorySet `json:"sets,omitempty"`
-	Note  string       `json:"note,omitempty"`
-}
-
-// WorkoutHistoryEntry registra um treino concluído pelo aluno.
-type WorkoutHistoryEntry struct {
-	ID                 string            `json:"id,omitempty"`
-	StudentID          string            `json:"studentId"`
-	WorkoutID          string            `json:"workoutId"`
-	WorkoutName        string            `json:"workoutName,omitempty"`
-	CompletedAt        time.Time         `json:"completedAt,omitempty"`
-	Duration           int               `json:"duration,omitempty"` // minutos
-	ExercisesCompleted int               `json:"exercisesCompleted"`
-	TotalExercises     int               `json:"totalExercises"`
-	Exercises          []HistoryExercise `json:"exercises,omitempty"` // execução marcada pelo aluno
-}
-
 // ── Requests de API ──
 
 // DuplicateRequest é o payload para duplicar treino ou dieta.
@@ -213,15 +183,6 @@ type RejectUserRequest struct {
 	Reason string `json:"reason,omitempty"`
 }
 
-// CompleteWorkoutRequest é o payload para concluir um treino.
-type CompleteWorkoutRequest struct {
-	WorkoutID          string            `json:"workoutId"`
-	Duration           int               `json:"duration"`
-	ExercisesCompleted int               `json:"exercisesCompleted"`
-	TotalExercises     int               `json:"totalExercises"`
-	Exercises          []HistoryExercise `json:"exercises,omitempty"`
-}
-
 // ImportProgramRequest é o payload de POST /api/programs/import.
 // `Markdown` é o programa de treino no formato markdown: o backend parseia
 // (pacote programmd) e cria os treinos + o programa. Só o admin pode importar.
@@ -235,51 +196,4 @@ type ImportProgramRequest struct {
 // AssignProgramRequest é o payload de POST /api/programs/{id}/assign.
 type AssignProgramRequest struct {
 	StudentID string `json:"studentId"`
-}
-
-// ── Dieta diária ──
-
-// DietLogStatus é o estado agregado do dia de dieta.
-type DietLogStatus string
-
-const (
-	DietNotFollowed DietLogStatus = "not_followed"
-	DietPartial     DietLogStatus = "partial"
-	DietFollowed    DietLogStatus = "followed"
-)
-
-// MealCheck é a marcação por refeição dentro do log do dia.
-// Essa granularidade (por refeição) só é exibida para nutricionista/admin;
-// o aluno marca durante o dia, mas o resumo dele (e o feed/ranking) usa o
-// status agregado do dia.
-type MealCheck struct {
-	MealID    string    `json:"mealId"`
-	MealName  string    `json:"mealName"`
-	Followed  bool      `json:"followed"`
-	Note      string    `json:"note,omitempty"`
-	UpdatedAt time.Time `json:"updatedAt,omitempty"`
-}
-
-// DietDailyLog é o log diário de adesão à dieta (uma refeição ou o dia todo).
-// Documento em dietLogs/{studentID}_{date} — um por aluno por dia.
-type DietDailyLog struct {
-	ID         string        `json:"id,omitempty"`
-	StudentID  string        `json:"studentId"`
-	DietID     string        `json:"dietId,omitempty"`
-	DietName   string        `json:"dietName,omitempty"`
-	Date       string        `json:"date"` // YYYY-MM-DD
-	Status     DietLogStatus `json:"status"`
-	MealChecks []*MealCheck  `json:"mealChecks,omitempty"`
-	Note       string        `json:"note,omitempty"`
-	CreatedAt  time.Time     `json:"createdAt,omitempty"`
-	UpdatedAt  time.Time     `json:"updatedAt,omitempty"`
-}
-
-// UpsertDietLogRequest é o payload para salvar/atualizar o log de um dia.
-type UpsertDietLogRequest struct {
-	StudentID  string       `json:"studentId,omitempty"` // opcional (admin marca p/ qualquer aluno)
-	Date       string       `json:"date"`
-	Status     *string      `json:"status,omitempty"` // força o status do dia (opcional)
-	MealChecks []*MealCheck `json:"mealChecks,omitempty"`
-	Note       string       `json:"note,omitempty"`
 }

@@ -5,7 +5,6 @@ package repository
 
 import (
 	"context"
-	"time"
 
 	"cloud.google.com/go/firestore"
 	"google.golang.org/api/iterator"
@@ -21,7 +20,6 @@ import (
 //
 //	workouts/{workoutId}                               → WorkoutDefine (com Exercises [] dentro)
 //	diets/{dietId}                                     → Diet (com Meals [] dentro, cada Meal com Foods [])
-//	workoutHistory/{historyId}                         → WorkoutHistoryEntry
 //
 // Obs.: os arrays ficam dentro dos documentos principais — simples, confiável
 // e com folga para o tamanho máximo de 1 MiB do Firestore (um treino ou dieta
@@ -73,15 +71,8 @@ type Repository interface {
 	DeleteExercise(ctx context.Context, id string) error
 
 	// Histórico de treinos
-	CreateHistoryEntry(ctx context.Context, h *models.WorkoutHistoryEntry) (*models.WorkoutHistoryEntry, error)
-	ListHistoryForStudent(ctx context.Context, studentID string) ([]*models.WorkoutHistoryEntry, error)
-	ListHistory(ctx context.Context) ([]*models.WorkoutHistoryEntry, error)
-	ListHistoryForStudentSince(ctx context.Context, studentID string, since, until time.Time) ([]*models.WorkoutHistoryEntry, error)
 
 	// Dieta diária
-	GetDietLog(ctx context.Context, studentID, date string) (*models.DietDailyLog, error)
-	PutDietLog(ctx context.Context, log *models.DietDailyLog) error
-	ListDietLogsForStudent(ctx context.Context, studentID, from, to string) ([]*models.DietDailyLog, error)
 }
 
 // firestoreRepo é a implementação concreta sobre o Firestore.
@@ -558,156 +549,6 @@ func (r *firestoreRepo) UpdateExercise(ctx context.Context, id string, e *models
 func (r *firestoreRepo) DeleteExercise(ctx context.Context, id string) error {
 	_, err := r.fs.Collection("exercises").Doc(id).Delete(ctx)
 	return err
-}
-
-// ── Histórico de treinos ──
-
-func (r *firestoreRepo) CreateHistoryEntry(ctx context.Context, h *models.WorkoutHistoryEntry) (*models.WorkoutHistoryEntry, error) {
-	ref, _, err := r.fs.Collection("workoutHistory").Add(ctx, map[string]any{
-		"studentId":          h.StudentID,
-		"workoutId":          h.WorkoutID,
-		"completedAt":        h.CompletedAt,
-		"duration":           h.Duration,
-		"exercisesCompleted": h.ExercisesCompleted,
-		"totalExercises":     h.TotalExercises,
-		"exercises":          h.Exercises,
-	})
-	if err != nil {
-		return nil, err
-	}
-	h.ID = ref.ID
-	return h, nil
-}
-
-func (r *firestoreRepo) ListHistoryForStudent(ctx context.Context, studentID string) ([]*models.WorkoutHistoryEntry, error) {
-	iter := r.fs.Collection("workoutHistory").
-		Where("studentId", "==", studentID).
-		OrderBy("completedAt", firestore.Desc).
-		Limit(200).
-		Documents(ctx)
-	return historyFromIter(iter)
-}
-
-func (r *firestoreRepo) ListHistory(ctx context.Context) ([]*models.WorkoutHistoryEntry, error) {
-	iter := r.fs.Collection("workoutHistory").
-		OrderBy("completedAt", firestore.Desc).
-		Limit(1000).
-		Documents(ctx)
-	return historyFromIter(iter)
-}
-
-func historyFromIter(iter *firestore.DocumentIterator) ([]*models.WorkoutHistoryEntry, error) {
-	defer iter.Stop()
-	var out []*models.WorkoutHistoryEntry
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		h := &models.WorkoutHistoryEntry{}
-		if err := doc.DataTo(h); err != nil {
-			continue
-		}
-		h.ID = doc.Ref.ID
-		out = append(out, h)
-	}
-	return out, nil
-}
-
-// ListHistoryForStudentSince devolve o histórico de treinos de um aluno desde
-// uma data (usado para recalcular a pontuação do ciclo).
-func (r *firestoreRepo) ListHistoryForStudentSince(ctx context.Context, studentID string, since time.Time, until time.Time) ([]*models.WorkoutHistoryEntry, error) {
-	iter := r.fs.Collection("workoutHistory").
-		Where("studentId", "==", studentID).
-		Where("completedAt", ">=", since).
-		Where("completedAt", "<", until).
-		Documents(ctx)
-	return historyFromIter(iter)
-}
-
-// ── Dieta diária ──
-
-func dietLogDocID(studentID, date string) string {
-	return studentID + "_" + date
-}
-
-func (r *firestoreRepo) GetDietLog(ctx context.Context, studentID, date string) (*models.DietDailyLog, error) {
-	doc, err := r.fs.Collection("dietLogs").Doc(dietLogDocID(studentID, date)).Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.DietDailyLog{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	out.ID = doc.Ref.ID
-	return out, nil
-}
-
-// dietLogData monta o mapa de escrita de um log de dieta diário. createdAt é
-// PRESERVADO quando o log já tem data (atualização); só log novo
-// (log.CreatedAt zero) usa ServerTimestamp — mesma regra do userProfileData.
-// Corrige o achado 3.3 (PutDietLog regravava createdAt a cada save).
-func dietLogData(log *models.DietDailyLog) map[string]any {
-	createdAt := any(firestore.ServerTimestamp)
-	if !log.CreatedAt.IsZero() {
-		createdAt = log.CreatedAt
-	}
-	return map[string]any{
-		"studentId":  log.StudentID,
-		"dietId":     log.DietID,
-		"dietName":   log.DietName,
-		"date":       log.Date,
-		"status":     string(log.Status),
-		"mealChecks": log.MealChecks,
-		"note":       log.Note,
-		"createdAt":  createdAt,
-		"updatedAt":  firestore.ServerTimestamp,
-	}
-}
-
-func (r *firestoreRepo) PutDietLog(ctx context.Context, log *models.DietDailyLog) error {
-	_, err := r.fs.Collection("dietLogs").Doc(dietLogDocID(log.StudentID, log.Date)).Set(ctx, dietLogData(log))
-	return err
-}
-
-// ListDietLogsForStudent devolve os logs do aluno em um intervalo de datas
-// (from/to opcionais, formato YYYY-MM-DD — ordenável lexicograficamente).
-func (r *firestoreRepo) ListDietLogsForStudent(ctx context.Context, studentID, from, to string) ([]*models.DietDailyLog, error) {
-	q := r.fs.Collection("dietLogs").
-		Where("studentId", "==", studentID)
-	if from != "" {
-		q = q.Where("date", ">=", from)
-	}
-	if to != "" {
-		q = q.Where("date", "<=", to)
-	}
-	q = q.OrderBy("date", firestore.Desc)
-	iter := q.Documents(ctx)
-	defer iter.Stop()
-	var out []*models.DietDailyLog
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		d := &models.DietDailyLog{}
-		if err := doc.DataTo(d); err != nil {
-			continue
-		}
-		d.ID = doc.Ref.ID
-		out = append(out, d)
-	}
-	return ensureNonNilSlice(out), nil
 }
 
 func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {

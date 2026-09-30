@@ -86,14 +86,6 @@ service cloud.firestore {
     // Dados de um aluno: o próprio dono ou o admin. Como o modelo é de 2 papéis,
     // a relação se resume a self/admin — a mesma matriz de
     // service.CanAccessResource na API Go.
-    function canViewStudentData(studentId) {
-      return canUseBusinessResources() && (
-        request.auth != null && (
-          request.auth.uid == studentId ||
-          isAdmin()
-        )
-      );
-    }
     // Allowlist estrita dos campos que o DONO pode alterar no próprio perfil
     // via SDK de cliente. Derivada dos fluxos reais (GET/PUT /api/me: name,
     // email). Qualquer outro campo — incluindo createdAt e
@@ -133,14 +125,6 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // ── Log diário de dieta ──
-    // Leitura: próprio aluno + admin (aprovados).
-    // Escrita: só API Go (transações preservam createdAt).
-    match /dietLogs/{docId} {
-      allow read: if canViewStudentData(resource.data.studentId);
-      allow write: if false;
-    }
-
     // ── Coleções gerenciadas apenas pela API Go (Admin SDK) ──
     match /workouts/{document=**} {
       allow read, write: if false;
@@ -152,9 +136,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
     match /diets/{document=**} {
-      allow read, write: if false;
-    }
-    match /workoutHistory/{document=**} {
       allow read, write: if false;
     }
 

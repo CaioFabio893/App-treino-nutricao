@@ -3,7 +3,6 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
-	"strconv"
 	"time"
 
 	"treino-louise/backend/middleware"
@@ -697,117 +696,5 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "falha ao duplicar dieta", http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, http.StatusOK, created)
-}
-
-// ── Histórico de treinos ──
-
-// HandleListHistory lista o histórico. Nutricionista vê o de seus alunos,
-// aluno vê o próprio, admin vê tudo.
-//
-// Suporta paginação por offset/limit: sem parâmetros devolve a lista completa
-// (comportamento original); com `limit` devolve { entries, total, offset,
-// limit, hasMore }. Os itens vêm sempre mais recentes primeiro.
-func (h *Handlers) HandleListHistory(w http.ResponseWriter, r *http.Request) {
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-	var all []*models.WorkoutHistoryEntry
-	var err error
-	switch role {
-	case models.RoleAdmin:
-		all, err = h.repo.ListHistory(r.Context())
-	default:
-		all, err = h.repo.ListHistoryForStudent(r.Context(), uid)
-	}
-	if err != nil {
-		http.Error(w, "falha ao listar historico", http.StatusInternalServerError)
-		return
-	}
-
-	offset := 0
-	if v := r.URL.Query().Get("offset"); v != "" {
-		if n, e := strconv.Atoi(v); e == nil && n >= 0 {
-			offset = n
-		}
-	}
-	limit := 0 // 0 = sem paginação (lista completa)
-	if v := r.URL.Query().Get("limit"); v != "" {
-		if n, e := strconv.Atoi(v); e == nil && n > 0 {
-			limit = n
-		}
-	}
-	if limit == 0 {
-		if all == nil {
-			all = []*models.WorkoutHistoryEntry{}
-		}
-		writeJSON(w, http.StatusOK, all)
-		return
-	}
-
-	if offset > len(all) {
-		offset = len(all)
-	}
-	end := offset + limit
-	if end > len(all) {
-		end = len(all)
-	}
-	page := all[offset:end]
-	if page == nil {
-		page = []*models.WorkoutHistoryEntry{}
-	}
-	writeJSON(w, http.StatusOK, map[string]any{
-		"entries": page,
-		"total":   len(all),
-		"offset":  offset,
-		"limit":   limit,
-		"hasMore": end < len(all),
-	})
-}
-
-// HandleCompleteWorkout registra a conclusão de um treino (aluno).
-func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request) {
-	var req models.CompleteWorkoutRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
-		http.Error(w, "JSON invalido", http.StatusBadRequest)
-		return
-	}
-	if req.WorkoutID == "" {
-		http.Error(w, "workoutId obrigatorio", http.StatusBadRequest)
-		return
-	}
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-
-	workout, err := h.repo.GetWorkout(r.Context(), req.WorkoutID)
-	if err != nil {
-		http.Error(w, "falha ao ler treino", http.StatusInternalServerError)
-		return
-	}
-	if workout == nil {
-		http.Error(w, "treino nao encontrado", http.StatusNotFound)
-		return
-	}
-	// Só o próprio aluno (ou admin) pode concluir.
-	if role != models.RoleAdmin && uid != workout.StudentID {
-		http.Error(w, "sem permissao", http.StatusForbidden)
-		return
-	}
-
-	entry := &models.WorkoutHistoryEntry{
-		StudentID:          workout.StudentID,
-		WorkoutID:          workout.ID,
-		WorkoutName:        workout.Name,
-		CompletedAt:        service.Now(),
-		Duration:           req.Duration,
-		ExercisesCompleted: req.ExercisesCompleted,
-		TotalExercises:     req.TotalExercises,
-		Exercises:          req.Exercises,
-	}
-	created, err := h.repo.CreateHistoryEntry(r.Context(), entry)
-	if err != nil {
-		http.Error(w, "falha ao registrar conclusao", http.StatusInternalServerError)
-		return
-	}
-
 	writeJSON(w, http.StatusOK, created)
 }

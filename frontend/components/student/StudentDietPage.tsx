@@ -5,11 +5,10 @@ import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
-import DietCheck from "@/components/DietCheck";
 import LoadError from "@/components/LoadError";
 import { todayDateLabel } from "@/lib/days";
 
-/** Página "Dietas" do aluno: dieta ativa (texto ou refeições legadas) + acompanhamento de hoje. */
+/** Página "Dietas" do aluno: dieta ativa (texto ou refeições legadas). */
 export default function StudentDietPage() {
   const { getToken, profile } = useAuth();
   const [diets, setDiets] = useState<Diet[]>([]);
@@ -101,12 +100,6 @@ export default function StudentDietPage() {
               ))
             )}
           </div>
-          {(todayDiet.meals?.length ?? 0) > 0 && (
-            <>
-              <div className="section-label">Acompanhamento de hoje</div>
-              <DietCheck diet={todayDiet} />
-            </>
-          )}
         </>
       ) : (
         <div className="empty-box">

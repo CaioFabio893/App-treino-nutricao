@@ -18,10 +18,6 @@ vi.mock("@/lib/api", () => ({
   listDiets: mocks.listDiets,
 }));
 
-// O acompanhamento (DietCheck) faz chamadas próprias; fora do escopo deste teste.
-vi.mock("@/components/DietCheck", () => ({
-  default: () => null,
-}));
 
 const textDiet: Diet = {
   id: "d1",

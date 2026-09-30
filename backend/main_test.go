@@ -483,7 +483,6 @@ func TestChainStudentPendingBlockedFromBusinessRoutes(t *testing.T) {
 		{"GET /api/workouts", "GET", "/api/workouts"},
 		{"GET /api/diets", "GET", "/api/diets"},
 		{"GET /api/programs", "GET", "/api/programs"},
-		{"GET /api/diet-logs", "GET", "/api/diet-logs"},
 	}
 	for _, c := range cases {
 		t.Run(c.name, func(t *testing.T) {

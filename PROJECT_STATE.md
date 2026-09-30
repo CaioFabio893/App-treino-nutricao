@@ -39,20 +39,15 @@ Rules/E2E somente emuladores; não rodar juntos. Nenhuma dependência instalada.
 Go cache/Firebase CLI precisaram execução fora do sandbox. CLI existente:
 C:/Users/caiof/AppData/Roaming/npm; Java em .jdks/ms-21.0.11.
 
-## Próxima tarefa — F5
+## F5 concluída e próximo passo
 
-Ler seção F5 de docs/simplificacao/03-plano.md e dependências diretas.
-1. Testar em Red retirada de POST /api/workouts/complete, GET workout-history,
-   GET/PUT diet-logs; proteger contratos administrativos/programas preservados.
-2. Retirar conclusão/histórico/diário de handlers/repository/models/seed/API.
-3. Retirar TodayWorkout, RestTimer, DietCheck e useNewCompletions; adaptar
-   StudentWorkoutsPage, StudentDietPage, StudentDetail e estatísticas admin.
-   Manter exercícios/vídeos/séries legíveis, programas e edição administrativa.
-4. Negar workoutHistory/dietLogs antigos nas rules e remover índices apenas
-   do arquivo local. Não apagar dados. Não retirar setup inicial nome/e-mail.
-5. Adaptar testes à leitura; rodar gates estruturais uma vez, corrigir falhas,
-   registrar contagens reais, atualizar estado e criar checkpoint local.
-Depois F6 modelo/índices e F7 matriz role/status/ownership. Sem pular dependências.
+F5 participante somente leitura concluída: retirados endpoints/DTOs/coleções
+ativas de conclusão e diário; UI exibe prescrição e vídeos. Gestão preservada.
+Go 181 + vet, Vitest 104 (18 arquivos), rules 92, E2E 28 (1,3 min),
+tsc/lint/build OK. Relatório docs/reports/simplificacao-f5-checkpoint.md.
+Próximo F6: cinco coleções, três índices necessários, K2/reindex; depois
+F7: matriz de status/papel/posse, 404 para recurso alheio, E2E dois alunos.
+Usuário confirmou continuar sem OK entre fases.
 
 ## Pendências de produção e decisões
 

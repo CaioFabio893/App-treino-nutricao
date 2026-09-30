@@ -4,18 +4,14 @@
 import type {
   ApproveUserRequest,
   AssignProgramRequest,
-  CompleteWorkoutRequest,
   Diet,
-  DietDailyLog,
   DuplicateRequest,
   Exercise,
   ImportProgramRequest,
   RejectUserRequest,
   TrainingProgram,
-  UpsertDietLogRequest,
   UserProfile,
   WorkoutDefine,
-  WorkoutHistoryEntry,
 } from "./types";
 
 const API_URL = (process.env.NEXT_PUBLIC_API_URL || "").replace(/\/+$/, "");
@@ -382,54 +378,3 @@ export function duplicateDiet(id: string, req: DuplicateRequest, token: string):
 }
 
 // ── Histórico ──
-
-export function listHistory(token: string): Promise<WorkoutHistoryEntry[]> {
-  return request<WorkoutHistoryEntry[]>("/api/workout-history", token);
-}
-
-// Página do histórico (mais recentes primeiro). Usado na Timeline com
-// botão "Carregar mais". O backend aceita offset/limit e devolve
-// { entries, total, offset, limit, hasMore }.
-export interface HistoryPage {
-  entries: WorkoutHistoryEntry[];
-  total: number;
-  offset: number;
-  limit: number;
-  hasMore: boolean;
-}
-
-export function listHistoryPage(
-  token: string,
-  opts: { limit?: number; offset?: number } = {}
-): Promise<HistoryPage> {
-  const qs = new URLSearchParams();
-  if (opts.limit) qs.set("limit", String(opts.limit));
-  if (opts.offset) qs.set("offset", String(opts.offset));
-  const q = qs.toString();
-  return request<HistoryPage>(`/api/workout-history${q ? `?${q}` : ""}`, token);
-}
-
-export function completeWorkout(req: CompleteWorkoutRequest, token: string): Promise<WorkoutHistoryEntry> {
-  return request<WorkoutHistoryEntry>("/api/workouts/complete", token, {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-}
-
-// ── Dieta diária (dia + refeição) ──────────────────────────────────────────
-
-export function listDietLogs(studentId: string, token: string, from?: string, to?: string): Promise<DietDailyLog[]> {
-  const qs = new URLSearchParams({ studentId });
-  if (from) qs.set("from", from);
-  if (to) qs.set("to", to);
-  return request<{ logs: DietDailyLog[] }>(`/api/diet-logs?${qs.toString()}`, token).then(
-    (r) => r.logs
-  );
-}
-
-export function putDietLog(req: UpsertDietLogRequest, token: string): Promise<DietDailyLog> {
-  return request<DietDailyLog>("/api/diet-logs", token, {
-    method: "PUT",
-    body: JSON.stringify(req),
-  });
-}

@@ -14,7 +14,7 @@ import type { NextConfig } from "next";
 // cobre apenas UM nível de subdomínio, e na região southamerica-east1 o
 // Cloud Run gera URLs com dois níveis (SERVICE-PROJ.southamerica-east1.run.app).
 // Sem esta origem explícita o navegador bloquearia o fetch para a API.
-// - frame-src: YouTube embeds em treinos (TodayWorkout).
+// - frame-src: YouTube embeds em treinos (StudentWorkoutsPage).
 // - frame-ancestors 'none': substitui X-Frame-Options DENY (mais moderno).
 const isProd = process.env.NODE_ENV === "production";
 // 'unsafe-eval' apenas em dev (HMR do Next.js/webpack).

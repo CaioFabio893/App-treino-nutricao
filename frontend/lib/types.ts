@@ -1,4 +1,3 @@
-export type Check = "" | "ok" | "fail";
 
 // ── Novos tipos: gestão ──
 
@@ -113,42 +112,9 @@ export interface Diet {
   updatedAt?: string;
 }
 
-export interface HistorySet {
-  weight?: string;
-  reps?: string;
-  done: boolean;
-}
-
-export interface HistoryExercise {
-  name: string;
-  order: number;
-  sets?: HistorySet[];
-  note?: string;
-}
-
-export interface WorkoutHistoryEntry {
-  id?: string;
-  studentId: string;
-  workoutId: string;
-  workoutName?: string;
-  completedAt?: string;
-  duration?: number;
-  exercisesCompleted: number;
-  totalExercises: number;
-  exercises?: HistoryExercise[];
-}
-
 export interface DuplicateRequest {
   newStudentId?: string;
   newName?: string;
-}
-
-export interface CompleteWorkoutRequest {
-  workoutId: string;
-  duration: number;
-  exercisesCompleted: number;
-  totalExercises: number;
-  exercises?: HistoryExercise[];
 }
 
 // ── Programas de treino (F19) ────────────────────────────────────────────
@@ -204,33 +170,3 @@ export const WEEK_DAYS = [
 ] as const;
 
 // ── Rede social / dieta diária / ranking ──
-
-export type DietLogStatus = "followed" | "partial" | "not_followed";
-
-export interface MealCheck {
-  mealId?: string;
-  mealName?: string;
-  followed: boolean;
-  note?: string;
-}
-
-export interface DietDailyLog {
-  id?: string;
-  studentId: string;
-  dietId?: string;
-  dietName?: string;
-  date: string;
-  status: DietLogStatus;
-  mealChecks?: MealCheck[];
-  note?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface UpsertDietLogRequest {
-  studentId?: string;
-  date: string;
-  status?: DietLogStatus;
-  mealChecks?: MealCheck[];
-  note?: string;
-}

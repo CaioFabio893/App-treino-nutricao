@@ -10,37 +10,15 @@ test.describe("Área do aluno (cadastro aprovado)", () => {
     await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toHaveCount(0);
   });
 
-  test("aluno conclui o treino de hoje (registro e histórico no backend)", async ({
-    page,
-  }) => {
+  test("aluno consulta exercícios sem controles de registro", async ({ page }) => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
     await page.waitForURL("**/dashboard");
     await page.getByRole("link", { name: "Treinos", exact: true }).click();
-    await page.waitForURL("**/treinos");
-
-    // Treino de hoje aparece como opção e já vem selecionado (dayOfWeek = hoje).
-    const chip = page
-      .locator(".wod-chip")
-      .filter({ hasText: "Treino de Hoje E2E" });
-    await expect(chip).toBeVisible();
-    await chip.click();
-
-    const finish = page.getByRole("button", { name: "FINALIZAR TREINO" });
-    await expect(finish).toBeVisible();
-    const before = await page.locator(".tl-item").count();
-
-    // Expande o primeiro exercício (a lista de séries fica recolhida por padrão)
-    // e marca a primeira série.
-    await page.locator(".ex-hd").first().click();
-    const firstSet = page.locator(".s-row .chk-btn").first();
-    await expect(firstSet).toBeVisible();
-    await firstSet.click();
-    await expect(firstSet).toHaveClass(/ok/);
-    await finish.click();
-
-    await expect(page.locator("#toast.show")).toContainText("Treino finalizado");
-    // Histórico recarregado do backend ganha um item novo.
-    await expect(page.locator(".tl-item")).toHaveCount(before + 1);
+    await expect(page.getByRole("heading", { name: "Seus treinos" })).toBeVisible();
+    await expect(page.locator(".wod-chip").filter({ hasText: "Treino de Hoje E2E" })).toBeVisible();
+    await expect(page.locator(".ex-name").first()).toBeVisible();
+    await expect(page.getByRole("button", { name: /FINALIZAR|Registrar|Marcar/ })).toHaveCount(0);
+    await expect(page.locator("input, textarea, .chk-btn")).toHaveCount(0);
   });
 
   test("aluno aprovado vê dieta sem depender de plano", async ({

@@ -24,7 +24,7 @@ test.describe("Autorização (API Go autenticada com idToken real do emulador)",
 
     expect((await apiGet(request, "/api/diets", a)).status()).toBe(200);
     expect((await apiGet(request, "/api/workouts", a)).status()).toBe(200);
-    expect((await apiGet(request, "/api/workout-history", a)).status()).toBe(200);
+    expect((await apiGet(request, "/api/workout-history", a)).status()).toBe(404);
   });
 
   test("frontend bloqueia aluno no /admin", async ({ page }) => {

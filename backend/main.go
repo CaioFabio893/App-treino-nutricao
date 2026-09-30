@@ -151,13 +151,14 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("POST /api/users/{id}/approve", a.Require(a.Allow(models.RoleAdmin)(h.HandleApproveUser)))
 	mux.HandleFunc("POST /api/users/{id}/reject", a.Require(a.Allow(models.RoleAdmin)(h.HandleRejectUser)))
 
-
 	// ── Alunos ──
 	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleAdmin)(h.HandleListMyStudents)))
 	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
 	mux.HandleFunc("PUT /api/students/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdateStudent)))
 
 	// ── Treinos (free tier — só exige cadastro aprovado) ──
+	// Endpoint aposentado: responde 404 em vez de 405 por conflito com a rota de leitura.
+	mux.HandleFunc("POST /api/workouts/complete", http.NotFound)
 	mux.HandleFunc("GET /api/workouts", a.Require(a.RequireApproved(h.HandleListWorkouts)))
 	mux.HandleFunc("POST /api/workouts", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateWorkout))))
 	mux.HandleFunc("GET /api/workouts/{id}", a.Require(a.RequireApproved(h.HandleGetWorkout)))
@@ -201,11 +202,4 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
 	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))
 
-	// ── Histórico (free tier) ──
-	mux.HandleFunc("GET /api/workout-history", a.Require(a.RequireApproved(h.HandleListHistory)))
-	mux.HandleFunc("POST /api/workouts/complete", a.Require(a.RequireApproved(h.HandleCompleteWorkout)))
-
-	// ── Dieta diária (dia + refeição) — feature diet ──
-	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireApproved(h.HandleListDietLogs)))
-	mux.HandleFunc("PUT /api/diet-logs", a.Require(a.RequireApproved(h.HandleUpsertDietLog)))
 }

@@ -6,7 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
+import type { Diet, UserProfile, WorkoutDefine } from "@/lib/types";
 import { StudentsPageSkeleton } from "@/components/Skeleton";
 
 export default function StudentsPage() {
@@ -24,7 +24,6 @@ function StudentsInner() {
   const [students, setStudents] = useState<UserProfile[]>([]);
   const [workouts, setWorkouts] = useState<WorkoutDefine[]>([]);
   const [diets, setDiets] = useState<Diet[]>([]);
-  const [history, setHistory] = useState<WorkoutHistoryEntry[]>([]);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState("");
@@ -33,16 +32,14 @@ function StudentsInner() {
   const load = useCallback(async () => {
     try {
       const token = await getToken();
-      const [list, w, d, h] = await Promise.all([
+      const [list, w, d] = await Promise.all([
         api.listStudents(token),
         api.listWorkouts(token),
         api.listDiets(token),
-        api.listHistory(token),
       ]);
       setStudents(list);
       setWorkouts(w);
       setDiets(d);
-      setHistory(h);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar alunos");
@@ -59,16 +56,11 @@ function StudentsInner() {
   const statsFor = (id: string) => {
     const w = workouts.filter((x) => x.studentId === id);
     const d = diets.filter((x) => x.studentId === id);
-    const h = history.filter((x) => x.studentId === id);
     const today = new Date().toISOString().slice(0, 10);
     const currentDiet = d.find(
       (x) => (!x.startDate || x.startDate <= today) && (!x.endDate || x.endDate >= today)
     );
-    const last = h[0] ?? null;
-    const lastWorkoutName = last
-      ? w.find((x) => x.id === last.workoutId)?.name ?? "Treino"
-      : null;
-    return { workoutCount: w.length, currentDiet: currentDiet?.name ?? null, lastWorkoutName, lastDate: last?.completedAt ?? null };
+    return { workoutCount: w.length, currentDiet: currentDiet?.name ?? null };
   };
 
   const filtered = useMemo(() => {
@@ -109,11 +101,6 @@ function StudentsInner() {
         </div>
         <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
           <div>🥗 Dieta atual: <b style={{ color: "var(--text)" }}>{stats.currentDiet ?? "—"}</b></div>
-          <div>🏋 Último treino: <b style={{ color: "var(--text)" }}>
-            {stats.lastWorkoutName
-              ? `${stats.lastWorkoutName}${stats.lastDate ? ` · ${new Date(stats.lastDate).toLocaleDateString("pt-BR")}` : ""}`
-              : "—"}
-          </b></div>
         </div>
         <div className="btn-row">
           <button type="button" className="btn-sm acc" onClick={() => openStudent(s.id)}>
