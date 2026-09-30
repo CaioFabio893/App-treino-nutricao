@@ -46,17 +46,6 @@ export function CommunityIcon(props: IconProps) {
   );
 }
 
-export function RankingIcon(props: IconProps) {
-  return (
-    <svg {...baseProps} {...props}>
-      <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-      <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-      <path d="M4 22h16" />
-      <path d="M10 14.66V17h4v-2.34l2.67-2.67a4 4 0 0 0-5.34-5.34L10 12l-1.33-3a4 4 0 0 0-5.34 5.34L6 14.66z" />
-    </svg>
-  );
-}
-
 export function DashboardIcon(props: IconProps) {
   return (
     <svg {...baseProps} {...props}>
@@ -133,6 +122,5 @@ export const navAppIcons: Record<
   program: ProgramIcon,
   leaf: DietIcon,
   feed: CommunityIcon,
-  trophy: RankingIcon,
   user: ProfileIcon,
 };

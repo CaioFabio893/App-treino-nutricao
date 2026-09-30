@@ -30,7 +30,6 @@ describe("StudentDashboard — cards de módulo por feature do plano", () => {
     // inalcançável — o dashboard nunca renderiza essa mensagem.
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Dietas/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Ranking/ })).not.toBeInTheDocument();
   });
 
   it("mostra apenas os módulos liberados no plano", () => {
@@ -44,7 +43,6 @@ describe("StudentDashboard — cards de módulo por feature do plano", () => {
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Ranking/ })).not.toBeInTheDocument();
   });
 
   it("mostra todos os módulos com o plano completo", () => {
@@ -53,12 +51,13 @@ describe("StudentDashboard — cards de módulo por feature do plano", () => {
       name: "Maria Souza",
       role: "student",
       status: "active",
+      // Perfis legados podem manter ranking no snapshot; ele não volta à UI.
       features: ["workouts", "diet", "community", "ranking"],
     });
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Comunidade/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Ranking/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
   });
 

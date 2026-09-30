@@ -55,8 +55,7 @@ func TestEnsureNonNilSliceSerializesAsArray(t *testing.T) {
 }
 
 // TestEnsureNonNilSliceNilToArrayAllTypes cobre cada tipo de coleção exposto
-// pelos endpoints (planos, usuários/alunos, treinos, dietas, posts,
-// diet-logs, score records, score history).
+// pelos endpoints (planos, usuários/alunos, treinos, dietas, posts, diet-logs).
 func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 	var (
 		plans    []*models.Plan
@@ -65,8 +64,6 @@ func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 		diets    []*models.Diet
 		posts    []*models.Post
 		logs     []*models.DietDailyLog
-		records  []*models.ScoreRecord
-		history  []*models.ScoreHistoryEntry
 	)
 
 	cases := []struct {
@@ -79,8 +76,6 @@ func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 		{"diets", ensureNonNilSlice(diets)},
 		{"posts", ensureNonNilSlice(posts)},
 		{"dietLogs", ensureNonNilSlice(logs)},
-		{"scoreRecords", ensureNonNilSlice(records)},
-		{"scoreHistory", ensureNonNilSlice(history)},
 	}
 
 	for _, c := range cases {

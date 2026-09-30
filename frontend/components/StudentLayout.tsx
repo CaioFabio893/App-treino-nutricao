@@ -12,15 +12,14 @@ import type { Feature } from "@/lib/types";
 
 // Navegação inferior do aluno (rotas reais, não abas em estado local).
 // Programa é o tier gratuito (agrupa os treinos atribuídos, sem feature de
-// plano); Treinos mostra o dia a dia; Dietas, Comunidade e Ranking dependem
-// das features snapshotadas no perfil. O backend também valida.
-const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed" | "trophy"; feature?: Feature }[] = [
+// plano); Treinos mostra o dia a dia; Dietas e Comunidade dependem das features
+// snapshotadas no perfil. O backend também valida.
+const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed"; feature?: Feature }[] = [
   { href: "/dashboard", label: "Início", icon: "grid" },
   { href: "/programas", label: "Programa", icon: "program" },
   { href: "/treinos", label: "Treinos", icon: "dumbbell" },
   { href: "/dietas", label: "Dietas", icon: "leaf", feature: "diet" },
   { href: "/comunidade", label: "Comunidade", icon: "feed", feature: "community" },
-  { href: "/ranking", label: "Ranking", icon: "trophy", feature: "ranking" },
 ];
 
 // Guarda de rota: prefixo → feature exigida para o aluno acessar aquela página.
@@ -28,7 +27,6 @@ const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "pro
 const PATH_FEATURES: { prefix: string; feature: Feature }[] = [
   { prefix: "/dietas", feature: "diet" },
   { prefix: "/comunidade", feature: "community" },
-  { prefix: "/ranking", feature: "ranking" },
 ];
 
 /**

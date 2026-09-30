@@ -1,4 +1,4 @@
-﻿// Package repository é a camada de persistência. Define a interface
+// Package repository é a camada de persistência. Define a interface
 // Repository (fácil de trocar/mockar em testes) e uma implementação
 // Firestore. Nenhuma regra de negócio vive aqui.
 package repository
@@ -118,13 +118,6 @@ type Repository interface {
 	GetDietLog(ctx context.Context, studentID, date string) (*models.DietDailyLog, error)
 	PutDietLog(ctx context.Context, log *models.DietDailyLog) error
 	ListDietLogsForStudent(ctx context.Context, studentID, from, to string) ([]*models.DietDailyLog, error)
-
-	// Ranking / pontuação
-	GetScoreRecord(ctx context.Context, uid string) (*models.ScoreRecord, error)
-	PutScoreRecord(ctx context.Context, rec *models.ScoreRecord) error
-	ListScoreRecords(ctx context.Context) ([]*models.ScoreRecord, error)
-	PutScoreHistory(ctx context.Context, uid, cycleID string, h *models.ScoreHistoryEntry) error
-	ListScoreHistory(ctx context.Context, uid string) ([]*models.ScoreHistoryEntry, error)
 }
 
 // firestoreRepo é a implementação concreta sobre o Firestore.
@@ -1084,97 +1077,6 @@ func (r *firestoreRepo) ListDietLogsForStudent(ctx context.Context, studentID, f
 		}
 		d.ID = doc.Ref.ID
 		out = append(out, d)
-	}
-	return ensureNonNilSlice(out), nil
-}
-
-// ── Ranking / pontuação ──
-
-func (r *firestoreRepo) GetScoreRecord(ctx context.Context, uid string) (*models.ScoreRecord, error) {
-	doc, err := r.fs.Collection("scores").Doc(uid).Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.ScoreRecord{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (r *firestoreRepo) PutScoreRecord(ctx context.Context, rec *models.ScoreRecord) error {
-	_, err := r.fs.Collection("scores").Doc(rec.StudentID).Set(ctx, map[string]any{
-		"studentId":     rec.StudentID,
-		"rawPoints":     rec.RawPoints,
-		"cycleId":       rec.CycleID,
-		"cycleStart":    rec.CycleStart,
-		"score":         rec.Score,
-		"daysElapsed":   rec.DaysElapsed,
-		"daysCompleted": rec.DaysCompleted,
-		"updatedAt":     firestore.ServerTimestamp,
-	})
-	return err
-}
-
-func (r *firestoreRepo) ListScoreRecords(ctx context.Context) ([]*models.ScoreRecord, error) {
-	iter := r.fs.Collection("scores").Documents(ctx)
-	defer iter.Stop()
-	var out []*models.ScoreRecord
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		rec := &models.ScoreRecord{}
-		if err := doc.DataTo(rec); err != nil {
-			continue
-		}
-		rec.StudentID = doc.Ref.ID
-		out = append(out, rec)
-	}
-	return ensureNonNilSlice(out), nil
-}
-
-// PutScoreHistory guarda a nota final de um ciclo fechado.
-func (r *firestoreRepo) PutScoreHistory(ctx context.Context, uid, cycleID string, h *models.ScoreHistoryEntry) error {
-	_, err := r.fs.Collection("scores_history").Doc(uid).Collection("cycles").Doc(cycleID).Set(ctx, map[string]any{
-		"studentId":  h.StudentID,
-		"cycleId":    h.CycleID,
-		"startDate":  h.StartDate,
-		"endDate":    h.EndDate,
-		"rawPoints":  h.RawPoints,
-		"days":       h.Days,
-		"score":      h.Score,
-		"recordedAt": firestore.ServerTimestamp,
-	})
-	return err
-}
-
-func (r *firestoreRepo) ListScoreHistory(ctx context.Context, uid string) ([]*models.ScoreHistoryEntry, error) {
-	iter := r.fs.Collection("scores_history").Doc(uid).Collection("cycles").
-		OrderBy("startDate", firestore.Desc).
-		Documents(ctx)
-	defer iter.Stop()
-	var out []*models.ScoreHistoryEntry
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		h := &models.ScoreHistoryEntry{}
-		if err := doc.DataTo(h); err != nil {
-			continue
-		}
-		out = append(out, h)
 	}
 	return ensureNonNilSlice(out), nil
 }

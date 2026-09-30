@@ -10,7 +10,6 @@ interface Props {
     | "program"
     | "leaf"
     | "feed"
-    | "trophy"
     | "clock"
     | "activity"
     | "library"
@@ -84,16 +83,6 @@ export default function DashIcon({ name, size = 18 }: Props) {
           <path d="M4 5.5h16v10H9l-4 4v-4H4z" />
           <line x1="7.5" y1="9.5" x2="16.5" y2="9.5" />
           <line x1="7.5" y1="12.5" x2="13.5" y2="12.5" />
-        </svg>
-      );
-    case "trophy":
-      return (
-        <svg {...common}>
-          <path d="M7 4h10v5a5 5 0 0 1-10 0V4z" />
-          <path d="M7 5.5H4a3 3 0 0 0 3.5 4.4" />
-          <path d="M17 5.5h3a3 3 0 0 1-3.5 4.4" />
-          <line x1="12" y1="14.5" x2="12" y2="18" />
-          <path d="M8.5 20h7" />
         </svg>
       );
     case "clock":

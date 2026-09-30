@@ -72,9 +72,8 @@ type chainFakeRepo struct {
 	listDietsSt     []*models.Diet
 	plan            *models.Plan
 
-	createdUsers               []*models.UserProfile
-	updateUserCalled           bool
-
+	createdUsers     []*models.UserProfile
+	updateUserCalled bool
 
 	// FASE 5 (I2): treinos/dietas para os handlers de UPDATE.
 	studentsByID   map[string]*models.UserProfile // GetUserProfile por UID (alunos reais do nutri)
@@ -345,6 +344,22 @@ func newChainMux(repo repository.Repository) http.Handler {
 	return newChainMuxWithVerifier(repo, &fakeVerifier{uid: testUID})
 }
 
+// Uma URL antiga não pode continuar expondo pontuação ou perfil público.
+func TestRemovedGamificationRoutesReturnNotFound(t *testing.T) {
+	mux := newChainMux(&chainFakeRepo{})
+	for _, path := range []string{"/api/ranking", "/api/scores/history", "/api/public/profile/other-student"} {
+		t.Run(path, func(t *testing.T) {
+			req := httptest.NewRequest(http.MethodGet, path, nil)
+			req.Header.Set("Authorization", "Bearer valid-token")
+			res := httptest.NewRecorder()
+			mux.ServeHTTP(res, req)
+			if res.Code != http.StatusNotFound {
+				t.Fatalf("removed route %s: status=%d, want 404", path, res.Code)
+			}
+		})
+	}
+}
+
 func newChainMuxWithVerifier(repo repository.Repository, ver *fakeVerifier) http.Handler {
 	a := middleware.NewAuth(ver, repo)
 	h := handlers.New(service.New(repo), repo, nil)
@@ -411,8 +426,6 @@ func adminProfile(status string) *models.UserProfile {
 func studentProfile(status string, features []models.Feature) *models.UserProfile {
 	return &models.UserProfile{ID: testUID, Name: "Aluno", Role: models.RoleStudent, Status: status, Features: features}
 }
-
-
 
 // doChainRequest dispara um request contra a cadeia real. token vazio = sem
 // header Authorization.
@@ -599,7 +612,6 @@ func TestChainUnauthenticatedNotPublic(t *testing.T) {
 		{"GET /api/workouts", "GET", "/api/workouts"},
 		{"GET /api/me", "GET", "/api/me"},
 		{"GET /api/diets", "GET", "/api/diets"},
-		{"GET /api/ranking", "GET", "/api/ranking"},
 	}
 	for _, c := range cases {
 		t.Run(c.name+"_sem_token", func(t *testing.T) {
@@ -1148,7 +1160,6 @@ func TestChainAdminCreatesDietWithoutStudent(t *testing.T) {
 	}
 }
 
-
 // -- FASE 5b: formato simplificado de dieta (texto livre) --
 //
 // O `content` (copiar/colar em texto) é o formato atual de dieta; refeições
@@ -1225,9 +1236,9 @@ func TestChainAdminCreatesDietTemplate(t *testing.T) {
 func TestChainAdminEditsUnassignedWorkout(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.workout = &models.WorkoutDefine{
-		ID:             "w-1",
-		StudentID:      "",
-		Name:           "Treino A",
+		ID:        "w-1",
+		StudentID: "",
+		Name:      "Treino A",
 	}
 	h := newChainMux(repo)
 
@@ -1248,9 +1259,9 @@ func TestChainAdminEditsUnassignedWorkout(t *testing.T) {
 func TestChainAdminEditsUnassignedDiet(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.diet = &models.Diet{
-		ID:             "d-1",
-		StudentID:      "",
-		Name:           "Dieta A",
+		ID:        "d-1",
+		StudentID: "",
+		Name:      "Dieta A",
 	}
 	h := newChainMux(repo)
 
@@ -1272,9 +1283,9 @@ func TestChainAdminEditsUnassignedDiet(t *testing.T) {
 func TestChainAdminAssignsLibraryDietToStudent(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.diet = &models.Diet{
-		ID:             "d-1",
-		StudentID:      "",
-		Name:           "Dieta A",
+		ID:        "d-1",
+		StudentID: "",
+		Name:      "Dieta A",
 	}
 	repo.studentsByID = map[string]*models.UserProfile{
 		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
@@ -1298,9 +1309,9 @@ func TestChainAdminAssignsLibraryDietToStudent(t *testing.T) {
 func TestChainAdminAssignsLibraryWorkoutToStudent(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.workout = &models.WorkoutDefine{
-		ID:             "w-1",
-		StudentID:      "",
-		Name:           "Treino A",
+		ID:        "w-1",
+		StudentID: "",
+		Name:      "Treino A",
 	}
 	repo.studentsByID = map[string]*models.UserProfile{
 		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
@@ -1325,9 +1336,9 @@ func TestChainAdminAssignsLibraryWorkoutToStudent(t *testing.T) {
 func TestChainStudentCannotReadUnassignedDiet(t *testing.T) {
 	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureDiet}))
 	repo.diet = &models.Diet{
-		ID:             "d-1",
-		StudentID:      "",
-		Name:           "Dieta da biblioteca",
+		ID:        "d-1",
+		StudentID: "",
+		Name:      "Dieta da biblioteca",
 	}
 	h := newChainMux(repo)
 
@@ -1341,9 +1352,9 @@ func TestChainStudentCannotReadUnassignedDiet(t *testing.T) {
 func TestChainStudentCannotReadUnassignedWorkout(t *testing.T) {
 	repo := baseRepo(studentProfile(models.StatusActive, nil))
 	repo.workout = &models.WorkoutDefine{
-		ID:             "w-1",
-		StudentID:      "",
-		Name:           "Treino da biblioteca",
+		ID:        "w-1",
+		StudentID: "",
+		Name:      "Treino da biblioteca",
 	}
 	h := newChainMux(repo)
 
@@ -1357,9 +1368,9 @@ func TestChainStudentCannotReadUnassignedWorkout(t *testing.T) {
 func TestChainAdminReadsOwnUnassignedDiet(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.diet = &models.Diet{
-		ID:             "d-1",
-		StudentID:      "",
-		Name:           "Dieta da biblioteca",
+		ID:        "d-1",
+		StudentID: "",
+		Name:      "Dieta da biblioteca",
 	}
 	h := newChainMux(repo)
 
@@ -1495,9 +1506,9 @@ func TestChainCreatePostTooLongRejected(t *testing.T) {
 func TestChainDuplicateWorkoutTooLongRejected(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.workout = &models.WorkoutDefine{
-		ID:             "w-1",
-		StudentID:      "student-1",
-		Name:           "Treino A",
+		ID:        "w-1",
+		StudentID: "student-1",
+		Name:      "Treino A",
 	}
 	repo.studentsByID = map[string]*models.UserProfile{
 		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
@@ -1513,9 +1524,9 @@ func TestChainDuplicateWorkoutTooLongRejected(t *testing.T) {
 func TestChainDuplicateDietTooLongRejected(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.diet = &models.Diet{
-		ID:             "d-1",
-		StudentID:      "student-1",
-		Name:           "Dieta A",
+		ID:        "d-1",
+		StudentID: "student-1",
+		Name:      "Dieta A",
 	}
 	repo.studentsByID = map[string]*models.UserProfile{
 		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
@@ -1534,10 +1545,10 @@ func TestChainUpdateStudentTooLongRejected(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
 		"student-1": {
-			ID:             "student-1",
-			Name:           "Aluno 1",
-			Role:           models.RoleStudent,
-			Status:         models.StatusActive,
+			ID:     "student-1",
+			Name:   "Aluno 1",
+			Role:   models.RoleStudent,
+			Status: models.StatusActive,
 		},
 	}
 	h := newChainMux(repo)
@@ -1580,11 +1591,11 @@ func TestChainAdminSoftDeletesOthersComment(t *testing.T) {
 	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.posts = map[string]*models.Post{
 		"post-1": {
-			ID:    "post-1",
+			ID:     "post-1",
 			UserID: "outro-autor",
-			Type:  models.PostText,
-			Text:  "Olá",
-			Likes: map[string]bool{},
+			Type:   models.PostText,
+			Text:   "Olá",
+			Likes:  map[string]bool{},
 			Comments: []*models.PostComment{
 				{ID: "c1", UserID: "aluno-x", Text: "comentario alheio"},
 			},

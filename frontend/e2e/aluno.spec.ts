@@ -2,16 +2,15 @@ import { test, expect } from "@playwright/test";
 import { login, USERS } from "./helpers";
 
 test.describe("Área do aluno (gates do plano)", () => {
-  test("aluno do plano completo vê as 4 áreas", async ({ page }) => {
+  test("aluno do plano completo vê as 3 áreas", async ({ page }) => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
     await page.waitForURL("**/dashboard");
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Dietas", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Ranking", exact: true })).toBeVisible();
   });
 
-  test("aluno conclui o treino de hoje (registro, feed e score via backend)", async ({
+  test("aluno conclui o treino de hoje (registro e histórico no backend)", async ({
     page,
   }) => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
@@ -53,14 +52,6 @@ test.describe("Área do aluno (gates do plano)", () => {
     await expect(page.getByRole("link", { name: "Dietas", exact: true })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toHaveCount(0);
     await page.goto("/dietas");
-    await page.waitForURL("**/dashboard");
-  });
-
-  test("aluno sem ranking é bloqueado na rota", async ({ page }) => {
-    await login(page, USERS.studentC.email, USERS.studentC.password);
-    await page.waitForURL("**/dashboard");
-    await expect(page.getByRole("link", { name: "Ranking", exact: true })).toHaveCount(0);
-    await page.goto("/ranking");
     await page.waitForURL("**/dashboard");
   });
 });

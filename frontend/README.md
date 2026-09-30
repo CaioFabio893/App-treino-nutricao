@@ -22,8 +22,8 @@ npm run dev                  # abre http://localhost:3000
 | `npm run build`       | build de produção (standalone)                     |
 | `npm run start`       | serve o build de produção (`next start`)           |
 | `npm run lint`        | ESLint                                             |
-| `npm test`            | Vitest — testes unitários/componentes (104)        |
-| `npm run test:e2e`    | Playwright E2E (30 — sobe emuladores + backend + seed) |
+| `npm test`            | Vitest — testes unitários/componentes (99)        |
+| `npm run test:e2e`    | Playwright E2E (28 — sobe emuladores + backend + seed) |
 
 ## Estrutura
 
@@ -33,9 +33,8 @@ app/
   login/              # login (Firebase)
   (aluno)/            # área do aluno: treinos, dietas, comunidade
   admin/              # área de gestão (admin): painel, alunos, treinos, dietas,
-                      #   exercícios, programas, feed, ranking, timeline e
+                      #   exercícios, programas, feed, atividades e
                       #   usuarios/ (cadastro e planos)
-  profile/[id]/       # perfil público
   base.css            # design system global
   dashboard.css       # estilos da área de gestão
   student.css         # estilos da área do aluno

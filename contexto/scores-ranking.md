@@ -1,5 +1,10 @@
 # Area: SCORES, RANKING e ADESAO
 
+> 30/09/2026 — F1 removeu esta funcionalidade do código local. O conteúdo
+> abaixo é referência histórica, não um mapa de arquivos existentes.
+> Rotas antigas retornam 404; scores legados são negados pelas rules inclusive
+> para admin via SDK. Nenhum dado de produção foi apagado. Retomada: PROJECT_STATE.md.
+
 ## Onde esta o codigo
 
 **API (Go)**

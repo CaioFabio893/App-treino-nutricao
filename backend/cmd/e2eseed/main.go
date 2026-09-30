@@ -86,7 +86,6 @@ func run() error {
 	}
 
 	repo := repository.New(fs)
-	svc := service.New(repo)
 
 	// ── Usuários no Auth Emulator ──
 	uid := map[string]string{}
@@ -135,9 +134,13 @@ func run() error {
 
 	// ── Perfis (users/{uid}) — escrita equivalente à Admin SDK ──
 	now := service.Now()
-	cycle := service.CurrentCycle()
-	startDate := cycle.Start.Format("2006-01-02")
-	endDate := cycle.End.AddDate(0, 0, -1).Format("2006-01-02")
+	// Trimestre civil corrente (mesma referência do ciclo removido na F1):
+	// startDate/endDate continuam a alimentar os perfis/dietas até a F3.
+	q := (int(now.Month())-1)/3 + 1
+	cycleStart := time.Date(now.Year(), time.Month((q-1)*3+1), 1, 0, 0, 0, 0, now.Location())
+	cycleEnd := cycleStart.AddDate(0, 3, 0)
+	startDate := cycleStart.Format("2006-01-02")
+	endDate := cycleEnd.AddDate(0, 0, -1).Format("2006-01-02")
 	type profileSeed struct {
 		key        string
 		role       models.Role
@@ -274,44 +277,18 @@ func run() error {
 	mkHistory("studentA", workoutA2, 1)
 	mkHistory("studentB", workoutB, 1)
 
-	// ── Pontuação do ciclo (salva o snapshot lido pelo ranking) ──
-	for _, s := range []struct{ key, start string }{
-		{"studentA", startDate}, {"studentB", startDate}, {"studentC", startDate},
-	} {
-		if err := svc.RecomputeScore(ctx, uid[s.key], s.start); err != nil {
-			return fmt.Errorf("recompute %s: %w", s.key, err)
-		}
-		rec, err := repo.GetScoreRecord(ctx, uid[s.key])
-		if err != nil {
-			return fmt.Errorf("score %s: %w", s.key, err)
-		}
-		if rec == nil || rec.Score <= 0 {
-			if s.key == "studentA" {
-				return fmt.Errorf("score de %s deveria ser > 0 (tem história+dieta no ciclo), got=%+v", s.key, rec)
-			}
-		}
-		log.Printf("  score %-10s %.1f (ciclo %s)", s.key, rec.Score, rec.CycleID)
-	}
-
-	// Validação cruzada: aluno A deve pontuar mais que B (garante ranking estável).
-	sa, _ := repo.GetScoreRecord(ctx, uid["studentA"])
-	sb, _ := repo.GetScoreRecord(ctx, uid["studentB"])
-	if sa.Score <= sb.Score {
-		return fmt.Errorf("esperava score A > B para ranking determinístico: A=%.2f B=%.2f", sa.Score, sb.Score)
-	}
-
 	fmt.Printf(`
 e2eseed: seed concluído
   admin        %-26s %s
-  studentA     %-26s %s  (plano Completo, score %.1f)
-  studentB     %-26s %s  (plano Essencial, score %.1f)
+  studentA     %-26s %s  (plano Completo)
+  studentB     %-26s %s  (plano Essencial)
   studentC     %-26s %s  (plano só Treinos)
   pending      %-26s %s
   rejected     %-26s %s
   senha comum:  %s
 `, adminEmail, uid["admin"],
-		studentAEmail, uid["studentA"], sa.Score,
-		studentBEmail, uid["studentB"], sb.Score,
+		studentAEmail, uid["studentA"],
+		studentBEmail, uid["studentB"],
 		studentCEmail, uid["studentC"],
 		pendingEmail, uid["pending"], rejectedEmail, uid["rejected"], password)
 	return nil

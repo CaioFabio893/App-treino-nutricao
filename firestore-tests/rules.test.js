@@ -76,6 +76,21 @@ async function seedUser(uid, overrides = {}) {
   });
 }
 
+describe('Gamificação removida — dados legados continuam protegidos', () => {
+  for (const role of ['student', 'admin']) {
+    it(`${role} não lê nem escreve scores legados`, async () => {
+      await seedUser('legacy-reader', { role });
+      await seedAt(['scores', 'legacy-reader'], { score: 10 });
+      await seedAt(['scores_history', 'legacy-reader', 'cycles', '2026-Q3'], { score: 10 });
+      const fdb = db(authed('legacy-reader'));
+      for (const docPath of ['scores/legacy-reader', 'scores_history/legacy-reader/cycles/2026-Q3']) {
+        await assertFails(fdb.doc(docPath).get());
+        await assertFails(fdb.doc(docPath).set({ score: 1 }));
+      }
+    });
+  }
+});
+
 before(async () => {
   testEnv = await initializeTestEnvironment({
     projectId: PROJECT_ID,
@@ -275,13 +290,6 @@ describe('Regras do Firestore', () => {
       await assertFails(blocked.doc('plans/p1').get());
     });
 
-    it('inactive lê scores (ranking) → NEGADO', async () => {
-      await seedUser('blocked', { status: 'inactive' });
-      await seed({ scores: { alice: { score: 10 } } });
-      const blocked = authed('blocked').firestore();
-      await assertFails(blocked.doc('scores/alice').get());
-    });
-
     it('inactive tenta criar post → NEGADO', async () => {
       await seedUser('blocked', { status: 'inactive' });
       const blocked = authed('blocked').firestore();
@@ -329,8 +337,6 @@ describe('Regras do Firestore', () => {
           logB: { studentId: 'aluno-b', text: 'dia ok' },
         },
       });
-      await seedAt(['scores_history', 'aluno-a', 'cycles', 'c1'], { score: 5 });
-      await seedAt(['scores_history', 'aluno-b', 'cycles', 'c1'], { score: 5 });
     });
 
     it('aluno-b lê dietLog do aluno-a → NEGADO', async () => {
@@ -343,24 +349,9 @@ describe('Regras do Firestore', () => {
       await assertSucceeds(alunoA.doc('dietLogs/logA').get());
     });
 
-    it('aluno-b lê scores_history do aluno-a → NEGADO', async () => {
-      const alunoB = authed('aluno-b').firestore();
-      await assertFails(alunoB.doc('scores_history/aluno-a/cycles/c1').get());
-    });
-
-    it('aluno-a lê o próprio scores_history → PERMITIDO', async () => {
-      const alunoA = authed('aluno-a').firestore();
-      await assertSucceeds(alunoA.doc('scores_history/aluno-a/cycles/c1').get());
-    });
-
     it('admin lê dietLog de qualquer aluno → PERMITIDO', async () => {
       const admin = authed('admin-sys').firestore();
       await assertSucceeds(admin.doc('dietLogs/logA').get());
-    });
-
-    it('admin lê scores_history de qualquer aluno → PERMITIDO', async () => {
-      const admin = authed('admin-sys').firestore();
-      await assertSucceeds(admin.doc('scores_history/aluno-b/cycles/c1').get());
     });
 
     it('admin NÃO pode escrever em dado de aluno pelo client → NEGADO (só API Go)', async () => {
@@ -369,7 +360,6 @@ describe('Regras do Firestore', () => {
       const admin = authed('admin-sys').firestore();
       await assertFails(admin.doc('dietLogs/logA').update({ text: 'hackeado' }));
       await assertFails(admin.doc('dietLogs/logA').delete());
-      await assertFails(admin.doc('scores_history/aluno-a/cycles/c1').update({ score: 10 }));
     });
 
     it('aluno NÃO pode escrever no próprio dietLog → NEGADO (só API Go)', async () => {
@@ -409,7 +399,6 @@ describe('Regras do Firestore', () => {
 
     it('cliente não autenticado lê quota de qualquer coisa → NEGADO', async () => {
       const anon = testEnv.unauthenticatedContext().firestore();
-      await assertFails(anon.doc('scores/alice').get());
       await assertFails(anon.doc('posts/p1').get());
     });
   });

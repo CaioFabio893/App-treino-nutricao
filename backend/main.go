@@ -222,9 +222,4 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	// ── Dieta diária (dia + refeição) — feature diet ──
 	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDietLogs))))
 	mux.HandleFunc("PUT /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleUpsertDietLog))))
-
-	// ── Ranking / pontuação / perfil público (feature ranking) ──
-	mux.HandleFunc("GET /api/ranking", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetRanking))))
-	mux.HandleFunc("GET /api/scores/history", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetScoreHistory))))
-	mux.HandleFunc("GET /api/public/profile/{id}", a.Require(a.RequireFeature(models.FeatureRanking)(a.RequireApproved(h.HandleGetPublicProfile))))
 }

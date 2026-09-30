@@ -167,11 +167,5 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		_ = h.repo.PutDietLog(r.Context(), log)
 	}
 
-	// Recalcula a nota do ciclo (mesmo gatilho do feed).
-	if err := h.svc.RecomputeScore(r.Context(), studentID, prof.StartDate); err != nil {
-		http.Error(w, "falha ao atualizar pontuacao", http.StatusInternalServerError)
-		return
-	}
-
 	writeJSON(w, http.StatusOK, log)
 }

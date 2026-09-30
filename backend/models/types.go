@@ -1,4 +1,4 @@
-﻿// Package models contém as entidades de domínio, enums e DTOs da API.
+// Package models contém as entidades de domínio, enums e DTOs da API.
 // Nenhuma dependência externa além da stdlib — camada pura de dados.
 package models
 
@@ -387,82 +387,4 @@ type UpsertDietLogRequest struct {
 	MealChecks []*MealCheck `json:"mealChecks,omitempty"`
 	Note       string       `json:"note,omitempty"`
 	Caption    string       `json:"caption,omitempty"`
-}
-
-// ── Ranking / pontuação ──
-
-// ScoreRecord guarda a nota corrente do ciclo em andamento (scores/{uid}).
-type ScoreRecord struct {
-	StudentID     string    `json:"studentId"`
-	RawPoints     float64   `json:"rawPoints"`
-	CycleID       string    `json:"cycleId"`
-	CycleStart    string    `json:"cycleStart"`
-	Score         float64   `json:"score"`
-	DaysElapsed   int       `json:"daysElapsed"`
-	DaysCompleted int       `json:"daysCompleted"`
-	UpdatedAt     time.Time `json:"updatedAt,omitempty"`
-}
-
-// ScoreHistoryEntry guarda a nota FINAL de um ciclo fechado
-// (scores_history/{uid}/{cicloId}) — não zera quando o ranking reseta.
-type ScoreHistoryEntry struct {
-	StudentID  string    `json:"studentId"`
-	CycleID    string    `json:"cycleId"`
-	StartDate  string    `json:"startDate"`
-	EndDate    string    `json:"endDate"`
-	RawPoints  float64   `json:"rawPoints"`
-	Days       int       `json:"days"`
-	Score      float64   `json:"score"`
-	RecordedAt time.Time `json:"recordedAt,omitempty"`
-}
-
-// RankingEntry é uma linha do ranking.
-type RankingEntry struct {
-	Rank      int     `json:"rank"`
-	StudentID string  `json:"studentId"`
-	Name      string  `json:"name"`
-	PhotoURL  string  `json:"photoURL,omitempty"`
-	Score     float64 `json:"score"`
-}
-
-// RankingResponse é o formato devolvido pelo endpoint de ranking.
-// top20 é público; self mostra a posição do aluno logado (mesmo fora do top);
-// full só é preenchido para nutricionista/admin (ranking completo).
-type RankingResponse struct {
-	CycleID    string          `json:"cycleId"`
-	CycleStart string          `json:"cycleStart"`
-	CycleEnd   string          `json:"cycleEnd"`
-	Top        []*RankingEntry `json:"top"`
-	Self       *RankingEntry   `json:"self,omitempty"`
-	Full       []*RankingEntry `json:"full,omitempty"`
-	Total      int             `json:"total"`
-}
-
-// PublicProfile é a versão de perfil visível para qualquer usuário autenticado
-// (usada no feed e na mini página de perfil).
-type PublicProfile struct {
-	ID       string  `json:"id"`
-	Name     string  `json:"name"`
-	PhotoURL string  `json:"photoURL,omitempty"`
-	Bio      string  `json:"bio,omitempty"`
-	Role     Role    `json:"role"`
-	Streak   int     `json:"streak"`          // dias seguidos com treino e/ou dieta
-	Score    float64 `json:"score,omitempty"` // nota corrente (aluno)
-	CycleID  string  `json:"cycleId,omitempty"`
-	Rank     int     `json:"rank,omitempty"` // posição atual (0 se fora/indisponível)
-}
-
-// ── Ciclo de pontuação (trimestre civil) ──
-
-// Cycle é um ciclo de pontuação (trimestre civil) com seus limites.
-type Cycle struct {
-	ID    string    // ex.: "2026-Q3"
-	Start time.Time // primeiro dia do ciclo (inclusive)
-	End   time.Time // primeiro dia do ciclo seguinte (exclusivo)
-}
-
-// DayPoints agrega o que aconteceu em um dia do ciclo para pontuação.
-type DayPoints struct {
-	WorkoutDone bool
-	DietStatus  DietLogStatus
 }

@@ -13,7 +13,7 @@ const SECTIONS: {
   href: string;
   title: string;
   desc: string;
-  icon: "dumbbell" | "leaf" | "feed" | "trophy";
+  icon: "dumbbell" | "leaf" | "feed";
 }[] = [
   {
     feature: null,
@@ -35,13 +35,6 @@ const SECTIONS: {
     title: "Comunidade",
     desc: "Feed com outros alunos, posts e desafios",
     icon: "feed",
-  },
-  {
-    feature: "ranking",
-    href: "/ranking",
-    title: "Ranking",
-    desc: "Sua nota e posição no ciclo atual",
-    icon: "trophy",
   },
 ];
 

@@ -114,11 +114,9 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
     };
   }, [history, dietLogs]);
 
-  // Últimos 7 dias + sequência atual (streak) de treinos e dieta.
+  // Últimos 7 dias de treinos e dieta.
   const weekStats = useMemo(() => {
     const MS = 86400000;
-    const key = (d: Date) =>
-      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const isWithin7 = (d?: string) => {
@@ -134,29 +132,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
       (l) => isWithin7(l.date) && l.status !== "not_followed"
     ).length;
 
-    const workoutDaySet = new Set(
-      history.filter((h) => h.completedAt).map((h) => h.completedAt!.slice(0, 10))
-    );
-    let workoutStreak = 0;
-    let c = new Date(today);
-    if (!workoutDaySet.has(key(c))) c = new Date(today.getTime() - MS);
-    while (workoutDaySet.has(key(c))) {
-      workoutStreak++;
-      c = new Date(c.getTime() - MS);
-    }
-
-    const dietDaySet = new Set(
-      dietLogs.filter((l) => l.status !== "not_followed").map((l) => l.date)
-    );
-    let dietStreak = 0;
-    c = new Date(today);
-    if (!dietDaySet.has(key(c))) c = new Date(today.getTime() - MS);
-    while (dietDaySet.has(key(c))) {
-      dietStreak++;
-      c = new Date(c.getTime() - MS);
-    }
-
-    return { workoutDays7, dietDays7, workoutStreak, dietStreak };
+    return { workoutDays7, dietDays7 };
   }, [history, dietLogs]);
 
   const close = () => router.push("/admin/students");
@@ -434,7 +410,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         </div>
       </div>
 
-      {/* Últimos 7 dias + sequência */}
+      {/* Últimos 7 dias */}
       <div className="section-label">Últimos 7 dias</div>
       <div className="stat-grid">
         <div className="stat-cell">
@@ -444,18 +420,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         <div className="stat-cell">
           <div className="stat-num">{weekStats.dietDays7}/7</div>
           <div className="stat-lbl">Dias com dieta seguida</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num">
-            {weekStats.workoutStreak > 0 ? `🔥 ${weekStats.workoutStreak}` : "—"}
-          </div>
-          <div className="stat-lbl">Sequência de treinos (dias)</div>
-        </div>
-        <div className="stat-cell">
-          <div className="stat-num">
-            {weekStats.dietStreak > 0 ? `${weekStats.dietStreak}` : "—"}
-          </div>
-          <div className="stat-lbl">Sequência de dieta (dias)</div>
         </div>
       </div>
 

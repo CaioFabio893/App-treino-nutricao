@@ -1,5 +1,17 @@
 # Estratégia OpenCode + Codex
 
+## Continuidade autorizada em 30/09/2026
+
+O dono informou que os créditos OpenCode acabaram e autorizou o Codex a assumir
+também implementação, testes, documentação e gates, dentro dos seus limites.
+A divisão por agente abaixo é histórica e não bloqueia essa continuidade.
+Sempre registrar trabalho e próximo passo em PROJECT_STATE.md.
+F4 já está commitada em `061514b`; não repetir o checkpoint antigo da seção 13.
+F1 foi encontrada em andamento e está sendo fechada pelo Codex; consultar o
+estado e `.gates` antes de avançar. Usar os defaults explícitos da folha D1–D9
+para escolhas locais sem atribuí-los à dona. D6 continua sem autorização de
+deleção: nenhum dado de produção deve ser apagado. Sem push ou deploy.
+
 Contrato de divisão de trabalho para a refatoração **"simplificação"** (`docs/simplificacao/`, fases F0–F7). Substitui o plano antigo (F8 Alimentos, RSC/SWR, performance de ranking), que não reflete mais a realidade do repositório.
 
 ## 1. Estratégia

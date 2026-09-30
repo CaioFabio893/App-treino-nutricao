@@ -26,7 +26,7 @@
 //     pela API Go, nunca por SDK de cliente, nem admin (hasOnly nega até
 //     combinações "campo legítimo + campo sensível" no mesmo update).
 //   - Escrita de dados de negócio (posts, dietLogs, workouts, diets,
-//     workoutHistory, plans, scores, scores_history): SOMENTE pela API Go.
+//     workoutHistory, plans): SOMENTE pela API Go.
 //     O cliente (SDK) tem acesso de LEITURA quando autorizado (aprovado +
 //     relação dono/admin no caso de dados de aluno).
 rules_version = '2';
@@ -182,20 +182,6 @@ service cloud.firestore {
     // (aluno e admin), preservando "escrita de negócio só via API".
     match /exercises/{exerciseId} {
       allow read: if canUseBusinessResources();
-      allow write: if false;
-    }
-
-    // ── Ranking ──
-    // Nota corrente: leitura para aprovados; escrita só da API.
-    match /scores/{uid} {
-      allow read: if canUseBusinessResources();
-      allow write: if false;
-    }
-
-    // Histórico de ciclos (scores_history/{uid}/cycles/{cycleId}):
-    // próprio aluno e admin leem (aprovados).
-    match /scores_history/{uid}/{document=**} {
-      allow read: if canViewStudentData(uid);
       allow write: if false;
     }
   }

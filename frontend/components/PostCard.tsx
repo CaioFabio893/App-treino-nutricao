@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import * as api from "@/lib/api";
 import { friendlyError } from "@/lib/api";
 import type { Post, Role } from "@/lib/types";
@@ -117,13 +116,11 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   return (
     <article className="post-card">
       <div className="post-head">
-        <Link href={`/profile/${post.userId}`} className="post-avatar">
+        <span className="post-avatar">
           {avatar ? <Avatar src={avatar} alt={post.userName} /> : <span>{initials}</span>}
-        </Link>
+        </span>
         <div className="post-who">
-          <Link href={`/profile/${post.userId}`} className="post-name">
-            {post.userName}
-          </Link>
+          <span className="post-name">{post.userName}</span>
           <div className="post-meta">
             <span className={`post-type t-${post.type}`}>{TYPE_LABEL[post.type] ?? "Post"}</span>
             {post.moderatedBy && <span className="post-moderated">• moderado</span>}
@@ -162,9 +159,7 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
           {comments.length === 0 && <div className="post-no-comments">Sem comentários ainda.</div>}
           {comments.map((c) => (
             <div key={c.id} className="post-comment">
-              <Link href={`/profile/${c.userId}`} className="post-comment-name">
-                {c.userName}
-              </Link>
+              <span className="post-comment-name">{c.userName}</span>
               <span className="post-comment-text">{c.text}</span>
               {(c.userId === meId || canModerate) && (
                 <button

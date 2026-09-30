@@ -4,6 +4,22 @@
 
 ---
 
+## 30/09/2026 — F1 gamificação: checkpoint verde (Codex assume OpenCode)
+
+- Dono autorizou Codex a executar também volume, testes e documentação após
+  esgotamento dos créditos OpenCode. Continuidade em PROJECT_STATE.md.
+- Codex encontrou F1 já parcialmente implementada e fechou a remoção de
+  pontuação/ciclo/ranking/perfil público, endpoints e UI correspondentes.
+- Complementou com remoção de constantes mortas e regressões de URLs antigas
+  (404), proteção de scores legados para aluno/admin e snapshot legado na UI.
+- Gates reais: Go **201** (vet limpo), Vitest **99/99**, rules **84/84**,
+  Playwright **28/28** (2,1 min), tsc/lint/build OK. .gates atualizado.
+- Dados de produção preservados; sem push/deploy/rotação. FeatureRanking
+  permanece compatível em snapshots/tipos até F3 (remoção de planos/features).
+- Próxima fase: F2 comunidade; decisões locais seguem defaults documentados.
+  D6 ainda sem resposta/autorização de deleção. F4 já commitada em 061514b.
+
+
 ## 30/09/2026 — F4 da simplificação executada + gates e documentação sincronizados
 
 - **F4 (simplificação) executada e commitada em `061514b`**: remoção do papel

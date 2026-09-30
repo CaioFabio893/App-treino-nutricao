@@ -15,10 +15,7 @@ import type {
   Plan,
   Post,
   PostsPage,
-  PublicProfile,
-  RankingResponse,
   RejectUserRequest,
-  ScoreHistoryEntry,
   TrainingProgram,
   UpsertDietLogRequest,
   UserProfile,
@@ -517,21 +514,4 @@ export function putDietLog(req: UpsertDietLogRequest, token: string): Promise<Di
     method: "PUT",
     body: JSON.stringify(req),
   });
-}
-
-// ── Ranking / pontuação / perfil público ───────────────────────────────────
-
-export function getRanking(token: string): Promise<RankingResponse> {
-  return request<RankingResponse>("/api/ranking", token);
-}
-
-export function getScoreHistory(studentId: string, token: string): Promise<ScoreHistoryEntry[]> {
-  const qs = new URLSearchParams({ studentId });
-  return request<{ history: ScoreHistoryEntry[] }>(`/api/scores/history?${qs.toString()}`, token).then(
-    (r) => r.history
-  );
-}
-
-export function getPublicProfile(id: string, token: string): Promise<PublicProfile> {
-  return request<PublicProfile>(`/api/public/profile/${id}`, token);
 }

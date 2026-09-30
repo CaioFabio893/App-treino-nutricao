@@ -2,12 +2,10 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { UserProfile, WorkoutDefine, Diet, WorkoutHistoryEntry } from "@/lib/types";
 import { DashboardSkeleton } from "@/components/Skeleton";
-import { useNewCompletions } from "@/lib/useNewCompletions";
 
 interface Stats {
   students: UserProfile[];
@@ -20,8 +18,6 @@ const empty: Stats = { students: [], workouts: [], diets: [], history: [] };
 
 export default function AdminDashboard() {
   const { getToken, profile } = useAuth();
-  const router = useRouter();
-  const { count, consume } = useNewCompletions();
   const [data, setData] = useState<Stats>(empty);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -67,20 +63,6 @@ export default function AdminDashboard() {
       </div>
 
       {error && <div className="err-text">{error}</div>}
-
-      {count > 0 && (
-        <button
-          type="button"
-          className="notif-banner"
-          onClick={() => {
-            consume();
-            router.push("/admin/timeline");
-          }}
-        >
-          🔔 {count} novo(s) treino(s) concluído(s) desde a sua última visita —
-          clique para ver na Timeline.
-        </button>
-      )}
 
       <div className="stat-grid">
         <div className="stat-cell">

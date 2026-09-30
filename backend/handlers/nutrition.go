@@ -836,20 +836,5 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 		return
 	}
 
-	// Ranking: recalcula a nota do ciclo em andamento.
-	studentProf, err := h.repo.GetUserProfile(r.Context(), created.StudentID)
-	if err != nil {
-		http.Error(w, "falha ao ler aluno", http.StatusInternalServerError)
-		return
-	}
-	startDate := ""
-	if studentProf != nil {
-		startDate = studentProf.StartDate
-	}
-	if err := h.svc.RecomputeScore(r.Context(), created.StudentID, startDate); err != nil {
-		http.Error(w, "falha ao atualizar pontuacao", http.StatusInternalServerError)
-		return
-	}
-
 	writeJSON(w, http.StatusOK, created)
 }

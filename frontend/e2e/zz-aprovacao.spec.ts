@@ -59,13 +59,12 @@ test.describe("Fluxo de aprovação (novo cadastro → admin aprova → acesso r
 
     await logout(page);
 
-    // 4. O aluno agora entra direto no dashboard com as 4 áreas do plano.
+    // 4. O aluno agora entra direto no dashboard com as áreas do plano.
     await login(page, email, PASS);
     await page.waitForURL("**/dashboard");
     await expect(page.getByRole("heading", { name: "Olá, Novo 👋" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Dietas", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Ranking", exact: true })).toBeVisible();
   });
 });

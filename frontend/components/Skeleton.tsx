@@ -175,25 +175,6 @@ export function DietsPageSkeleton() {
   );
 }
 
-export function RankingSkeleton() {
-  return (
-    <div>
-      <HeadSkeleton />
-      <div className="rank-list" role="status" aria-label="Carregando…">
-        {Array.from({ length: 5 }).map((_, i) => (
-          <div key={i} className="rank-row" style={{ cursor: "default" }}>
-            <Skeleton width={30} height={18} />
-            <span style={{ flex: 1 }}>
-              <Skeleton width="55%" height={14} />
-            </span>
-            <Skeleton width={44} height={18} />
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function DashboardSkeleton() {
   return (
     <div>
@@ -242,33 +223,6 @@ export function ActivitiesSkeleton() {
             <Skeleton width={120} height={11} />
             <div style={{ marginTop: 6 }}>
               <Skeleton width="75%" height={13} />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-export function TimelinePageSkeleton() {
-  return (
-    <div>
-      <HeadSkeleton />
-      <div className="dash-chart-card">
-        <div className="dash-chart-head">
-          <Skeleton width={220} height={16} />
-          <div style={{ marginTop: 6 }}>
-            <Skeleton width={300} height={12} />
-          </div>
-        </div>
-        <Skeleton height={200} />
-      </div>
-      <div style={{ paddingLeft: 18 }}>
-        {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} style={{ marginBottom: 14 }}>
-            <Skeleton width={120} height={11} />
-            <div style={{ marginTop: 6 }}>
-              <Skeleton width="70%" height={13} />
             </div>
           </div>
         ))}

@@ -4,7 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
-import { useNewCompletions } from "@/lib/useNewCompletions";
 import DashIcon from "./DashIcon";
 import { navAppIcons } from "./icons/AppIcons";
 
@@ -16,8 +15,6 @@ export const NAV_ITEMS = [
   { href: "/admin/exercises", label: "Exercícios", icon: "library" as const },
   { href: "/admin/diets", label: "Dietas", icon: "leaf" as const },
   { href: "/admin/feed", label: "Feed", icon: "feed" as const },
-  { href: "/admin/ranking", label: "Ranking", icon: "trophy" as const },
-  { href: "/admin/timeline", label: "Timeline", icon: "clock" as const, notif: true },
   { href: "/admin/activities", label: "Atividades", icon: "activity" as const },
   { href: "/admin/profile", label: "Perfil", icon: "user" as const },
 ];
@@ -42,7 +39,6 @@ export function sectionLabelFor(pathname: string): string {
 export default function Sidebar() {
   const pathname = usePathname();
   const { role, profile, logout } = useAuth();
-  const { count, consume } = useNewCompletions();
   const [open, setOpen] = useState(false);
 
   const items = role === "admin" ? [...NAV_ITEMS, ADMIN_ITEM] : NAV_ITEMS;
@@ -89,18 +85,10 @@ export default function Sidebar() {
                 key={item.href}
                 href={item.href}
                 className={`dash-nav-link${active ? " active" : ""}`}
-                onClick={() => {
-                  setOpen(false);
-                  if (item.href === "/admin/timeline" && count > 0) consume();
-                }}
+                onClick={() => setOpen(false)}
               >
                 {AppIcon ? <AppIcon width={18} height={18} /> : <DashIcon name={item.icon} />}
                 <span>{item.label}</span>
-                {item.href === "/admin/timeline" && count > 0 && (
-                  <span className="dash-nav-badge" title="Novos treinos concluídos">
-                    {count > 99 ? "99+" : count}
-                  </span>
-                )}
               </Link>
             );
           })}
