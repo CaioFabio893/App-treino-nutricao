@@ -9,7 +9,7 @@ import (
 // GetOrCreateProfile atualiza o perfil existente (preservando role, status e
 // vínculos administrativos) ou cria um novo quando o usuário ainda não tem
 // perfil. Perfis novos entram como `pending_approval` com role vazio — quem
-// decide papel/plano é o admin (fluxo de aprovação, spec SB-001).
+// decide a aprovação é o admin (fluxo de aprovação, spec SB-001).
 func (s *Service) GetOrCreateProfile(ctx context.Context, uid string, p *models.UserProfile) error {
 	existing, err := s.repo.GetUserProfile(ctx, uid)
 	if err != nil {

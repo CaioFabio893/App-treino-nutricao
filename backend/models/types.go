@@ -18,7 +18,7 @@ const (
 // Valores possíveis para UserProfile.Status (string livre, mantido por
 // compatibilidade — os novos valores são adicionados como constantes).
 const (
-	StatusPendingApproval = "pending_approval" // cadastro feito (email/senha ou Google), aguardando admin definir role+plano
+	StatusPendingApproval = "pending_approval" // cadastro feito (email/senha ou Google), aguardando admin aprovar o aluno
 	StatusActive          = "active"           // já existia
 	StatusPaused          = "paused"           // já existia
 	StatusInactive        = "inactive"         // já existia
@@ -34,7 +34,7 @@ type UserProfile struct {
 	Status    string    `json:"status,omitempty"` // "active", "pending_approval", "paused", "inactive", "rejected"
 	CreatedAt time.Time `json:"createdAt,omitempty"`
 
-	// ── Gestão: aprovação + planos (spec gestao-cadastro-papeis-planos-google.md) ──
+	// ── Gestão: aprovação (spec gestao-cadastro-papeis-planos-google.md) ──
 	AuthProvider   string    `json:"authProvider,omitempty"` // "password" | "google.com" — de onde veio o login
 	ApprovedBy     string    `json:"approvedBy,omitempty"`   // uid do admin que aprovou
 	ApprovedAt     time.Time `json:"approvedAt,omitempty"`

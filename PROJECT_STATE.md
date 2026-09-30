@@ -27,7 +27,7 @@ Admin SDK ignora rules; a API deve validar autorização independentemente.
 - F1: 8e35ec5, gamificação/ciclos/ranking retirados; scores legados negados.
 - F2: 440d144, comunidade/posts/publicação automática/foto/bio retirados;
   Avatar por iniciais preservado. Dados reais intactos.
-- F3: implementação concluída, planos/features/gates/atribuição retirados,
+- F3: checkpoint 94e738e, implementação concluída, planos/features/gates/atribuição retirados,
   aprovação sem plano, treinos/dietas acessíveis aos aprovados ativo/pausado.
   Datas do perfil retiradas, datas das dietas preservadas. Plans legados
   negados, rotas retiradas 404. Relatório simplificacao-f3-checkpoint.md.

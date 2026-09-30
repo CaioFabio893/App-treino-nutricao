@@ -201,7 +201,7 @@ export function listPendingUsers(token: string): Promise<UserProfile[]> {
   return request<UserProfile[]>("/api/users/pending", token);
 }
 
-// Aprova um cadastro, define papel e (para aluno) plano com snapshot de features.
+// Aprova um cadastro e confirma o papel student.
 export function approveUser(
   id: string,
   req: ApproveUserRequest,

@@ -43,7 +43,7 @@ func NewAuth(auth tokenVerifier, repo repository.Repository) *Auth {
 
 // Require exige um ID token válido do Firebase Auth no header Authorization.
 // O frontend manda "Authorization: Bearer <idToken>" em todas as chamadas.
-// Também carrega o perfil (role/status/features/provider) do usuário no
+// Também carrega o perfil (role/status/provider) do usuário no
 // contexto, caso exista.
 func (a *Auth) Require(next http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

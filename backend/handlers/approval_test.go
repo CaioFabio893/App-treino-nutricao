@@ -12,15 +12,13 @@ import (
 	"treino-louise/backend/service"
 )
 
-// approvalFakeRepo é um repositório mínimo para os handlers de aprovação/planos.
+// approvalFakeRepo é um repositório mínimo para os handlers de aprovação.
 type approvalFakeRepo struct {
 	repository.Repository
 
 	listPending    func(ctx context.Context) ([]*models.UserProfile, error)
 	getUserProfile func(ctx context.Context, uid string) (*models.UserProfile, error)
 	putUserProfile func(ctx context.Context, uid string, p *models.UserProfile) error
-	countWithPlan  func(ctx context.Context, planID string) (int, error)
-	deletePlan     func(ctx context.Context, id string) error
 }
 
 func (f *approvalFakeRepo) ListUsersByStatus(ctx context.Context, _ string) ([]*models.UserProfile, error) {

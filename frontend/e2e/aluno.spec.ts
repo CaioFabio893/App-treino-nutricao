@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
 import { login, USERS } from "./helpers";
 
-test.describe("Área do aluno (gates do plano)", () => {
-  test("aluno do plano completo vê treinos e dietas", async ({ page }) => {
+test.describe("Área do aluno (cadastro aprovado)", () => {
+  test("aluno aprovado vê treinos e dietas", async ({ page }) => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
     await page.waitForURL("**/dashboard");
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();

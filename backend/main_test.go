@@ -3,11 +3,11 @@ package main
 // Testes de INTEGRAÇÃO da cadeia real de autenticação/autorização definida em
 // main.go (registerRoutes). Diferente dos testes unitários de middleware, que
 // exercitam cada gate isolado com contexto pré-populado, aqui o teste monta o
-// mux EXATAMENTE como produção (Require ? Allow/RequireApproved/RequireFeature
+// mux EXATAMENTE como produção (Require ? Allow/RequireApproved
 // ? handler) e dispara requests com token fake:
 //
 //	fakeVerifier  ? simula VerifyIDToken do Firebase Auth
-//	chainFakeRepo ? simula users/{uid} (perfil com role/status/features)
+//	chainFakeRepo ? simula users/{uid} (perfil com role/status)
 //
 // A ordem real da composição é o que está em jogo: com a ordem antiga
 // Allow(Require(...))/RequireApproved(Require(...)), os gates rodavam antes do
@@ -435,7 +435,7 @@ func TestChainAdminActiveCanAccessAdminEndpoints(t *testing.T) {
 
 // -- ADMIN com status pending_approval/rejected/inactive --
 //
-// O bypass do RequireApproved (e do RequireFeature) para ADMIN continua
+// O bypass do RequireApproved para ADMIN continua
 // funcionando na cadeia real: Require roda primeiro, injeta role=admin no
 // contexto, e os gates deixam o ADMIN passar independente do status.
 func TestChainAdminBypassesRequireApproved(t *testing.T) {
@@ -456,7 +456,7 @@ func TestChainAdminBypassesRequireApproved(t *testing.T) {
 				t.Fatalf("workouts code = %d, want 200 (bypass admin)", rr.Code)
 			}
 
-			// GET /api/diets: protegida por RequireFeature(diet) + RequireApproved.
+			// GET /api/diets: protegida por RequireApproved.
 			rr = doChainRequest(h, "GET", "/api/diets", "", "token-valido")
 			if rr.Code != http.StatusOK {
 				t.Fatalf("diets code = %d, want 200 (bypass admin em feature+aprovacao)", rr.Code)
@@ -513,11 +513,10 @@ func TestChainApprovedStudentReadsDiets(t *testing.T) {
 	repo := baseRepo(studentProfile(models.StatusActive))
 	h := newChainMux(repo)
 
-	// feature diet ausente do plano ? RequireFeature bloqueia (403) mesmo com
-	// cadastro ativo.
+	// Aluno aprovado acessa dieta sem plano.
 	rr := doChainRequest(h, "GET", "/api/diets", "", "token-valido")
 	if rr.Code != http.StatusOK {
-		t.Fatalf("diets code = %d, want 200 (plan sem diet; body: %s)", rr.Code, rr.Body.String())
+		t.Fatalf("diets code = %d, want 200 (sem plano; body: %s)", rr.Code, rr.Body.String())
 	}
 }
 
@@ -527,7 +526,7 @@ func TestChainPausedStudentReadsDiets(t *testing.T) {
 
 	rr := doChainRequest(h, "GET", "/api/diets", "", "token-valido")
 	if rr.Code != http.StatusOK {
-		t.Fatalf("diets code = %d, want 200 (plano inclui diet)", rr.Code)
+		t.Fatalf("diets code = %d, want 200 (cadastro pausado aprovado)", rr.Code)
 	}
 }
 

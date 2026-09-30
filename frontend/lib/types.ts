@@ -16,7 +16,6 @@ export interface UserProfile {
   email?: string;
   role: Role;
   status?: Status;
-  /** Snapshot das features do plano atribuído pelo admin. */
   /** "password" | "google.com" — preenchido no cadastro. */
   authProvider?: string;
   approvedBy?: string;
