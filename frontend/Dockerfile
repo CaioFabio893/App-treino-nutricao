@@ -24,9 +24,6 @@ ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL \
     NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=$NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID \
     NEXT_PUBLIC_FIREBASE_APP_ID=$NEXT_PUBLIC_FIREBASE_APP_ID
 
-# NEXT_PUBLIC_DEMO fica de fora de propósito: em produção o DEMO_MODE deve
-# estar desligado, e o .env.local (que a ativa) é excluído do contexto docker.
-
 COPY package*.json ./
 RUN npm ci
 COPY . .

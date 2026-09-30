@@ -159,7 +159,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
     return { workoutDays7, dietDays7, workoutStreak, dietStreak };
   }, [history, dietLogs]);
 
-  const close = () => router.push("/nutritionist/students");
+  const close = () => router.push("/admin/students");
 
   const saveStudent = async () => {
     if (saving) return;
@@ -254,13 +254,13 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
           <div className="page-sub">{student.email}</div>
         </div>
         <div className="btn-row" style={{ marginTop: 0 }}>
-          <Link className="btn-sm" href={`/nutritionist/workouts?new=1&student=${student.id}`}>
+          <Link className="btn-sm" href={`/admin/workouts?new=1&student=${student.id}`}>
             + Treino
           </Link>
-          <Link className="btn-sm" href={`/nutritionist/diets?new=1&student=${student.id}`}>
+          <Link className="btn-sm" href={`/admin/diets?new=1&student=${student.id}`}>
             + Dieta
           </Link>
-          <Link className="btn-sm acc" href={`/nutritionist/print?student=${student.id}`}>
+          <Link className="btn-sm acc" href={`/admin/print?student=${student.id}`}>
             🖨 Plano semanal
           </Link>
         </div>
@@ -523,7 +523,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             key={w.id}
             className="nut-card"
             style={{ cursor: "pointer" }}
-            onClick={() => router.push(`/nutritionist/workouts?edit=${w.id}`)}
+            onClick={() => router.push(`/admin/workouts?edit=${w.id}`)}
           >
             <div className="nut-card-head">
               <div className="avatar">🏋</div>
@@ -539,14 +539,14 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             <div className="btn-row">
               <Link
                 className="btn-sm"
-                href={`/nutritionist/workouts?edit=${w.id}`}
+                href={`/admin/workouts?edit=${w.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 Editar
               </Link>
               <Link
                 className="btn-sm"
-                href={`/nutritionist/workouts?new=1&student=${student.id}&copy=${w.id}`}
+                href={`/admin/workouts?new=1&student=${student.id}&copy=${w.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 Duplicar
@@ -587,7 +587,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             key={d.id}
             className="nut-card"
             style={{ cursor: "pointer" }}
-            onClick={() => router.push(`/nutritionist/diets?edit=${d.id}`)}
+            onClick={() => router.push(`/admin/diets?edit=${d.id}`)}
           >
             <div className="nut-card-head">
               <div className="avatar">🥗</div>
@@ -609,14 +609,14 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             <div className="btn-row">
               <Link
                 className="btn-sm"
-                href={`/nutritionist/diets?edit=${d.id}`}
+                href={`/admin/diets?edit=${d.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 Editar
               </Link>
               <Link
                 className="btn-sm"
-                href={`/nutritionist/diets?new=1&student=${student.id}&copy=${d.id}`}
+                href={`/admin/diets?new=1&student=${student.id}&copy=${d.id}`}
                 onClick={(e) => e.stopPropagation()}
               >
                 Duplicar

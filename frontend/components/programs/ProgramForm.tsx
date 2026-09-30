@@ -88,7 +88,6 @@ export default function ProgramForm({ initial, workouts, getToken, onDone, onCan
       // `order` é reescrito pela posição final da lista (fonte da verdade).
       const payload: TrainingProgram = {
         studentId: initial.studentId,
-        nutritionistId: initial.nutritionistId,
         name: name.trim(),
         objective: objective.trim(),
         description: description.trim(),

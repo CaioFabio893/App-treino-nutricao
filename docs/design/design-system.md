@@ -114,7 +114,7 @@ sem round-trip ao Google Fonts).
   (`.admin-areas` painel escuro translúcido).
 - PWA: `safe-area-inset-*` respeitado (notch/gesture bar).
 - Impressão: `.print-card` limpo (bordas removidas) — treinos/dietas
-  imprimíveis (já existe na V1 e é usado pelo nutricionista).
+  imprimíveis (já existe na V1 e é usado pela área de gestão).
 
 ## Governança do design system
 
@@ -128,6 +128,6 @@ sem round-trip ao Google Fonts).
 ## Referências visuais
 
 V1 mantém screenshots em `docs/screenshots/*.png` (dashboard do aluno,
-treinos, dietas, painel do nutricionista). O V2 **não redesenha do zero**:
+treinos, dietas, painel do admin). O V2 **não redesenha do zero**:
 consolida e profissionaliza os padrões já aprovados pelo dono do projeto,
 garantindo continuidade visual para os alunos existentes.

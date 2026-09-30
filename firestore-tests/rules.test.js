@@ -1,15 +1,19 @@
 // Testes automatizados das Security Rules do Firestore.
 //
 // Rodam EXCLUSIVAMENTE contra o Firestore Emulator (nunca produção).
-// Cobertura (rascunho fase Red):
-//   1. Criar users/{uid} com role/status/plano/features/nutritionistID → NEGADO
-//   2. Alterar depois role/status/plan/features/nutritionistID → NEGADO (fora de fluxo autorizado)
+// Cobertura (modelo de 2 papéis: admin | student):
+//   1. Criar users/{uid} com role/status/plano/features/campo administrativo → NEGADO
+//   2. Alterar depois role/status/plan/features/… → NEGADO (fora de fluxo autorizado)
 //   3. Acesso ao próprio perfil → respeitar a política
 //   4. Acesso a dados de outro usuário → NEGADO quando não autorizado
 //   5. Usuário bloqueado (inactive/rejected) acessando recursos protegidos → NEGADO
 //   6. pending_approval executando operações de usuário ativo → NEGADO
-//   7. Nutricionista acessando recurso de aluno de outro nutricionista → NEGADO
+//   7. Aluno acessando dado de OUTRO aluno → NEGADO; admin e o próprio → PERMITIDO
 //   8. Operação administrativa válida → somente pelo mecanismo autorizado (API Go)
+//   9. users update — allowlist estrita (hardening Fase 1)
+//  10. Biblioteca de exercícios (F5) — catálogo global
+//  11. Programas de treinamento (F19) — só API Go
+//  12. paused: aprovação e pausa são eixos SEPARADOS (paused não é "não aprovado")
 // Regressão: criação direta de users/{uid} com role admin NUNCA é permitida.
 
 'use strict';
@@ -45,7 +49,7 @@ async function seed(ops) {
   });
 }
 
-/** Semeia um documento em um caminho arbitrário (ex.: users/alice/sessions/s1). */
+  /** Semeia um documento em um caminho arbitrário (ex.: users/alice/legacy/s1). */
 async function seedAt(pathParts, data) {
   await testEnv.withSecurityRulesDisabled(async (ctx) => {
     const fdb = ctx.firestore();
@@ -129,14 +133,18 @@ describe('Regras do Firestore', () => {
       );
     });
 
-    it('criar users/alice com nutritionistID → NEGADO', async () => {
+    it('criar users/alice com campo administrativo (approvedBy) → NEGADO', async () => {
+      // O modelo é de 2 papéis e não tem mais campo de vínculo. O que se
+      // preserva aqui é a REGRA: perfil pending criado pelo próprio cliente não
+      // pode carregar nenhum campo administrativo, e approvedBy é o caso
+      // representativo que não é coberto pelo teste de planID/features acima.
       const alice = authed('alice').firestore();
       await assertFails(
         alice.doc('users/alice').set({
           name: 'Alice',
           email: 'alice@example.com',
           status: 'pending_approval',
-          nutritionistID: 'nutri-1',
+          approvedBy: 'admin-xyz',
         })
       );
     });
@@ -172,10 +180,10 @@ describe('Regras do Firestore', () => {
       await assertFails(alice.doc('users/alice').update({ status: 'active' }));
     });
 
-    it('aluno tenta mudar o próprio role → NEGADO', async () => {
+    it('aluno tenta se promover a admin → NEGADO', async () => {
       await seedUser('alice');
       const alice = authed('alice').firestore();
-      await assertFails(alice.doc('users/alice').update({ role: 'nutritionist' }));
+      await assertFails(alice.doc('users/alice').update({ role: 'admin' }));
     });
 
     it('aluno tenta se atribuir planID → NEGADO', async () => {
@@ -188,12 +196,6 @@ describe('Regras do Firestore', () => {
       await seedUser('alice');
       const alice = authed('alice').firestore();
       await assertFails(alice.doc('users/alice').update({ features: ['diet'] }));
-    });
-
-    it('aluno tenta se vincular a um nutricionista → NEGADO', async () => {
-      await seedUser('alice');
-      const alice = authed('alice').firestore();
-      await assertFails(alice.doc('users/alice').update({ nutritionistID: 'nutri-1' }));
     });
 
     it('aluno atualiza dados não-administrativos do próprio perfil → PERMITIDO', async () => {
@@ -225,18 +227,29 @@ describe('Regras do Firestore', () => {
       await assertFails(alice.doc('users/carol').get());
     });
 
-    it('aluno lê subcoleção (sessions) de outro aluno → NEGADO', async () => {
+    it('aluno lê subcoleção legada de outro aluno → NEGADO', async () => {
       await seedUser('alice');
       await seedAt(['users', 'carol', 'sessions', 's1'], { ts: 'x' });
       const alice = authed('alice').firestore();
       await assertFails(alice.doc('users/carol/sessions/s1').get());
     });
 
-    it('dono lê a própria subcoleção (modo original) → PERMITIDO', async () => {
+    it('dono lê a própria subcoleção legada → NEGADO (modelo removido)', async () => {
+      // O modelo antigo (sessions/prs/state) foi removido. Nenhuma regra casa
+      // users/{uid}/{subcollection}/{docId}, então o Firestore nega por padrão —
+      // inclusive para o próprio dono. Guardião contra regra reintroduzida.
       await seedUser('alice');
       await seedAt(['users', 'alice', 'sessions', 's1'], { ts: 'x' });
       const alice = authed('alice').firestore();
-      await assertSucceeds(alice.doc('users/alice/sessions/s1').get());
+      await assertFails(alice.doc('users/alice/sessions/s1').get());
+    });
+
+    it('escrita em subcoleção legada → NEGADO para o dono', async () => {
+      await seedUser('alice');
+      const alice = authed('alice').firestore();
+      await assertFails(
+        alice.doc('users/alice/prs/main').set({ a: 1, b: 2, c: 3 })
+      );
     });
   });
 
@@ -302,13 +315,14 @@ describe('Regras do Firestore', () => {
     });
   });
 
-  describe('7. Nutricionista acessando aluno de outro nutricionista → NEGADO', () => {
+  describe('7. Aluno acessando dado de OUTRO aluno → NEGADO (self/admin)', () => {
+    // Modelo de 2 papéis: o dono (studentId == auth.uid) e o admin. Não há
+    // terceiro papel de gestão, então a matriz de canViewStudentData é
+    // exatamente isto — e é a mesma de service.CanAccessResource na API Go.
     beforeEach(async () => {
       await seedUser('admin-sys', { role: 'admin' });
-      await seedUser('nutri-a', { role: 'nutritionist' });
-      await seedUser('nutri-b', { role: 'nutritionist' });
-      await seedUser('aluno-a', { nutritionistID: 'nutri-a' });
-      await seedUser('aluno-b', { nutritionistID: 'nutri-b' });
+      await seedUser('aluno-a');
+      await seedUser('aluno-b');
       await seed({
         dietLogs: {
           logA: { studentId: 'aluno-a', text: 'dia ok' },
@@ -319,29 +333,48 @@ describe('Regras do Firestore', () => {
       await seedAt(['scores_history', 'aluno-b', 'cycles', 'c1'], { score: 5 });
     });
 
-    it('nutri-b lê dietLog do aluno de nutri-a → NEGADO', async () => {
-      const nutriB = authed('nutri-b').firestore();
-      await assertFails(nutriB.doc('dietLogs/logA').get());
+    it('aluno-b lê dietLog do aluno-a → NEGADO', async () => {
+      const alunoB = authed('aluno-b').firestore();
+      await assertFails(alunoB.doc('dietLogs/logA').get());
     });
 
-    it('nutri-a lê dietLog do próprio aluno → PERMITIDO', async () => {
-      const nutriA = authed('nutri-a').firestore();
-      await assertSucceeds(nutriA.doc('dietLogs/logA').get());
+    it('aluno-a lê o próprio dietLog → PERMITIDO', async () => {
+      const alunoA = authed('aluno-a').firestore();
+      await assertSucceeds(alunoA.doc('dietLogs/logA').get());
     });
 
-    it('nutri-b lê scores_history do aluno de nutri-a → NEGADO', async () => {
-      const nutriB = authed('nutri-b').firestore();
-      await assertFails(nutriB.doc('scores_history/aluno-a/cycles/c1').get());
+    it('aluno-b lê scores_history do aluno-a → NEGADO', async () => {
+      const alunoB = authed('aluno-b').firestore();
+      await assertFails(alunoB.doc('scores_history/aluno-a/cycles/c1').get());
     });
 
-    it('nutri-a lê scores_history do próprio aluno → PERMITIDO', async () => {
-      const nutriA = authed('nutri-a').firestore();
-      await assertSucceeds(nutriA.doc('scores_history/aluno-a/cycles/c1').get());
+    it('aluno-a lê o próprio scores_history → PERMITIDO', async () => {
+      const alunoA = authed('aluno-a').firestore();
+      await assertSucceeds(alunoA.doc('scores_history/aluno-a/cycles/c1').get());
     });
 
     it('admin lê dietLog de qualquer aluno → PERMITIDO', async () => {
       const admin = authed('admin-sys').firestore();
       await assertSucceeds(admin.doc('dietLogs/logA').get());
+    });
+
+    it('admin lê scores_history de qualquer aluno → PERMITIDO', async () => {
+      const admin = authed('admin-sys').firestore();
+      await assertSucceeds(admin.doc('scores_history/aluno-b/cycles/c1').get());
+    });
+
+    it('admin NÃO pode escrever em dado de aluno pelo client → NEGADO (só API Go)', async () => {
+      // canViewStudentData dá LEITURA ao admin. A escrita é negada a todos pelo
+      // SDK de cliente (Admin SDK ignora as regras) — separar os dois eixos.
+      const admin = authed('admin-sys').firestore();
+      await assertFails(admin.doc('dietLogs/logA').update({ text: 'hackeado' }));
+      await assertFails(admin.doc('dietLogs/logA').delete());
+      await assertFails(admin.doc('scores_history/aluno-a/cycles/c1').update({ score: 10 }));
+    });
+
+    it('aluno NÃO pode escrever no próprio dietLog → NEGADO (só API Go)', async () => {
+      const alunoA = authed('aluno-a').firestore();
+      await assertFails(alunoA.doc('dietLogs/logA').update({ text: 'hackeado' }));
     });
   });
 
@@ -354,7 +387,7 @@ describe('Regras do Firestore', () => {
 
     it('admin muda role de outro usuário pelo SDK de cliente → NEGADO (só API Go)', async () => {
       const admin = authed('admin-sys').firestore();
-      await assertFails(admin.doc('users/alice').update({ role: 'nutritionist' }));
+      await assertFails(admin.doc('users/alice').update({ role: 'admin' }));
     });
 
     it('admin cria plano pelo SDK de cliente → NEGADO (só API Go)', async () => {
@@ -389,11 +422,11 @@ describe('Regras do Firestore', () => {
 
     describe('campos protegidos, um a um → NEGADO', () => {
       const sensitiveFields = [
-        ['role', { role: 'nutritionist' }],
+        ['role', { role: 'admin' }],
         ['status', { status: 'active' }, { status: 'pending_approval' }],
         ['planID', { planID: 'plan-completo' }],
         ['features', { features: ['diet'] }],
-        ['nutritionistID', { nutritionistID: 'nutri-1' }],
+        ['startDate', { startDate: '2026-09-01' }],
         ['createdAt', { createdAt: '2026-09-20T00:00:00Z' }],
         ['approvedBy', { approvedBy: 'admin-xyz' }],
         ['approvedAt', { approvedAt: '2026-09-20T00:00:00Z' }],
@@ -419,7 +452,7 @@ describe('Regras do Firestore', () => {
         await assertSucceeds(alice.doc('users/alice').update({ name: 'Alice Silva' }));
       });
 
-      it('email → PERMITIDO (fluxo real: perfil do nutricionista)', async () => {
+      it('email → PERMITIDO (fluxo real: PUT /api/me)', async () => {
         await seedUser('alice');
         const alice = authed('alice').firestore();
         await assertSucceeds(alice.doc('users/alice').update({ email: 'nova@example.com' }));
@@ -442,7 +475,7 @@ describe('Regras do Firestore', () => {
       const attacks = [
         ['name + role', { name: 'Hacker', role: 'admin' }],
         ['name + status', { name: 'Hacker', status: 'active' }, { status: 'pending_approval' }],
-        ['name + nutritionistID', { name: 'Hacker', nutritionistID: 'nutri-1' }],
+        ['name + startDate', { name: 'Hacker', startDate: '2026-10-01' }],
         ['name + planID', { name: 'Hacker', planID: 'plan-completo' }],
       ];
 
@@ -460,11 +493,10 @@ describe('Regras do Firestore', () => {
       const alice = authed('alice').firestore();
       await assertFails(
         alice.doc('users/alice').update({
-          role: 'nutritionist',
+          role: 'admin',
           status: 'active',
           planID: 'plan-completo',
           features: ['workouts', 'diet'],
-          nutritionistID: 'nutri-1',
           approvedBy: 'admin-xyz',
           approvedAt: '2026-09-20T00:00:00Z',
           rejectedReason: null,
@@ -476,7 +508,6 @@ describe('Regras do Firestore', () => {
   describe('10. Biblioteca de exercícios (F5) — catálogo global', () => {
     beforeEach(async () => {
       await seedUser('admin-sys', { role: 'admin' });
-      await seedUser('nutri', { role: 'nutritionist' });
       await seedUser('aluno-ativo', { role: 'student', status: 'active' });
       await seedUser('aluno-pendente', { role: 'student', status: 'pending_approval' });
       await seedUser('aluno-inativo', { role: 'student', status: 'inactive' });
@@ -490,11 +521,6 @@ describe('Regras do Firestore', () => {
     it('usuário aprovado (aluno ativo) lê exercício → PERMITIDO', async () => {
       const aluno = authed('aluno-ativo').firestore();
       await assertSucceeds(aluno.doc('exercises/supino').get());
-    });
-
-    it('nutricionista lê exercício → PERMITIDO', async () => {
-      const nutri = authed('nutri').firestore();
-      await assertSucceeds(nutri.doc('exercises/supino').get());
     });
 
     it('admin lê exercício → PERMITIDO', async () => {
@@ -515,11 +541,6 @@ describe('Regras do Firestore', () => {
     it('aluno cria exercício → NEGADO (só API Go)', async () => {
       const aluno = authed('aluno-ativo').firestore();
       await assertFails(aluno.doc('exercises/novo').set({ name: 'Agachamento' }));
-    });
-
-    it('nutricionista cria exercício pelo client → NEGADO (só API Go)', async () => {
-      const nutri = authed('nutri').firestore();
-      await assertFails(nutri.doc('exercises/novo').set({ name: 'Agachamento' }));
     });
 
     it('admin cria exercício pelo client → NEGADO (só API Go)', async () => {
@@ -550,13 +571,11 @@ describe('Regras do Firestore', () => {
     // nem para LEITURA: a listagem de programas do aluno passa pela API.
     beforeEach(async () => {
       await seedUser('admin-sys', { role: 'admin' });
-      await seedUser('nutri', { role: 'nutritionist' });
       await seedUser('aluno-ativo', { role: 'student', status: 'active' });
       await seedUser('aluno-pendente', { role: 'student', status: 'pending_approval' });
       await seed({
         programs: {
           'prog-ciclo-2': {
-            nutritionistId: 'nutri',
             studentId: 'aluno-ativo',
             name: 'Louise Lima (Ciclo 2)',
             workouts: [{ workoutId: 'w1', order: 1, label: 'A' }],
@@ -570,9 +589,11 @@ describe('Regras do Firestore', () => {
       await assertFails(a.doc('programs/prog-ciclo-2').get());
     });
 
-    it('nutricionista lê programa (mesmo sendo o dono) → NEGADO', async () => {
-      const n = authed('nutri').firestore();
-      await assertFails(n.doc('programs/prog-ciclo-2').get());
+    it('DONO do programa (studentId == auth.uid) lê → NEGADO (só API Go)', async () => {
+      // Ser o dono não abre exceção: a listagem de programas do aluno passa
+      // pela API Go, então nem o próprio dono lê pelo SDK de cliente.
+      const a = authed('aluno-ativo').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2').get());
     });
 
     it('admin lê programa → NEGADO', async () => {
@@ -595,9 +616,9 @@ describe('Regras do Firestore', () => {
       await assertFails(a.collection('programs').get());
     });
 
-    it('nutricionista cria programa pelo client → NEGADO', async () => {
-      const n = authed('nutri').firestore();
-      await assertFails(n.doc('programs/novo').set({ name: 'Programa X' }));
+    it('aluno cria programa pelo client → NEGADO (só API Go)', async () => {
+      const a = authed('aluno-ativo').firestore();
+      await assertFails(a.doc('programs/novo').set({ name: 'Programa X' }));
     });
 
     it('admin cria programa pelo client → NEGADO', async () => {
@@ -605,9 +626,11 @@ describe('Regras do Firestore', () => {
       await assertFails(a.doc('programs/novo').set({ name: 'Programa X' }));
     });
 
-    it('dono (nutricionista) atualiza programa → NEGADO', async () => {
-      const n = authed('nutri').firestore();
-      await assertFails(n.doc('programs/prog-ciclo-2').update({ name: 'Renomeado' }));
+    it('DONO do programa atualiza → NEGADO (só API Go)', async () => {
+      // Regressão do padrão de ownership: mesmo sendo o studentId do programa,
+      // a escrita via client é negada — é a API Go que materializa programmes.
+      const a = authed('aluno-ativo').firestore();
+      await assertFails(a.doc('programs/prog-ciclo-2').update({ name: 'Renomeado' }));
     });
 
     it('admin exclui programa → NEGADO', async () => {
@@ -624,6 +647,89 @@ describe('Regras do Firestore', () => {
     it('não autenticado lê programa → NEGADO', async () => {
       const anon = testEnv.unauthenticatedContext().firestore();
       await assertFails(anon.doc('programs/prog-ciclo-2').get());
+    });
+  });
+
+  describe('12. paused — aprovação e pausa são eixos SEPARADOS', () => {
+    // Regra de modelagem: 'paused' NÃO é um status de não-aprovação.
+    // isApprovedUser() cuida de aprovação ("" | active | admin-bypass) e
+    // isPausedUser() cuida de pausa. Um aluno pausado NÃO pode ser tratado como
+    // "não aprovado só por estar pausado" — mas também não vira admin nem
+    // ganha leitura de dado alheio, e a allowlist de escrita continua valendo.
+    beforeEach(async () => {
+      await seedUser('aluno-ativo', { role: 'student', status: 'active' });
+      await seedUser('aluno-pausado', { role: 'student', status: 'paused' });
+      await seedUser('aluno-pendente', { role: 'student', status: 'pending_approval' });
+      await seedUser('outro-aluno', { role: 'student', status: 'active' });
+      await seed({
+        posts: { p1: { userId: 'aluno-pausado', text: 'oi' } },
+        plans: { p1: { name: 'Completo', features: ['diet'] } },
+        exercises: { supino: { name: 'Supino reto', muscleGroup: 'Peito' } },
+        dietLogs: { logAlheio: { studentId: 'outro-aluno', text: 'dia ok' } },
+      });
+    });
+
+    // ---- Caso 1: aluno ativo, pausado = false → PERMITIDO ----
+    it('Caso 1 — aluno ativo lê recurso de negócio → PERMITIDO', async () => {
+      const a = authed('aluno-ativo').firestore();
+      await assertSucceeds(a.doc('posts/p1').get());
+      await assertSucceeds(a.doc('plans/p1').get());
+      await assertSucceeds(a.doc('exercises/supino').get());
+    });
+
+    // ---- Caso 2: aluno APROVADO e pausado = true ----
+    // O ponto central: pausado NÃO é classificado como "não aprovado".
+    it('Caso 2 — aluno pausado NÃO é tratado como não aprovado → PERMITIDO', async () => {
+      const a = authed('aluno-pausado').firestore();
+      await assertSucceeds(a.doc('posts/p1').get());
+      await assertSucceeds(a.doc('plans/p1').get());
+      await assertSucceeds(a.doc('exercises/supino').get());
+    });
+
+    it('pausado e pending dão respostas DIFERENTES no mesmo recurso', async () => {
+      // Prova que os dois eixos são independentes: se 'paused' estivesse
+      // dentro de isApprovedUser como "bloqueado", este par seria idêntico.
+      const pausado = authed('aluno-pausado').firestore();
+      const pendente = authed('aluno-pendente').firestore();
+      await assertSucceeds(pausado.doc('plans/p1').get());
+      await assertFails(pendente.doc('plans/p1').get());
+    });
+
+    it('pausado lê o próprio perfil → PERMITIDO', async () => {
+      const a = authed('aluno-pausado').firestore();
+      await assertSucceeds(a.doc('users/aluno-pausado').get());
+    });
+
+    it('pausado atualiza campo editável do próprio perfil → PERMITIDO', async () => {
+      const a = authed('aluno-pausado').firestore();
+      await assertSucceeds(a.doc('users/aluno-pausado').update({ name: 'Nome Novo' }));
+    });
+
+    it('pausado NÃO escapa da allowlist de escrita → NEGADO', async () => {
+      const a = authed('aluno-pausado').firestore();
+      await assertFails(a.doc('users/aluno-pausado').update({ status: 'active' }));
+      await assertFails(a.doc('users/aluno-pausado').update({ role: 'admin' }));
+      await assertFails(a.doc('users/aluno-pausado').update({ planID: 'x' }));
+    });
+
+    it('pausado NÃO ganha acesso a dado de outro aluno → NEGADO', async () => {
+      // Pausa não é promoção: o eixo self/admin continua valendo.
+      const a = authed('aluno-pausado').firestore();
+      await assertFails(a.doc('dietLogs/logAlheio').get());
+      await assertFails(a.doc('users/outro-aluno').get());
+    });
+
+    it('pausado NÃO escreve em recurso de negócio → NEGADO (só API Go)', async () => {
+      const a = authed('aluno-pausado').firestore();
+      await assertFails(a.doc('posts/novo').set({ userId: 'aluno-pausado', text: 'x' }));
+      await assertFails(a.doc('plans/novo').set({ name: 'X' }));
+    });
+
+    it('pausado não altera o próprio status (auto-retomada) → NEGADO', async () => {
+      // isPausedUser() é um PREDICADO, não um direito: o aluno não se despausa
+      // pelo SDK de cliente; a decisão é da API Go.
+      const a = authed('aluno-pausado').firestore();
+      await assertFails(a.doc('users/aluno-pausado').update({ status: 'active' }));
     });
   });
 });

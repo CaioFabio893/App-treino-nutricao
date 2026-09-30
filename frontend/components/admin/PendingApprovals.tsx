@@ -9,7 +9,6 @@ import Avatar from "@/components/Avatar";
 interface ApproveTarget {
   id: string;
   name: string;
-  role: "student" | "nutritionist";
   planID: string;
 }
 
@@ -56,8 +55,11 @@ export default function PendingApprovals() {
       await api.approveUser(
         approving.id,
         {
-          role: approving.role,
-          planID: approving.role === "student" ? approving.planID || undefined : undefined,
+          // Aprovação de cadastro concede SEMPRE role=student: não há
+          // promoção para admin por esta rota. O admin cria outro admin
+          // explicitamente em /admin/usuarios.
+          role: "student",
+          planID: approving.planID || undefined,
         },
         token
       );
@@ -127,7 +129,6 @@ export default function PendingApprovals() {
                   setApproving({
                     id: u.id,
                     name: u.name || u.id,
-                    role: "student",
                     planID: activePlans[0]?.id ?? "",
                   })
                 }
@@ -155,19 +156,15 @@ export default function PendingApprovals() {
           </div>
           <div className="frm-row" style={{ marginTop: 12 }}>
             <label>Papel</label>
-            <select
-              value={approving?.role ?? "student"}
-              onChange={(e) =>
-                setApproving((a) =>
-                  a ? { ...a, role: e.target.value as "student" | "nutritionist" } : a
-                )
-              }
-            >
+            {/* A aprovação de cadastro SEMPRE concede role=student (a API Go
+                rejeita qualquer outro valor). O admin cria outro admin
+                explicitamente em /admin/usuarios — por isso não há seletor
+                aqui: offer Choices seria UI mentirosa. */}
+            <select value="student" disabled>
               <option value="student">Aluno</option>
-              <option value="nutritionist">Nutricionista</option>
             </select>
           </div>
-          {approving?.role === "student" && (
+          {approving && (
             <div className="frm-row" style={{ marginTop: 10 }}>
               <label>Plano (define as features liberadas)</label>
               <select

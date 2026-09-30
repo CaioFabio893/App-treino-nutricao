@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"encoding/json"
@@ -20,7 +20,7 @@ import (
 //
 // Autorização (mesma matriz dos treinos, ver docs/security/plans.md):
 //   - leitura: aluno (só os atribuídos a ele), nutricionista (os próprios), admin (todos);
-//   - escrita: nutricionista e admin, com RequireApproved (workouts é free tier,
+//   - escrita: admin, com RequireApproved (workouts é free tier,
 //     sem RequireFeature);
 //   - ownership: nutricionista NUNCA assume o programa de outro.
 
@@ -33,8 +33,6 @@ func (h *Handlers) HandleListPrograms(w http.ResponseWriter, r *http.Request) {
 	switch role {
 	case models.RoleAdmin:
 		programs, err = h.repo.ListPrograms(r.Context())
-	case models.RoleNutritionist:
-		programs, err = h.repo.ListProgramsForNutritionist(r.Context(), uid)
 	default: // student
 		programs, err = h.repo.ListProgramsForStudent(r.Context(), uid)
 	}
@@ -62,23 +60,7 @@ func (h *Handlers) HandleCreateProgram(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-
-	switch role {
-	case models.RoleNutritionist:
-		program.NutritionistID = uid
-		if program.StudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, program.StudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	case models.RoleAdmin:
-		// Admin pode criar de biblioteca ou já atribuído; sem vinculo no body
-		// o programa fica como template.
-	default:
+	if middleware.RoleFrom(r.Context()) != models.RoleAdmin {
 		http.Error(w, "sem permissao para criar programa", http.StatusForbidden)
 		return
 	}
@@ -89,14 +71,14 @@ func (h *Handlers) HandleCreateProgram(w http.ResponseWriter, r *http.Request) {
 	}
 	service.NormalizeProgramWorkouts(&program)
 	// O programa só REFERENCIA treinos existentes: conferir a posse de cada um
-	// impede montar um programa sobre o treino de outra nutricionista.
-	if err := h.svc.ValidateProgramWorkoutOwnership(r.Context(), &program, role == models.RoleAdmin); err != nil {
+	// impede montar um programa sobre o treino de outro aluno.
+	if err := h.svc.ValidateProgramWorkoutOwnership(r.Context(), &program); err != nil {
 		if errors.Is(err, service.ErrProgramNotFoundWorkout) {
 			http.Error(w, "treino do programa nao encontrado", http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, service.ErrProgramWorkoutForbidden) {
-			http.Error(w, "treino do programa pertence a outra nutricionista", http.StatusForbidden)
+			http.Error(w, "treino do programa pertence a outro aluno", http.StatusForbidden)
 			return
 		}
 		http.Error(w, "falha ao validar treinos do programa", http.StatusInternalServerError)
@@ -127,13 +109,11 @@ func (h *Handlers) HandleUpdateProgram(w http.ResponseWriter, r *http.Request) {
 	// Vínculos são IMUTÁVEIS por body (regra nº 2 do projeto): o Body define
 	// apenas o CONTEÚDO do programa (metadados + ordem dos treinos).
 	//
-	// - NutritionistID: ownership nunca muda.
 	// - StudentID: reatribuição só existe via POST /assign, que MATERIALIZA as
 	//   cópias dos treinos e recusa (409) trocar de aluno. Se o PUT aceitasse o
 	//   studentId do body, daria para apontar o programa para outro aluno sem
 	//   materializar nada: o novo aluno cairia em 403 nos treinos referenciados
 	//   e o anterior perderia o acesso ao programa dele.
-	program.NutritionistID = existing.NutritionistID
 	program.StudentID = existing.StudentID
 	if program.ID == "" {
 		program.ID = existing.ID
@@ -142,27 +122,18 @@ func (h *Handlers) HandleUpdateProgram(w http.ResponseWriter, r *http.Request) {
 		program.Source = existing.Source
 	}
 
-	role := middleware.RoleFrom(r.Context())
-	if role == models.RoleNutritionist && program.StudentID != "" {
-		can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), role, program.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
-		}
-	}
-
 	if err := service.ValidateProgram(&program); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	service.NormalizeProgramWorkouts(&program)
-	if err := h.svc.ValidateProgramWorkoutOwnership(r.Context(), &program, role == models.RoleAdmin); err != nil {
+	if err := h.svc.ValidateProgramWorkoutOwnership(r.Context(), &program); err != nil {
 		if errors.Is(err, service.ErrProgramNotFoundWorkout) {
 			http.Error(w, "treino do programa nao encontrado", http.StatusNotFound)
 			return
 		}
 		if errors.Is(err, service.ErrProgramWorkoutForbidden) {
-			http.Error(w, "treino do programa pertence a outra nutricionista", http.StatusForbidden)
+			http.Error(w, "treino do programa pertence a outro aluno", http.StatusForbidden)
 			return
 		}
 		http.Error(w, "falha ao validar treinos do programa", http.StatusInternalServerError)
@@ -208,14 +179,11 @@ func (h *Handlers) HandleAssignProgram(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "aluno obrigatorio", http.StatusBadRequest)
 		return
 	}
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-	if role == models.RoleNutritionist {
-		can, err := h.svc.CanAccessStudent(r.Context(), uid, role, req.StudentID)
-		if err != nil || !can {
-			http.Error(w, "sem permissao", http.StatusForbidden)
-			return
-		}
+	// Só o admin atribui (a rota exige RoleAdmin); o aluno é o dono dos treinos
+	// materializados, conferido por AssignProgram/ValidateProgramWorkoutOwnership.
+	if middleware.RoleFrom(r.Context()) != models.RoleAdmin {
+		http.Error(w, "sem permissao para atribuir programa", http.StatusForbidden)
+		return
 	}
 
 	updated, err := h.svc.AssignProgram(r.Context(), existing, req.StudentID)
@@ -226,7 +194,7 @@ func (h *Handlers) HandleAssignProgram(w http.ResponseWriter, r *http.Request) {
 		case errors.Is(err, service.ErrProgramNotFoundWorkout):
 			http.Error(w, "treino do programa nao encontrado", http.StatusNotFound)
 		case errors.Is(err, service.ErrProgramWorkoutForbidden):
-			http.Error(w, "treino do programa pertence a outra nutricionista", http.StatusForbidden)
+			http.Error(w, "treino do programa pertence a outro aluno", http.StatusForbidden)
 		default:
 			http.Error(w, "falha ao atribuir programa", http.StatusInternalServerError)
 		}
@@ -255,7 +223,7 @@ func (h *Handlers) HandleDuplicateProgram(w http.ResponseWriter, r *http.Request
 		case errors.Is(err, service.ErrProgramNotFoundWorkout):
 			http.Error(w, "treino do programa nao encontrado", http.StatusNotFound)
 		case errors.Is(err, service.ErrProgramWorkoutForbidden):
-			http.Error(w, "treino do programa pertence a outra nutricionista", http.StatusForbidden)
+			http.Error(w, "treino do programa pertence a outro aluno", http.StatusForbidden)
 		default:
 			http.Error(w, "falha ao duplicar programa", http.StatusInternalServerError)
 		}
@@ -282,30 +250,14 @@ func (h *Handlers) HandleImportProgram(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-	studentID := req.StudentID
-	if role == models.RoleNutritionist {
-		if studentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, studentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	} else if role != models.RoleAdmin {
+	if middleware.RoleFrom(r.Context()) != models.RoleAdmin {
 		http.Error(w, "sem permissao para importar programa", http.StatusForbidden)
 		return
 	}
 
-	// Ownership: nutricionista sempre fica com o proprio uid; admin pode
-	// informar outro vinculo e deixar vazio (programa de biblioteca do admin).
-	nutritionistID := uid
-	if role == models.RoleAdmin && req.NutritionistID != "" {
-		nutritionistID = req.NutritionistID
-	}
-
-	result, err := h.svc.CreateProgramFromImport(r.Context(), req.Markdown, req.Source, req.Name, studentID, nutritionistID)
+	// Sem vinculo de nutricionista: o programa nasce de biblioteca ou já atribuído
+	// ao aluno informado no body (studentId).
+	result, err := h.svc.CreateProgramFromImport(r.Context(), req.Markdown, req.Source, req.Name, req.StudentID)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -329,7 +281,7 @@ func (h *Handlers) loadProgram(w http.ResponseWriter, r *http.Request) (*models.
 		http.Error(w, "programa nao encontrado", http.StatusNotFound)
 		return nil, false
 	}
-	if !canAccessResource(r, program.StudentID, program.NutritionistID) {
+	if !canAccessResource(r, program.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return nil, false
 	}

@@ -23,8 +23,7 @@ func (h *Handlers) HandleListPendingUsers(w http.ResponseWriter, r *http.Request
 }
 
 // HandleApproveUser aprova um cadastro, define papel e (para aluno) plano —
-// com snapshot das features do plano. O nutricionista de um aluno também é
-// registrado aqui (nutritionistID), validado via CanAccessStudent.
+// com snapshot das features do plano.
 func (h *Handlers) HandleApproveUser(w http.ResponseWriter, r *http.Request) {
 	adminID := middleware.UIDFrom(r.Context())
 	id := r.PathValue("id")
@@ -39,7 +38,7 @@ func (h *Handlers) HandleApproveUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := h.svc.ApproveUser(r.Context(), adminID, id, req.Role, req.PlanID, req.NutritionistID)
+	err := h.svc.ApproveUser(r.Context(), adminID, id, req.Role, req.PlanID)
 	if err != nil {
 		h.serviceError(err, w)
 		return

@@ -6,7 +6,6 @@ export const PASS = "e2e-senha-123";
 /** Usuários semeados por backend/cmd/e2eseed (rolam junto com os emuladores). */
 export const USERS = {
   admin: { email: "e2e.admin@teste.local", password: PASS },
-  nutritionist: { email: "e2e.nutri@teste.local", password: PASS },
   studentA: { email: "e2e.aluno@teste.local", password: PASS }, // plano Completo (workouts+diet+community+ranking)
   studentB: { email: "e2e.aluno2@teste.local", password: PASS }, // plano Essencial (workouts+ranking)
   studentC: { email: "e2e.aluno3@teste.local", password: PASS }, // plano só Treinos (workouts)

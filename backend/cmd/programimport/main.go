@@ -1,4 +1,4 @@
-// Command programimport importa um programa de treino escrito em markdown para
+﻿// Command programimport importa um programa de treino escrito em markdown para
 // o Firestore, criando os TREINOS e o PROGRAMA (F19).
 //
 // Ele usa exatamente o mesmo caminho de importação do endpoint
@@ -18,7 +18,7 @@
 //	$env:FIRESTORE_EMULATOR_HOST="127.0.0.1:8080"
 //	$env:GCLOUD_PROJECT="treino-louise"
 //	go run ./cmd/programimport -file "C:/Users/caiof/OneDrive/Desktop/exemplo/treino.md" -dry-run
-//	go run ./cmd/programimport -file "C:/Users/caiof/OneDrive/Desktop/exemplo/treino.md" -nutritionist <uid> [-student <uid>]
+//	go run ./cmd/programimport -file "C:/Users/caiof/OneDrive/Desktop/exemplo/treino.md" [-student <uid>]
 package main
 
 import (
@@ -47,7 +47,6 @@ func main() {
 func run() error {
 	var (
 		file          = flag.String("file", "", "caminho do arquivo .md com o programa de treino (obrigatorio)")
-		nutritionist  = flag.String("nutritionist", "", "uid do nutricionista dono do programa (obrigatorio para gravar)")
 		student       = flag.String("student", "", "uid do aluno (opcional): ja atribui o programa")
 		name          = flag.String("name", "", "nome do programa (opcional; padrao: extraido do markdown)")
 		source        = flag.String("source", "", "origem a gravar (opcional; padrao: nome do arquivo)")
@@ -72,9 +71,6 @@ func run() error {
 	// -dry-run não precisa de Firebase: mostra a leitura do arquivo e sai.
 	if *dryRun {
 		return describe(markdown, *source, *name)
-	}
-	if strings.TrimSpace(*nutritionist) == "" {
-		return errors.New("informe -nutritionist com o uid do nutricionista (use -dry-run para so conferir a leitura)")
 	}
 
 	// Guarda anti-producao: sem emulador local, nao grava.
@@ -101,7 +97,7 @@ func run() error {
 	defer fs.Close()
 
 	svc := service.New(repository.New(fs))
-	result, err := svc.CreateProgramFromImport(ctx, markdown, *source, *name, *student, *nutritionist)
+	result, err := svc.CreateProgramFromImport(ctx, markdown, *source, *name, *student)
 	if err != nil {
 		return err
 	}

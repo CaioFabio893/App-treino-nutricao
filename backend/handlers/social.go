@@ -18,10 +18,10 @@ import (
 // (que devolve o erro para abortar a transação).
 var errForbidden = errors.New("sem permissao")
 
-// canModerate devolve true se o usuário é nutricionista ou admin.
+// canModerate devolve true se o usuário é admin.
 func canModerate(r *http.Request) bool {
 	rl := middleware.RoleFrom(r.Context())
-	return rl == models.RoleNutritionist || rl == models.RoleAdmin
+	return rl == models.RoleAdmin
 }
 
 // HandleCreatePost cria um post manual ou referenciando treino/dieta.
@@ -64,7 +64,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "treino nao encontrado", http.StatusNotFound)
 			return
 		}
-		if !canAccessResource(r, wk.StudentID, wk.NutritionistID) {
+		if !canAccessResource(r, wk.StudentID) {
 			http.Error(w, "sem permissao", http.StatusForbidden)
 			return
 		}
@@ -84,7 +84,7 @@ func (h *Handlers) HandleCreatePost(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 			return
 		}
-		if !canAccessResource(r, d.StudentID, d.NutritionistID) {
+		if !canAccessResource(r, d.StudentID) {
 			http.Error(w, "sem permissao", http.StatusForbidden)
 			return
 		}
@@ -237,7 +237,7 @@ func (h *Handlers) HandleAddComment(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleDeleteComment apaga um comentário: o autor remove de vez; moderador
-// (nutricionista/admin) remove qualquer um com soft delete auditado. Tudo
+// admin remove qualquer um com soft delete auditado. Tudo
 // dentro de UpdatePostTx para não perder comentários concorrentes.
 func (h *Handlers) HandleDeleteComment(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")

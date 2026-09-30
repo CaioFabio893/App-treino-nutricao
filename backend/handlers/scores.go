@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"net/http"
@@ -8,8 +8,8 @@ import (
 	"treino-louise/backend/service"
 )
 
-// HandleGetRanking devolve o ranking global (público), o top do nutricionista
-// (full) e a posição do aluno logado (self).
+// HandleGetRanking devolve o ranking global (público), a lista completa e a
+// posição do aluno logado (self).
 func (h *Handlers) HandleGetRanking(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
@@ -44,8 +44,7 @@ func (h *Handlers) HandleGetRanking(w http.ResponseWriter, r *http.Request) {
 		Total:      len(allStudents),
 	}
 
-	switch role {
-	case models.RoleStudent:
+	if role == models.RoleStudent {
 		// O aluno sempre vê a própria posição, mesmo fora do top 20.
 		for _, e := range global {
 			if e.StudentID == uid {
@@ -53,14 +52,9 @@ func (h *Handlers) HandleGetRanking(w http.ResponseWriter, r *http.Request) {
 				break
 			}
 		}
-	case models.RoleNutritionist:
-		myStudents, err := h.repo.ListStudents(r.Context(), uid) // alunos do nutricionista
-		if err != nil {
-			http.Error(w, "falha ao listar alunos", http.StatusInternalServerError)
-			return
-		}
-		resp.Full = service.BuildRanking(myStudents, scores)
-	default: // admin
+	}
+	// Admin recebe a lista completa; o aluno recebe apenas o top público + self.
+	if role == models.RoleAdmin {
 		resp.Full = global
 	}
 
@@ -70,17 +64,11 @@ func (h *Handlers) HandleGetRanking(w http.ResponseWriter, r *http.Request) {
 // HandleGetScoreHistory devolve a evolução de ciclos fechados do aluno.
 func (h *Handlers) HandleGetScoreHistory(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
 	studentID := r.URL.Query().Get("studentId")
 	if studentID == "" {
 		studentID = uid
 	}
-	can, err := h.svc.CanAccessStudent(r.Context(), uid, role, studentID)
-	if err != nil {
-		http.Error(w, "erro ao verificar permissao", http.StatusInternalServerError)
-		return
-	}
-	if !can {
+	if !canAccessResource(r, studentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}

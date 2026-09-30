@@ -21,7 +21,6 @@ func (s *Service) GetOrCreateProfile(ctx context.Context, uid string, p *models.
 		p.Status = existing.Status
 		p.PlanID = existing.PlanID
 		p.Features = existing.Features
-		p.NutritionistID = existing.NutritionistID
 		p.ApprovedBy = existing.ApprovedBy
 		p.ApprovedAt = existing.ApprovedAt
 		p.RejectedReason = existing.RejectedReason

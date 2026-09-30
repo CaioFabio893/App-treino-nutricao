@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -48,7 +48,6 @@ func TestGetPublicProfileDoesNotExposeSensitiveFields(t *testing.T) {
 		Role:           models.RoleStudent,
 		Status:         models.StatusActive,
 		AuthProvider:   "google.com",
-		NutritionistID: "nutri-1",
 		PlanID:         "plano-1",
 		Features:       []models.Feature{models.FeatureDiet, models.FeatureRanking},
 		ApprovedBy:     "admin-1",

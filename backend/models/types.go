@@ -1,54 +1,17 @@
-// Package models contém as entidades de domínio, enums e DTOs da API.
+﻿// Package models contém as entidades de domínio, enums e DTOs da API.
 // Nenhuma dependência externa além da stdlib — camada pura de dados.
 package models
 
 import "time"
 
-// ── Models existentes (preservados para compatibilidade) ──
-
-// Set representa os dados de uma série de um exercício (modo original).
-type Set struct {
-	W *float64 `json:"w,omitempty"`
-	R *float64 `json:"r,omitempty"`
-	C string   `json:"c,omitempty"` // "", "ok" ou "fail"
-}
-
-// Exercise representa os dados salvos de um exercício em um treino (modo original).
-type Exercise struct {
-	Sets []Set  `json:"sets,omitempty"`
-	Note string `json:"note,omitempty"`
-}
-
-// Session é o registro completo de um dia de treino em uma semana (modo original).
-type Session struct {
-	Week      int        `json:"week"`
-	Day       string     `json:"day"`
-	Exercise  []Exercise `json:"exercise,omitempty"`
-	UpdatedAt time.Time  `json:"updatedAt,omitempty"`
-}
-
-// PR guarda os recordes pessoais dos 3 exercícios principais.
-type PR struct {
-	A float64 `json:"a"`
-	B float64 `json:"b"`
-	C float64 `json:"c"`
-}
-
-// AppState guarda a semana e o dia em que o usuário parou.
-type AppState struct {
-	Week int `json:"week"`
-	Day  int `json:"day"`
-}
-
-// ── Novos models: gestão de nutricionista/aluno ──
+// ── Models: gestão de aluno/admin ──
 
 // Role define o papel do usuário no sistema.
 type Role string
 
 const (
-	RoleAdmin        Role = "admin"
-	RoleNutritionist Role = "nutritionist"
-	RoleStudent      Role = "student"
+	RoleAdmin   Role = "admin"
+	RoleStudent Role = "student"
 )
 
 // ── Status de acesso do usuário (estende o campo Status já existente) ──
@@ -94,7 +57,6 @@ type UserProfile struct {
 	PhotoURL       string    `json:"photoURL,omitempty"`
 	Bio            string    `json:"bio,omitempty"` // bio curta exibida no perfil público
 	Role           Role      `json:"role"`
-	NutritionistID string    `json:"nutritionistID,omitempty"` // preenchido se role=student
 	StartDate      string    `json:"startDate,omitempty"`      // "2026-01-15"
 	EndDate        string    `json:"endDate,omitempty"`        // "2026-04-15"
 	Status         string    `json:"status,omitempty"`         // "active", "pending_approval", "paused", "inactive", "rejected"
@@ -116,7 +78,6 @@ type UserProfile struct {
 type WorkoutDefine struct {
 	ID             string             `json:"id,omitempty"`
 	StudentID      string             `json:"studentId"`
-	NutritionistID string             `json:"nutritionistId"`
 	Name           string             `json:"name"`
 	Description    string             `json:"description,omitempty"`
 	Objective      string             `json:"objective,omitempty"`
@@ -154,7 +115,6 @@ type WorkoutExercise struct {
 type TrainingProgram struct {
 	ID             string            `json:"id,omitempty"`
 	StudentID      string            `json:"studentId"`                          // vazio = programa de biblioteca (não atribuído)
-	NutritionistID string            `json:"nutritionistId"`
 	Name           string            `json:"name"`
 	Description    string            `json:"description,omitempty"`
 	Objective      string            `json:"objective,omitempty"`
@@ -205,7 +165,6 @@ type ExerciseItem struct {
 type Diet struct {
 	ID             string    `json:"id,omitempty"`
 	StudentID      string    `json:"studentId"`
-	NutritionistID string    `json:"nutritionistId"`
 	Name           string    `json:"name"`
 	Description    string    `json:"description,omitempty"`
 	StartDate      string    `json:"startDate,omitempty"`
@@ -258,7 +217,6 @@ type WorkoutHistoryEntry struct {
 	StudentID          string            `json:"studentId"`
 	WorkoutID          string            `json:"workoutId"`
 	WorkoutName        string            `json:"workoutName,omitempty"`
-	NutritionistID     string            `json:"nutritionistId"`
 	CompletedAt        time.Time         `json:"completedAt,omitempty"`
 	Duration           int               `json:"duration,omitempty"` // minutos
 	ExercisesCompleted int               `json:"exercisesCompleted"`
@@ -275,12 +233,11 @@ type DuplicateRequest struct {
 }
 
 // ApproveUserRequest é o payload para aprovar um cadastro pendente.
-// role é obrigatório ("student" | "nutritionist"); planID é opcional e só
+// role é obrigatório ("student"); planID é opcional e só
 // tem efeito quando role=student (features do plano são snapshotadas no perfil).
 type ApproveUserRequest struct {
 	Role           Role    `json:"role"`
 	PlanID         string  `json:"planID,omitempty"`
-	NutritionistID string  `json:"nutritionistID,omitempty"`
 }
 
 // RejectUserRequest é o payload para recusar um cadastro pendente.
@@ -305,14 +262,12 @@ type CompleteWorkoutRequest struct {
 
 // ImportProgramRequest é o payload de POST /api/programs/import.
 // `Markdown` é o programa de treino no formato markdown: o backend parseia
-// (pacote programmd) e cria os treinos + o programa. `NutritionistID` só é
-// respeitado quando quem chama é admin (nutricionista sempre fica com o próprio uid).
+// (pacote programmd) e cria os treinos + o programa. Só o admin pode importar.
 type ImportProgramRequest struct {
-	Markdown       string `json:"markdown"`
-	Source         string `json:"source,omitempty"`         // ex.: "treino.md"
-	Name           string `json:"name,omitempty"`           // sobrescreve o nome extraído do markdown
-	StudentID      string `json:"studentId,omitempty"`      // opcional: já atribui a um aluno
-	NutritionistID string `json:"nutritionistId,omitempty"` // admin apenas
+	Markdown  string `json:"markdown"`
+	Source    string `json:"source,omitempty"`   // ex.: "treino.md"
+	Name      string `json:"name,omitempty"`     // sobrescreve o nome extraído do markdown
+	StudentID string `json:"studentId,omitempty"` // opcional: já atribui a um aluno
 }
 
 // AssignProgramRequest é o payload de POST /api/programs/{id}/assign.
@@ -412,7 +367,6 @@ type MealCheck struct {
 type DietDailyLog struct {
 	ID             string        `json:"id,omitempty"`
 	StudentID      string        `json:"studentId"`
-	NutritionistID string        `json:"nutritionistId"`
 	DietID         string        `json:"dietId,omitempty"`
 	DietName       string        `json:"dietName,omitempty"`
 	Date           string        `json:"date"` // YYYY-MM-DD

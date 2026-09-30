@@ -4,7 +4,7 @@ Frontend do app **Treino Louise** — veja o [`README.md`](../README.md) na raiz
 para a visão geral do projeto (backend Go, Firestore e deploy no Cloud Run).
 
 Roda em modo **servidor standalone** (Cloud Run) com rotas dinâmicas
-(ex. `/nutritionist/students/[studentId]`).
+(ex. `/admin/students/[studentId]`).
 
 ## Rodando local
 
@@ -46,8 +46,9 @@ app/
   page.tsx            # home: redireciona por papel (demo)
   login/              # login (Firebase)
   (aluno)/            # área do aluno: treinos, dietas, comunidade
-  nutritionist/       # painel: alunos, treinos, dietas, feed, ranking, timeline, CSV
-  admin/              # gestão de usuários
+  admin/              # área de gestão (admin): painel, alunos, treinos, dietas,
+                      #   exercícios, programas, feed, ranking, timeline e
+                      #   usuarios/ (cadastro e planos)
   profile/[id]/       # perfil público
   base.css            # design system global
   dashboard.css       # estilos da área de gestão
@@ -71,7 +72,7 @@ E2E); veja a seção "Validação humana pendente — PWA" em
   (`X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy`, `Permissions-Policy`).
 - Quem autentica é o **backend Go** (Firebase Auth, `Authorization: Bearer
-  <token>`) e ele valida papéis (`admin`, `nutritionist`, `student`) — o
+  <token>`) e ele valida papéis (`admin`, `student`) — o
   frontend nunca fala direto com o Firestore.
 - O `.gitignore` bloqueia `.env*` e arquivos de chave (`*.pem`, `*.key`,
   `*.p12`, ...): **nunca** versione credenciais.

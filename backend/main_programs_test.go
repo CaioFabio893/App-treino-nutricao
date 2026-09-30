@@ -64,7 +64,7 @@ func decodePrograms(t *testing.T, rr *httptest.ResponseRecorder) []*models.Train
 // ── escrita: quem pode ─────────────────────────────────────────────────────
 
 func TestChainNutritionistCreatesProgramLibrary(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs", `{"name":"Hipertrofia — Iniciante"}`, "token-valido")
@@ -76,9 +76,6 @@ func TestChainNutritionistCreatesProgramLibrary(t *testing.T) {
 	}
 	if got := repo.createdProgram.StudentID; got != "" {
 		t.Errorf("studentId = %q, want \"\" (programa de biblioteca)", got)
-	}
-	if got := repo.createdProgram.NutritionistID; got != testUID {
-		t.Errorf("nutritionistId = %q, want %q", got, testUID)
 	}
 }
 
@@ -95,8 +92,10 @@ func TestChainStudentCannotCreateProgram(t *testing.T) {
 	}
 }
 
+// Pending = aluno aprovado ainda não. O caso realista de "pendente" é o aluno
+// esperando aprovação do admin: ele não passa pelo RequireApproved.
 func TestChainPendingUserCannotAccessPrograms(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusPendingApproval))
+	repo := baseRepo(studentProfile(models.StatusPendingApproval, nil))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/programs", "", "token-valido")
@@ -106,7 +105,7 @@ func TestChainPendingUserCannotAccessPrograms(t *testing.T) {
 }
 
 func TestChainCreateProgramRequiresName(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs", `{"name":"  "}`, "token-valido")
@@ -116,7 +115,7 @@ func TestChainCreateProgramRequiresName(t *testing.T) {
 }
 
 func TestChainCreateProgramRejectsTooLongName(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs", `{"name":"`+strings.Repeat("x", 500)+`"}`, "token-valido")
@@ -128,7 +127,7 @@ func TestChainCreateProgramRejectsTooLongName(t *testing.T) {
 // ── leitura ────────────────────────────────────────────────────────────────
 
 func TestChainListProgramsScopedByRole(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.listPrograms = []*models.TrainingProgram{{ID: "p-1", Name: "Louise Lima (Ciclo 2)"}}
 	h := newChainMux(repo)
 
@@ -143,7 +142,7 @@ func TestChainListProgramsScopedByRole(t *testing.T) {
 }
 
 func TestChainListProgramsEmptySerializesAsArray(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.listPrograms = []*models.TrainingProgram{}
 	h := newChainMux(repo)
 
@@ -153,10 +152,11 @@ func TestChainListProgramsEmptySerializesAsArray(t *testing.T) {
 	}
 }
 
+// Aluno não lê o programa de OUTRO aluno (canAccessResource: uid != studentID).
 func TestChainStudentCannotReadOtherStudentProgram(t *testing.T) {
 	repo := baseRepo(studentProfile(models.StatusActive, nil))
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", StudentID: "outro-aluno", NutritionistID: "nutri",
+		ID: "p-1", Name: "Ciclo 2", StudentID: "outro-aluno",
 	}
 	h := newChainMux(repo)
 
@@ -166,14 +166,15 @@ func TestChainStudentCannotReadOtherStudentProgram(t *testing.T) {
 	}
 }
 
-func TestChainNutritionistCannotReadOtherNutritionistProgram(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
-	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", NutritionistID: "outro-nutri"}
+// Aluno lê o próprio programa (canAccessResource: uid == studentID).
+func TestChainStudentReadsOwnProgram(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", StudentID: testUID}
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/programs/p-1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("code = %d, want 403", rr.Code)
+	if rr.Code != http.StatusOK {
+		t.Fatalf("code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 
@@ -190,27 +191,33 @@ func TestChainGetProgramNotFound(t *testing.T) {
 
 // ── vínculo imutável (regra nº 2) ──────────────────────────────────────────
 
-func TestChainNutritionistCannotTransferProgramOwnership(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
-	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID}
+// ── aluno do programa é imutável no PUT (regra nº 2) ──────────────────────
+//
+// O admin renomeia o programa, mas não pode REAPONTAR para outro aluno via body:
+// a reatribuição existe só via POST /assign (que materializa as cópias dos
+// treinos e recusa 409 se já atribuído). Sem isso, o novo aluno cairia em 403
+// nos treinos referenciados e o anterior perderia o acesso.
+func TestChainProgramStudentIdIsImmutableOnPut(t *testing.T) {
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", StudentID: "aluno-1"}
 	h := newChainMux(repo)
 
-	body := `{"name":"Ciclo 2","nutritionistId":"outro-nutri"}`
-	rr := doChainRequest(h, "PUT", "/api/programs/p-1", body, "token-valido")
+	rr := doChainRequest(h, "PUT", "/api/programs/p-1", `{"name":"Ciclo 2","studentId":"aluno-2"}`, "token-valido")
 	if rr.Code != http.StatusOK {
 		t.Fatalf("code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
 	}
 	if repo.updatedProgram == nil {
 		t.Fatal("UpdateProgram não foi chamado")
 	}
-	if got := repo.updatedProgram.NutritionistID; got != testUID {
-		t.Errorf("nutritionistId gravado = %q, want %q (vínculo do registro, nunca o do body)", got, testUID)
+	if got := repo.updatedProgram.StudentID; got != "aluno-1" {
+		t.Errorf("studentId gravado = %q, want aluno-1 (vínculo do registro, nunca o do body)", got)
 	}
 }
 
-func TestChainNutritionistCannotUpdateOtherNutritionistProgram(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
-	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", NutritionistID: "outro-nutri"}
+// Aluno não escreve programa: PUT é admin-only.
+func TestChainStudentCannotUpdateProgram(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", StudentID: testUID}
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "PUT", "/api/programs/p-1", `{"name":"Renomeado"}`, "token-valido")
@@ -225,7 +232,7 @@ func TestChainNutritionistCannotUpdateOtherNutritionistProgram(t *testing.T) {
 // ── importação de markdown ─────────────────────────────────────────────────
 
 func TestChainImportProgramCreatesWorkoutsAndProgram(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	body := `{"markdown":` + mustJSON(mdExemplo) + `,"source":"treino.md"}`
@@ -286,7 +293,7 @@ func TestChainImportProgramCreatesWorkoutsAndProgram(t *testing.T) {
 }
 
 func TestChainImportProgramRejectsEmptyMarkdown(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs/import", `{"markdown":"   "}`, "token-valido")
@@ -299,7 +306,7 @@ func TestChainImportProgramRejectsEmptyMarkdown(t *testing.T) {
 }
 
 func TestChainImportProgramWithoutWorkoutSectionFails(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	body := `{"markdown":"# Programa de Treino — Vazio\n\nso texto\n"}`
@@ -326,16 +333,16 @@ func TestChainStudentCannotImportProgram(t *testing.T) {
 // ── atribuição a aluno ─────────────────────────────────────────────────────
 
 func TestChainAssignProgramMaterializesWorkoutsForStudent(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.workout = &models.WorkoutDefine{
-		ID: "w-1", Name: "Treino A", NutritionistID: testUID,
+		ID: "w-1", Name: "Treino A",
 		Exercises: []*models.WorkoutExercise{{ID: "ex-1", Name: "Agachamento", Sets: 4, Order: 1}},
 	}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID,
+		ID: "p-1", Name: "Ciclo 2",
 		Workouts: []*models.ProgramWorkout{{WorkoutID: "w-1", Order: 1, Label: "A"}},
 	}
 	h := newChainMux(repo)
@@ -367,8 +374,8 @@ func TestChainAssignProgramMaterializesWorkoutsForStudent(t *testing.T) {
 }
 
 func TestChainAssignProgramRequiresStudent(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
-	repo.program = &models.TrainingProgram{ID: "p-1", NutritionistID: testUID}
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.program = &models.TrainingProgram{ID: "p-1"}
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs/p-1/assign", `{"studentId":""}`, "token-valido")
@@ -377,27 +384,33 @@ func TestChainAssignProgramRequiresStudent(t *testing.T) {
 	}
 }
 
-func TestChainAssignProgramToOtherNutritionistStudentForbidden(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+// O assign é admin-only: o aluno não materializa programa para si (nem para
+// outro). Sem essa trava, um aluno poderia disparar a criação de cópias dos
+// treinos do programa.
+func TestChainStudentCannotAssignProgram(t *testing.T) {
+	repo := baseRepo(studentProfile(models.StatusActive, nil))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-outro": {ID: "aluno-outro", Role: models.RoleStudent, NutritionistID: "outro-nutri", Status: models.StatusActive},
+		"aluno-outro": {ID: "aluno-outro", Role: models.RoleStudent, Status: models.StatusActive},
 	}
-	repo.program = &models.TrainingProgram{ID: "p-1", NutritionistID: testUID}
+	repo.program = &models.TrainingProgram{ID: "p-1"}
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs/p-1/assign", `{"studentId":"aluno-outro"}`, "token-valido")
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
 	}
+	if len(repo.createdWorkouts) != 0 {
+		t.Error("assign recusado não pode materializar cópias de treino")
+	}
 }
 
 func TestChainReassignProgramToAnotherStudentConflicts(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-2": {ID: "aluno-2", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-2": {ID: "aluno-2", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID, StudentID: "aluno-1",
+		ID: "p-1", Name: "Ciclo 2", StudentID: "aluno-1",
 	}
 	h := newChainMux(repo)
 
@@ -413,23 +426,23 @@ func TestChainReassignProgramToAnotherStudentConflicts(t *testing.T) {
 // ── ownership dos TREINOS referenciados (auditoria de segurança) ───────────
 //
 // O programa só guarda REFERÊNCIAS a `workouts/{id}`. Se nada conferir a posse
-// desses treinos, a nutricionista A consegue montar um programa apontando para o
-// treino da nutricionista B e, no assign, materializar uma CÓPIA do treino
-// alheio (exercícios, nomes, videoUrl) para o aluno dela — exfiltração de
-// conteúdo que ela não é dona. HandleDuplicateWorkout já faz essa checagem
-// (canAccessResource); o caminho de programa também precisa.
+// desses treinos, o admin monta um programa apontando para o treino de OUTRO
+// aluno e, no assign, materializa uma CÓPIA do treino alheio (exercícios,
+// nomes, videoUrl) para o aluno escolhido — exfiltração de conteúdo que ele não
+// é dono. HandleDuplicateWorkout já faz essa checagem (canAccessResource); o
+// caminho de programa também precisa.
 
 // Preparo: programa de biblioteca do chamador apontando para w-alheio.
 func repoWithForeignWorkout() *chainFakeRepo {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.workoutsByID = map[string]*models.WorkoutDefine{
-		"w-alheio": {ID: "w-alheio", Name: "Treino da outra", NutritionistID: "outro-nutri", StudentID: "aluno-dela"},
+		"w-alheio": {ID: "w-alheio", Name: "Treino da outra", StudentID: "aluno-dela"},
 	}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID,
+		ID: "p-1", Name: "Ciclo 2",
 		Workouts: []*models.ProgramWorkout{{WorkoutID: "w-alheio", Order: 1, Label: "A"}},
 	}
 	return repo
@@ -481,13 +494,13 @@ func TestChainAssignProgramRejectsForeignWorkout(t *testing.T) {
 // Referenciar um treino INEXISTENTE é 404, não 403: a resposta não deve revelar
 // se o id existe e pertence a outro nutricionista.
 func TestChainAssignProgramMissingWorkoutIs404(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.workoutsByID = map[string]*models.WorkoutDefine{}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID,
+		ID: "p-1", Name: "Ciclo 2",
 		Workouts: []*models.ProgramWorkout{{WorkoutID: "w-nao-existe", Order: 1}},
 	}
 	h := newChainMux(repo)
@@ -501,15 +514,15 @@ func TestChainAssignProgramMissingWorkoutIs404(t *testing.T) {
 // Referenciar o PRÓPRIO treino continua funcionando — a checagem não pode
 // quebrar o caminho feliz.
 func TestChainAssignProgramAcceptsOwnWorkout(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.workoutsByID = map[string]*models.WorkoutDefine{
-		"w-meu": {ID: "w-meu", Name: "Treino A", NutritionistID: testUID},
+		"w-meu": {ID: "w-meu", Name: "Treino A"},
 	}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID,
+		ID: "p-1", Name: "Ciclo 2",
 		Workouts: []*models.ProgramWorkout{{WorkoutID: "w-meu", Order: 1, Label: "A"}},
 	}
 	h := newChainMux(repo)
@@ -534,16 +547,16 @@ func TestChainAssignProgramAcceptsOwnWorkout(t *testing.T) {
 // aluno cairia em 403 nos treinos referenciados e o anterior perderia o acesso.
 
 func TestChainUpdateProgramCannotReassignStudent(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
-		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
-		"aluno-2": {ID: "aluno-2", Role: models.RoleStudent, NutritionistID: testUID, Status: models.StatusActive},
+		"aluno-1": {ID: "aluno-1", Role: models.RoleStudent, Status: models.StatusActive},
+		"aluno-2": {ID: "aluno-2", Role: models.RoleStudent, Status: models.StatusActive},
 	}
 	repo.workoutsByID = map[string]*models.WorkoutDefine{
-		"w-1": {ID: "w-1", Name: "Treino A", NutritionistID: testUID, StudentID: "aluno-1"},
+		"w-1": {ID: "w-1", Name: "Treino A", StudentID: "aluno-1"},
 	}
 	repo.program = &models.TrainingProgram{
-		ID: "p-1", Name: "Ciclo 2", NutritionistID: testUID, StudentID: "aluno-1",
+		ID: "p-1", Name: "Ciclo 2", StudentID: "aluno-1",
 		Workouts: []*models.ProgramWorkout{{WorkoutID: "w-1", Order: 1}},
 	}
 	h := newChainMux(repo)
@@ -564,8 +577,8 @@ func TestChainUpdateProgramCannotReassignStudent(t *testing.T) {
 // ── exclusão ───────────────────────────────────────────────────────────────
 
 func TestChainDeleteProgramKeepsWorkouts(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
-	repo.program = &models.TrainingProgram{ID: "p-1", NutritionistID: testUID}
+	repo := baseRepo(adminProfile(models.StatusActive))
+	repo.program = &models.TrainingProgram{ID: "p-1"}
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "DELETE", "/api/programs/p-1", "", "token-valido")
@@ -589,7 +602,7 @@ func TestChainDeleteProgramKeepsWorkouts(t *testing.T) {
 // POST /api/programs/import (literal) não pode ser capturada por
 // POST /api/programs/{id}/... — o ServeMux do Go 1.22+ prefere o literal.
 func TestChainImportRouteIsNotCapturedByIDPattern(t *testing.T) {
-	repo := baseRepo(nutritionistProfile(models.StatusActive))
+	repo := baseRepo(adminProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	body := `{"markdown":` + mustJSON(mdExemplo) + `}`
@@ -610,3 +623,4 @@ func mustJSON(s string) string {
 	}
 	return string(b)
 }
+

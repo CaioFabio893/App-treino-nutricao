@@ -76,19 +76,19 @@ func fieldTooLong(s string, max int) bool {
 }
 
 // ValidateProgramWorkoutOwnership confere que TODOS os treinos referenciados
-// pelo programa existem e são da nutricionista dona do programa.
+// pelo programa existem e são do MESMO aluno do programa.
 //
-// Sem esta checagem o programa vira um canal de exfiltração entre
-// nutricionista: A monta um programa apontando para `workouts/{id}` da B e o
-// assign materializa uma CÓPIA do treino alheio (exercícios, nomes, videoUrl)
-// para o aluno dela. HandleDuplicateWorkout já faz a checagem equivalente
+// Sem esta checagem o programa vira um canal de exfiltração entre alunos: o
+// admin monta um programa apontando para `workouts/{id}` do aluno X e o
+// `assign` materializa uma CÓPIA daquele treino (exercícios, nomes, videoUrl)
+// para o aluno Y. HandleDuplicateWorkout já faz a checagem equivalente
 // (canAccessResource); o caminho de programa precisa dela também.
 //
-// isAdmin libera a checagem: o admin é dono da plataforma e gerencia programas
-// de todas as nutricionistas. Treino inexistente é 404 (ErrProgramNotFoundWorkout)
-// e treino de outra donos é 403 (ErrProgramWorkoutForbidden) — a resposta não
-// revela a quem o id pertence.
-func (s *Service) ValidateProgramWorkoutOwnership(ctx context.Context, p *models.TrainingProgram, isAdmin bool) error {
+// Não há escape para admin: como admin é o único que escreve, um escape
+// tornaria a checagem inócua. Treino inexistente é 404
+// (ErrProgramNotFoundWorkout) e treino de outro aluno é 403
+// (ErrProgramWorkoutForbidden) — a resposta não revela a quem o id pertence.
+func (s *Service) ValidateProgramWorkoutOwnership(ctx context.Context, p *models.TrainingProgram) error {
 	if p == nil {
 		return ErrProgramNotFound
 	}
@@ -103,7 +103,7 @@ func (s *Service) ValidateProgramWorkoutOwnership(ctx context.Context, p *models
 		if w == nil {
 			return ErrProgramNotFoundWorkout
 		}
-		if !isAdmin && w.NutritionistID != p.NutritionistID {
+		if w.StudentID != p.StudentID {
 			return ErrProgramWorkoutForbidden
 		}
 	}
@@ -174,9 +174,9 @@ type ImportResult struct {
 //
 // A referência de cada treino carrega o snapshot de Label/Name/DayOfWeek da
 // fonte, para a listagem do programa continuar legível mesmo que o treino seja
-// renomeado depois. A propriedade (StudentID/NutritionistID) fica a cargo de quem
-// chama, que já validou permissões.
-func (s *Service) CreateProgramFromImport(ctx context.Context, markdown, source, name, studentID, nutritionistID string) (*ImportResult, error) {
+// renomeado depois. A propriedade (StudentID) fica a cargo de quem chama, que já
+// validou permissões.
+func (s *Service) CreateProgramFromImport(ctx context.Context, markdown, source, name, studentID string) (*ImportResult, error) {
 	parsed, err := programmd.Parse(markdown)
 	if err != nil {
 		return nil, err
@@ -192,17 +192,15 @@ func (s *Service) CreateProgramFromImport(ctx context.Context, markdown, source,
 
 	program, workouts := ConvertProgram(parsed, source)
 	program.StudentID = studentID
-	program.NutritionistID = nutritionistID
 	if err := ValidateProgram(program); err != nil {
 		return nil, err
 	}
 
 	refs := make([]*models.ProgramWorkout, 0, len(workouts))
 	for i, wd := range workouts {
-		// Ownership dos TREINOS: sem isso eles nasceriam órfãos e o
-		// nutricionista que importou receberia 403 ao abrir o próprio
-		// programa (CanAccessResource compara uid com NutritionistID).
-		wd.NutritionistID = nutritionistID
+		// Os treinos nascem com o mesmo StudentID do programa, para que a
+		// checagem de ownership por aluno (ValidateProgramWorkoutOwnership)
+		// feche e o aluno não receba 403 ao abrir o próprio programa.
 		wd.StudentID = studentID
 		created, err := s.repo.CreateWorkout(ctx, wd)
 		if err != nil {
@@ -286,10 +284,10 @@ func (s *Service) AssignProgram(ctx context.Context, p *models.TrainingProgram, 
 		if src == nil {
 			return nil, ErrProgramNotFoundWorkout
 		}
-		// Ownership do TREINO, não só do programa: sem esta linha a
-		// nutricionista A materializaria uma cópia do treino da B para o aluno
-		// dela (exercícios, nomes, videoUrl) — exfiltração.
-		if src.NutritionistID != p.NutritionistID {
+		// Ownership do TREINO, não só do programa: sem esta linha o programa
+		// materializaria uma cópia do treino de OUTRO aluno (exercícios, nomes,
+		// videoUrl) — exfiltração.
+		if src.StudentID != p.StudentID {
 			return nil, ErrProgramWorkoutForbidden
 		}
 		created, err := s.repo.CreateWorkout(ctx, DuplicateWorkoutForStudent(src, studentID, ""))
@@ -359,8 +357,8 @@ func (s *Service) DuplicateProgram(ctx context.Context, p *models.TrainingProgra
 		}
 		// Mesmo ownership do AssignProgram: duplicar também materializa o
 		// conteúdo do treino, então não pode ser canal para copiar o treino de
-		// outra nutricionista.
-		if src.NutritionistID != p.NutritionistID {
+		// outro aluno.
+		if src.StudentID != p.StudentID {
 			return nil, ErrProgramWorkoutForbidden
 		}
 		// O clone é de biblioteca: mesmo conteúdo, sem aluno e sem vínculo alterado.

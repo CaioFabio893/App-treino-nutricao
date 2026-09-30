@@ -42,7 +42,7 @@ export default function PublicProfilePage({
       <div className="empty-box">
         {error || "Perfil não encontrado."}
         <div className="btn-row" style={{ marginTop: 10 }}>
-          <Link className="btn-sm" href={role === "student" ? "/" : "/nutritionist"}>
+          <Link className="btn-sm" href={role === "student" ? "/" : "/admin"}>
             ‹ Voltar
           </Link>
         </div>
@@ -62,7 +62,7 @@ export default function PublicProfilePage({
         </div>
         <h2>{prof.name}</h2>
         <div className="profile-public-role">
-          {prof.role === "student" ? "Aluno(a)" : prof.role === "nutritionist" ? "Nutricionista" : "Administrador"}
+          {prof.role === "student" ? "Aluno(a)" : "Administrador"}
         </div>
         {prof.bio && <p className="profile-public-bio">{prof.bio}</p>}
 

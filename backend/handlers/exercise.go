@@ -11,7 +11,7 @@ import (
 // ── Biblioteca de exercícios (F5) ──
 //
 // Catálogo GLOBAL compartilhado. Leitura: usuário aprovado (RequireApproved).
-// Escrita (create/update/delete): somente nutricionista/admin (Allow). O aluno
+// Escrita (create/update/delete): somente admin (Allow). O aluno
 // consulta a biblioteca mas nunca a modifica. A coleção exercises/{id} é
 // acessada somente via API Go (as regras do Firestore negam escrita a clientes).
 

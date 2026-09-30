@@ -1,4 +1,4 @@
-// Command e2eseed popula os Emuladores locais (Firestore + Auth) com dados
+﻿// Command e2eseed popula os Emuladores locais (Firestore + Auth) com dados
 // determinísticos para os testes E2E de Playwright (Fase 3).
 //
 // Segurança: este programa se recusa a rodar sem as variáveis de ambiente dos
@@ -31,14 +31,13 @@ import (
 
 // ── Identidades determinísticas dos testes E2E ──────────────────────────────
 const (
-	adminEmail       = "e2e.admin@teste.local"
-	nutritionistEmail = "e2e.nutri@teste.local"
-	studentAEmail    = "e2e.aluno@teste.local"  // plano Completo
-	studentBEmail    = "e2e.aluno2@teste.local" // plano Essencial (sem dieta/comunidade)
-	studentCEmail    = "e2e.aluno3@teste.local" // plano só Treinos (sem ranking)
-	pendingEmail     = "e2e.pendente@teste.local"
-	rejectedEmail    = "e2e.recusado@teste.local"
-	password         = "e2e-senha-123"
+	adminEmail    = "e2e.admin@teste.local"
+	studentAEmail = "e2e.aluno@teste.local"  // plano Completo
+	studentBEmail = "e2e.aluno2@teste.local" // plano Essencial (sem dieta/comunidade)
+	studentCEmail = "e2e.aluno3@teste.local" // plano só Treinos (sem ranking)
+	pendingEmail  = "e2e.pendente@teste.local"
+	rejectedEmail = "e2e.recusado@teste.local"
+	password      = "e2e-senha-123"
 )
 
 var weekdayKeys = map[time.Weekday]string{
@@ -95,7 +94,6 @@ func run() error {
 		key, email, name string
 	}{
 		{"admin", adminEmail, "Admin E2E"},
-		{"nutritionist", nutritionistEmail, "Nutri E2E"},
 		{"studentA", studentAEmail, "Ana Aluna"},
 		{"studentB", studentBEmail, "Bruno Aluno"},
 		{"studentC", studentCEmail, "Carla Aluna"},
@@ -141,24 +139,22 @@ func run() error {
 	startDate := cycle.Start.Format("2006-01-02")
 	endDate := cycle.End.AddDate(0, 0, -1).Format("2006-01-02")
 	type profileSeed struct {
-		key             string
-		role            models.Role
-		status          string
-		planKey         string
-		nutritionistUID string
-		start, end      string
+		key        string
+		role       models.Role
+		status     string
+		planKey    string
+		start, end string
 	}
 	profiles := []profileSeed{
-		{"admin", models.RoleAdmin, models.StatusActive, "", "", "", ""},
-		{"nutritionist", models.RoleNutritionist, models.StatusActive, "", "", "", ""},
-		{"studentA", models.RoleStudent, models.StatusActive, "completo", uid["nutritionist"], startDate, endDate},
-		{"studentB", models.RoleStudent, models.StatusActive, "essencial", uid["nutritionist"], startDate, endDate},
-		{"studentC", models.RoleStudent, models.StatusActive, "treinos", uid["nutritionist"], startDate, endDate},
-		{"pending", "", models.StatusPendingApproval, "", "", "", ""},
-		{"rejected", "", models.StatusRejected, "", "", "", ""},
+		{"admin", models.RoleAdmin, models.StatusActive, "", "", ""},
+		{"studentA", models.RoleStudent, models.StatusActive, "completo", startDate, endDate},
+		{"studentB", models.RoleStudent, models.StatusActive, "essencial", startDate, endDate},
+		{"studentC", models.RoleStudent, models.StatusActive, "treinos", startDate, endDate},
+		{"pending", "", models.StatusPendingApproval, "", "", ""},
+		{"rejected", "", models.StatusRejected, "", "", ""},
 	}
 	emailOf := map[string]string{
-		"admin": adminEmail, "nutritionist": nutritionistEmail,
+		"admin": adminEmail,
 		"studentA": studentAEmail, "studentB": studentBEmail, "studentC": studentCEmail,
 		"pending": pendingEmail, "rejected": rejectedEmail,
 	}
@@ -169,7 +165,6 @@ func run() error {
 			Role:            p.role,
 			Status:          p.status,
 			AuthProvider:    "password",
-			NutritionistID:  p.nutritionistUID,
 			StartDate:       p.start,
 			EndDate:         p.end,
 			CreatedAt:       now,
@@ -194,7 +189,7 @@ func run() error {
 	yesterdayKey := weekdayKeys[now.AddDate(0, 0, -1).Weekday()]
 
 	workoutA, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
-		StudentID: uid["studentA"], NutritionistID: uid["nutritionist"],
+		StudentID: uid["studentA"],
 		Name: "Treino de Hoje E2E", DayOfWeek: todayKey, Objective: "Hipertrofia",
 		Description: "Treino principal do cenário E2E",
 		Exercises: []*models.WorkoutExercise{
@@ -206,7 +201,7 @@ func run() error {
 		return fmt.Errorf("treino A hoje: %w", err)
 	}
 	workoutA2, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
-		StudentID: uid["studentA"], NutritionistID: uid["nutritionist"],
+		StudentID: uid["studentA"],
 		Name: "Treino Secundário E2E", DayOfWeek: yesterdayKey, Objective: "Condicionamento",
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Remada curvada", Sets: 2, Repetitions: "12", Weight: "20 kg", RestSeconds: 45, Order: 1},
@@ -216,7 +211,7 @@ func run() error {
 		return fmt.Errorf("treino A 2: %w", err)
 	}
 	workoutB, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
-		StudentID: uid["studentB"], NutritionistID: uid["nutritionist"],
+		StudentID: uid["studentB"],
 		Name: "Treino Básico E2E", DayOfWeek: todayKey,
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Puxada alta", Sets: 2, Repetitions: "10", Weight: "25 kg", RestSeconds: 60, Order: 1},
@@ -226,7 +221,7 @@ func run() error {
 		return fmt.Errorf("treino B: %w", err)
 	}
 	if _, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
-		StudentID: uid["studentC"], NutritionistID: uid["nutritionist"],
+		StudentID: uid["studentC"],
 		Name: "Treino Livre E2E", DayOfWeek: todayKey,
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Esteira", Sets: 1, Repetitions: "20 min", RestSeconds: 0, Order: 1},
@@ -238,7 +233,7 @@ func run() error {
 
 	// ── Dieta do aluno A ──
 	if _, err := repo.CreateDiet(ctx, &models.Diet{
-		StudentID: uid["studentA"], NutritionistID: uid["nutritionist"],
+		StudentID: uid["studentA"],
 		Name: "Plano Alimentar E2E", Description: "Plano de teste (background)",
 		StartDate: startDate, EndDate: endDate,
 		Content: "CAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n\nALMOÇO (12:30)\n• 150g de arroz integral\n• 200g de frango grelhado",
@@ -251,7 +246,7 @@ func run() error {
 	yesterdayStr := now.AddDate(0, 0, -1).Format("2006-01-02")
 	mkLog := func(studentKey, date string, status models.DietLogStatus) {
 		if err := repo.PutDietLog(ctx, &models.DietDailyLog{
-			StudentID: uid[studentKey], NutritionistID: uid["nutritionist"],
+			StudentID: uid[studentKey],
 			DietName: "Plano Alimentar E2E", Date: date, Status: status,
 		}); err != nil {
 			log.Fatalf("dietLog %s %s: %v", studentKey, date, err)
@@ -262,15 +257,10 @@ func run() error {
 	mkLog("studentA", yesterdayStr, models.DietFollowed)
 	mkLog("studentB", yesterdayStr, models.DietPartial)
 
-	// ── Histórico de treinos (determinam pontuação + feed/timeline) ──
-	at := func(daysAgo int, hour int) time.Time {
-		d := now.AddDate(0, 0, -daysAgo)
-		return time.Date(d.Year(), d.Month(), d.Day(), hour, 0, 0, 0, service.AppLoc)
-	}
+	// ── Histórico de treinos (determinam pontuação) ──
 	mkHistory := func(studentKey string, w *models.WorkoutDefine, daysAgo int) {
 		if _, err := repo.CreateHistoryEntry(ctx, &models.WorkoutHistoryEntry{
 			StudentID: uid[studentKey], WorkoutID: w.ID, WorkoutName: w.Name,
-			NutritionistID: uid["nutritionist"], CompletedAt: at(daysAgo, 7),
 			Duration: 45, ExercisesCompleted: len(w.Exercises), TotalExercises: len(w.Exercises),
 			Exercises: []models.HistoryExercise{
 				{Name: w.Exercises[0].Name, Order: 1, Sets: []models.HistorySet{{Weight: "40", Reps: "10", Done: true}}},
@@ -313,14 +303,13 @@ func run() error {
 	fmt.Printf(`
 e2eseed: seed concluído
   admin        %-26s %s
-  nutritionist %-26s %s
   studentA     %-26s %s  (plano Completo, score %.1f)
   studentB     %-26s %s  (plano Essencial, score %.1f)
   studentC     %-26s %s  (plano só Treinos)
   pending      %-26s %s
   rejected     %-26s %s
   senha comum:  %s
-`, adminEmail, uid["admin"], nutritionistEmail, uid["nutritionist"],
+`, adminEmail, uid["admin"],
 		studentAEmail, uid["studentA"], sa.Score,
 		studentBEmail, uid["studentB"], sb.Score,
 		studentCEmail, uid["studentC"],
@@ -329,7 +318,7 @@ e2eseed: seed concluído
 }
 
 var userNames = map[string]string{
-	"admin": "Admin E2E", "nutritionist": "Nutri E2E",
+	"admin": "Admin E2E",
 	"studentA": "Ana Aluna", "studentB": "Bruno Aluno", "studentC": "Carla Aluna",
 	"pending": "Pendente E2E", "rejected": "Recusado E2E",
 }

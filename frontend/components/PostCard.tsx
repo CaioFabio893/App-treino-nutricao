@@ -47,7 +47,8 @@ export default function PostCard({ post, meId, meRole, getToken, onPost }: Props
   const likes = post.likes ?? {};
   const liked = Boolean(likes[meId]);
   const comments = (post.comments ?? []).filter((c) => !c.deleted);
-  const canModerate = meRole === "nutritionist" || meRole === "admin";
+  // Moderação é privativa do admin (único papel de gestão do modelo).
+  const canModerate = meRole === "admin";
 
   const doLike = async () => {
     if (busy) return;

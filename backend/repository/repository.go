@@ -1,4 +1,4 @@
-// Package repository é a camada de persistência. Define a interface
+﻿// Package repository é a camada de persistência. Define a interface
 // Repository (fácil de trocar/mockar em testes) e uma implementação
 // Firestore. Nenhuma regra de negócio vive aqui.
 package repository
@@ -28,9 +28,6 @@ var (
 
 // Estrutura no Firestore:
 //
-//	users/{uid}/sessions/{1_ta}                        → Session (modo original)
-//	users/{uid}/prs/main                               → PR (modo original)
-//	users/{uid}/state/current                          → AppState (modo original)
 //	users/{uid}                                       → UserProfile
 //
 //	workouts/{workoutId}                               → WorkoutDefine (com Exercises [] dentro)
@@ -43,24 +40,11 @@ var (
 
 // Repository encapsula todo o acesso ao Firestore.
 type Repository interface {
-	// Sessions (modo original)
-	GetSession(ctx context.Context, uid string, week int, day string) (*models.Session, error)
-	PutSession(ctx context.Context, uid string, sess *models.Session) error
-
-	// PRs (modo original)
-	GetPRs(ctx context.Context, uid string) (*models.PR, error)
-	PutPRs(ctx context.Context, uid string, p *models.PR) error
-
-	// State (modo original)
-	GetState(ctx context.Context, uid string) (*models.AppState, error)
-	PutState(ctx context.Context, uid string, st *models.AppState) error
-
 	// Perfil de usuário
 	GetUserProfile(ctx context.Context, uid string) (*models.UserProfile, error)
 	PutUserProfile(ctx context.Context, uid string, p *models.UserProfile) error
 	CreateUser(ctx context.Context, uid string, p *models.UserProfile) error
 	DeleteUserProfile(ctx context.Context, uid string) error
-	ListStudents(ctx context.Context, nutritionistID string) ([]*models.UserProfile, error)
 	ListStudentsAll(ctx context.Context) ([]*models.UserProfile, error)
 	ListUsers(ctx context.Context) ([]*models.UserProfile, error)
 	// ListUsersByStatus devolve os perfis com um status exato
@@ -80,7 +64,6 @@ type Repository interface {
 	// Treinos
 	CreateWorkout(ctx context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error)
 	GetWorkout(ctx context.Context, id string) (*models.WorkoutDefine, error)
-	ListWorkoutsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.WorkoutDefine, error)
 	ListWorkoutsForStudent(ctx context.Context, studentID string) ([]*models.WorkoutDefine, error)
 	ListWorkouts(ctx context.Context) ([]*models.WorkoutDefine, error)
 	UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error
@@ -90,7 +73,6 @@ type Repository interface {
 	// existentes (workouts/{id}); o conteúdo do treino NÃO é duplicado aqui.
 	CreateProgram(ctx context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error)
 	GetProgram(ctx context.Context, id string) (*models.TrainingProgram, error)
-	ListProgramsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.TrainingProgram, error)
 	ListProgramsForStudent(ctx context.Context, studentID string) ([]*models.TrainingProgram, error)
 	ListPrograms(ctx context.Context) ([]*models.TrainingProgram, error)
 	UpdateProgram(ctx context.Context, id string, p *models.TrainingProgram) error
@@ -99,7 +81,6 @@ type Repository interface {
 	// Dietas
 	CreateDiet(ctx context.Context, d *models.Diet) (*models.Diet, error)
 	GetDiet(ctx context.Context, id string) (*models.Diet, error)
-	ListDietsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.Diet, error)
 	ListDietsForStudent(ctx context.Context, studentID string) ([]*models.Diet, error)
 	ListDiets(ctx context.Context) ([]*models.Diet, error)
 	UpdateDiet(ctx context.Context, id string, d *models.Diet) error
@@ -115,7 +96,6 @@ type Repository interface {
 	// Histórico de treinos
 	CreateHistoryEntry(ctx context.Context, h *models.WorkoutHistoryEntry) (*models.WorkoutHistoryEntry, error)
 	ListHistoryForStudent(ctx context.Context, studentID string) ([]*models.WorkoutHistoryEntry, error)
-	ListHistoryForNutritionist(ctx context.Context, nutritionistID string) ([]*models.WorkoutHistoryEntry, error)
 	ListHistory(ctx context.Context) ([]*models.WorkoutHistoryEntry, error)
 	ListHistoryForStudentSince(ctx context.Context, studentID string, since, until time.Time) ([]*models.WorkoutHistoryEntry, error)
 
@@ -157,10 +137,6 @@ func New(fs *firestore.Client) Repository {
 	return &firestoreRepo{fs: fs}
 }
 
-func docKey(week int, day string) string {
-	return fmt.Sprintf("%d_%s", week, day)
-}
-
 // isNotFound devolve true se o erro for "documento não encontrado".
 func isNotFound(err error) bool {
 	return err != nil && status.Code(err) == codes.NotFound
@@ -183,89 +159,6 @@ func ensureNonNilSlice[T any](s []T) []T {
 		return []T{}
 	}
 	return s
-}
-
-// ── Sessions (modo original) ──
-
-func (r *firestoreRepo) GetSession(ctx context.Context, uid string, week int, day string) (*models.Session, error) {
-	doc, err := r.fs.Collection("users").Doc(uid).
-		Collection("sessions").Doc(docKey(week, day)).Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.Session{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (r *firestoreRepo) PutSession(ctx context.Context, uid string, sess *models.Session) error {
-	_, err := r.fs.Collection("users").Doc(uid).
-		Collection("sessions").Doc(docKey(sess.Week, sess.Day)).Set(ctx, map[string]any{
-		"week":      sess.Week,
-		"day":       sess.Day,
-		"exercise":  sess.Exercise,
-		"updatedAt": firestore.ServerTimestamp,
-	})
-	return err
-}
-
-// ── PRs (modo original) ──
-
-func (r *firestoreRepo) GetPRs(ctx context.Context, uid string) (*models.PR, error) {
-	doc, err := r.fs.Collection("users").Doc(uid).
-		Collection("prs").Doc("main").Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.PR{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (r *firestoreRepo) PutPRs(ctx context.Context, uid string, p *models.PR) error {
-	_, err := r.fs.Collection("users").Doc(uid).
-		Collection("prs").Doc("main").Set(ctx, map[string]any{
-		"a": p.A, "b": p.B, "c": p.C,
-		"updatedAt": firestore.ServerTimestamp,
-	})
-	return err
-}
-
-// ── State (modo original) ──
-
-func (r *firestoreRepo) GetState(ctx context.Context, uid string) (*models.AppState, error) {
-	doc, err := r.fs.Collection("users").Doc(uid).
-		Collection("state").Doc("current").Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.AppState{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	return out, nil
-}
-
-func (r *firestoreRepo) PutState(ctx context.Context, uid string, st *models.AppState) error {
-	_, err := r.fs.Collection("users").Doc(uid).
-		Collection("state").Doc("current").Set(ctx, map[string]any{
-		"week": st.Week, "day": st.Day,
-		"updatedAt": firestore.ServerTimestamp,
-	})
-	return err
 }
 
 // ── Perfil de usuário ──
@@ -305,7 +198,6 @@ func userProfileData(p *models.UserProfile) map[string]any {
 		"photoURL":        p.PhotoURL,
 		"bio":             p.Bio,
 		"role":            string(p.Role),
-		"nutritionistID":  p.NutritionistID,
 		"startDate":       p.StartDate,
 		"endDate":         p.EndDate,
 		"status":          p.Status,
@@ -337,14 +229,6 @@ func (r *firestoreRepo) DeleteUserProfile(ctx context.Context, uid string) error
 }
 
 // ListStudents lista usuários com role=student vinculados a um nutricionista.
-func (r *firestoreRepo) ListStudents(ctx context.Context, nutritionistID string) ([]*models.UserProfile, error) {
-	iter := r.fs.Collection("users").
-		Where("role", "==", string(models.RoleStudent)).
-		Where("nutritionistID", "==", nutritionistID).
-		Documents(ctx)
-	return profilesFromIter(iter)
-}
-
 // ListStudentsAll lista todos os usuários com role=student (ranking global).
 func (r *firestoreRepo) ListStudentsAll(ctx context.Context) ([]*models.UserProfile, error) {
 	iter := r.fs.Collection("users").
@@ -485,7 +369,6 @@ func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {
 func (r *firestoreRepo) CreateWorkout(ctx context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error) {
 	ref, _, err := r.fs.Collection("workouts").Add(ctx, map[string]any{
 		"studentId":      w.StudentID,
-		"nutritionistId": w.NutritionistID,
 		"name":           w.Name,
 		"description":    w.Description,
 		"objective":      w.Objective,
@@ -515,14 +398,6 @@ func (r *firestoreRepo) GetWorkout(ctx context.Context, id string) (*models.Work
 	}
 	out.ID = doc.Ref.ID
 	return out, nil
-}
-
-func (r *firestoreRepo) ListWorkoutsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.WorkoutDefine, error) {
-	iter := r.fs.Collection("workouts").
-		Where("nutritionistId", "==", nutritionistID).
-		OrderBy("createdAt", firestore.Desc).
-		Documents(ctx)
-	return workoutsFromIter(iter)
 }
 
 func (r *firestoreRepo) ListWorkoutsForStudent(ctx context.Context, studentID string) ([]*models.WorkoutDefine, error) {
@@ -562,7 +437,6 @@ func workoutsFromIter(iter docIterator) ([]*models.WorkoutDefine, error) {
 func (r *firestoreRepo) UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error {
 	_, err := r.fs.Collection("workouts").Doc(id).Set(ctx, map[string]any{
 		"studentId":      w.StudentID,
-		"nutritionistId": w.NutritionistID,
 		"name":           w.Name,
 		"description":    w.Description,
 		"objective":      w.Objective,
@@ -587,7 +461,6 @@ func (r *firestoreRepo) DeleteWorkout(ctx context.Context, id string) error {
 func (r *firestoreRepo) CreateProgram(ctx context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error) {
 	ref, _, err := r.fs.Collection("programs").Add(ctx, map[string]any{
 		"studentId":      p.StudentID,
-		"nutritionistId": p.NutritionistID,
 		"name":           p.Name,
 		"description":    p.Description,
 		"objective":      p.Objective,
@@ -618,14 +491,6 @@ func (r *firestoreRepo) GetProgram(ctx context.Context, id string) (*models.Trai
 	}
 	out.ID = doc.Ref.ID
 	return out, nil
-}
-
-func (r *firestoreRepo) ListProgramsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.TrainingProgram, error) {
-	iter := r.fs.Collection("programs").
-		Where("nutritionistId", "==", nutritionistID).
-		OrderBy("createdAt", firestore.Desc).
-		Documents(ctx)
-	return programsFromIter(iter)
 }
 
 func (r *firestoreRepo) ListProgramsForStudent(ctx context.Context, studentID string) ([]*models.TrainingProgram, error) {
@@ -667,7 +532,6 @@ func programsFromIter(iter docIterator) ([]*models.TrainingProgram, error) {
 func (r *firestoreRepo) UpdateProgram(ctx context.Context, id string, p *models.TrainingProgram) error {
 	_, err := r.fs.Collection("programs").Doc(id).Set(ctx, map[string]any{
 		"studentId":      p.StudentID,
-		"nutritionistId": p.NutritionistID,
 		"name":           p.Name,
 		"description":    p.Description,
 		"objective":      p.Objective,
@@ -689,7 +553,6 @@ func (r *firestoreRepo) DeleteProgram(ctx context.Context, id string) error {
 func (r *firestoreRepo) CreateDiet(ctx context.Context, d *models.Diet) (*models.Diet, error) {
 	ref, _, err := r.fs.Collection("diets").Add(ctx, map[string]any{
 		"studentId":      d.StudentID,
-		"nutritionistId": d.NutritionistID,
 		"name":           d.Name,
 		"description":    d.Description,
 		"startDate":      d.StartDate,
@@ -720,14 +583,6 @@ func (r *firestoreRepo) GetDiet(ctx context.Context, id string) (*models.Diet, e
 	}
 	out.ID = doc.Ref.ID
 	return out, nil
-}
-
-func (r *firestoreRepo) ListDietsForNutritionist(ctx context.Context, nutritionistID string) ([]*models.Diet, error) {
-	iter := r.fs.Collection("diets").
-		Where("nutritionistId", "==", nutritionistID).
-		OrderBy("createdAt", firestore.Desc).
-		Documents(ctx)
-	return dietsFromIter(iter)
 }
 
 func (r *firestoreRepo) ListDietsForStudent(ctx context.Context, studentID string) ([]*models.Diet, error) {
@@ -767,7 +622,6 @@ func dietsFromIter(iter docIterator) ([]*models.Diet, error) {
 func (r *firestoreRepo) UpdateDiet(ctx context.Context, id string, d *models.Diet) error {
 	_, err := r.fs.Collection("diets").Doc(id).Set(ctx, map[string]any{
 		"studentId":      d.StudentID,
-		"nutritionistId": d.NutritionistID,
 		"name":           d.Name,
 		"description":    d.Description,
 		"startDate":      d.StartDate,
@@ -875,7 +729,6 @@ func (r *firestoreRepo) CreateHistoryEntry(ctx context.Context, h *models.Workou
 	ref, _, err := r.fs.Collection("workoutHistory").Add(ctx, map[string]any{
 		"studentId":          h.StudentID,
 		"workoutId":          h.WorkoutID,
-		"nutritionistId":     h.NutritionistID,
 		"completedAt":        h.CompletedAt,
 		"duration":           h.Duration,
 		"exercisesCompleted": h.ExercisesCompleted,
@@ -894,15 +747,6 @@ func (r *firestoreRepo) ListHistoryForStudent(ctx context.Context, studentID str
 		Where("studentId", "==", studentID).
 		OrderBy("completedAt", firestore.Desc).
 		Limit(200).
-		Documents(ctx)
-	return historyFromIter(iter)
-}
-
-func (r *firestoreRepo) ListHistoryForNutritionist(ctx context.Context, nutritionistID string) ([]*models.WorkoutHistoryEntry, error) {
-	iter := r.fs.Collection("workoutHistory").
-		Where("nutritionistId", "==", nutritionistID).
-		OrderBy("completedAt", firestore.Desc).
-		Limit(500).
 		Documents(ctx)
 	return historyFromIter(iter)
 }
@@ -1193,7 +1037,6 @@ func dietLogData(log *models.DietDailyLog) map[string]any {
 	}
 	return map[string]any{
 		"studentId":      log.StudentID,
-		"nutritionistId": log.NutritionistID,
 		"dietId":         log.DietID,
 		"dietName":       log.DietName,
 		"date":           log.Date,

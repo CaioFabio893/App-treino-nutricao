@@ -5,7 +5,7 @@ import "errors"
 // Erros de domínio do fluxo de aprovação/planos. Os handlers mapeiam cada um
 // para o status HTTP/mensagem adequada.
 var (
-	// ErrInvalidRole indica papel fora de {student, nutritionist} na aprovação.
+	// ErrInvalidRole indica papel fora de {student} na aprovação.
 	ErrInvalidRole = errors.New("papel invalido")
 	// ErrUserNotFound indica que o perfil do usuário não existe.
 	ErrUserNotFound = errors.New("usuario nao encontrado")

@@ -1,4 +1,4 @@
-package repository
+﻿package repository
 
 // Testes do contrato JSON de coleções: endpoints que listam registros devem
 // serializar como `[]` quando vazios — nunca como `null`. O bug original era
@@ -259,7 +259,6 @@ func TestDietLogDataUsesServerTimestampOnCreate(t *testing.T) {
 func TestDietLogDataKeepsOtherFields(t *testing.T) {
 	log := &models.DietDailyLog{
 		StudentID:      "s1",
-		NutritionistID: "n1",
 		DietID:         "d1",
 		DietName:       "Dieta A",
 		Date:           "2026-07-01",
@@ -271,8 +270,8 @@ func TestDietLogDataKeepsOtherFields(t *testing.T) {
 		CreatedAt:      time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
 	}
 	m := dietLogData(log)
-	if m["studentId"] != "s1" || m["nutritionistId"] != "n1" {
-		t.Errorf("donos errados: studentId=%v nutritionistId=%v", m["studentId"], m["nutritionistId"])
+	if m["studentId"] != "s1" {
+		t.Errorf("dono errado: studentId=%v", m["studentId"])
 	}
 	if m["dietId"] != "d1" || m["dietName"] != "Dieta A" {
 		t.Errorf("vínculo de dieta errado: %v / %v", m["dietId"], m["dietName"])
@@ -360,15 +359,6 @@ func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
 }
 
 // ── Testes pré-existentes (preservados) ──
-
-func TestDocKey(t *testing.T) {
-	if got := docKey(1, "ta"); got != "1_ta" {
-		t.Errorf("docKey(1,ta) = %q, want 1_ta", got)
-	}
-	if got := docKey(12, "tb"); got != "12_tb" {
-		t.Errorf("docKey(12,tb) = %q, want 12_tb", got)
-	}
-}
 
 func TestCursorEncodeParse(t *testing.T) {
 	ts := time.Date(2026, 7, 10, 12, 0, 0, 0, time.Local)

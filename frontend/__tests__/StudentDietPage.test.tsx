@@ -26,7 +26,6 @@ vi.mock("@/components/DietCheck", () => ({
 const textDiet: Diet = {
   id: "d1",
   studentId: "s1",
-  nutritionistId: "n1",
   name: "Plano Hipercalórico",
   content: "CAFÉ DA MANHÃ\n• 4 ovos mexidos\n• 2 bananas com aveia",
 };
@@ -34,7 +33,6 @@ const textDiet: Diet = {
 const legacyMealsDiet: Diet = {
   id: "d2",
   studentId: "s1",
-  nutritionistId: "n1",
   name: "Plano Seco",
   meals: [
     {

@@ -6,10 +6,10 @@ import { useAuth } from "@/lib/auth";
 
 /**
  * Botão flutuante de ADMIN para alternar entre as áreas do app:
- * - Aluno  → área do aluno (/treinos, /dietas, /comunidade)
- * - Gestão → painel do nutricionista (dashboard)
- * - Admin  → administração (usuários)
- * Só aparece para usuários com role=admin (que têm acesso a tudo no backend).
+ * - Aluno  -> área do aluno (/treinos, /dietas, /comunidade)
+ * - Gestão -> painel operacional (/admin)
+ * - Cadastro -> gestão de usuários e planos (/admin/usuarios)
+ * Só aparece para role=admin (único papel com acesso a tudo no backend).
  */
 export default function AdminAreaSwitch() {
   const { role, initializing } = useAuth();
@@ -19,8 +19,8 @@ export default function AdminAreaSwitch() {
 
   const areas = [
     { href: "/treinos", label: "Aluno" },
-    { href: "/nutritionist", label: "Gestão" },
-    { href: "/admin", label: "Admin" },
+    { href: "/admin", label: "Gestão" },
+    { href: "/admin/usuarios", label: "Cadastro" },
   ];
 
   const isStudentPath =
@@ -34,8 +34,10 @@ export default function AdminAreaSwitch() {
 
   const isActiveArea = (href: string) => {
     if (href === "/treinos") return isStudentPath;
-    if (href === "/nutritionist") return pathname.startsWith("/nutritionist");
-    return pathname.startsWith("/admin");
+    // /admin é a raiz da área de gestão: casamento exato, senão a aba "Gestão"
+    // ficaria ativa junto com "Cadastro" em toda sub-rota.
+    if (href === "/admin") return pathname === "/admin";
+    return pathname === href || pathname.startsWith(`${href}/`);
   };
 
   return (

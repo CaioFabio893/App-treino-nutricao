@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { login, USERS } from "./helpers";
 
 // F5 — Biblioteca de exercícios (catálogo global) + snapshot em treinos.
-// Fluxo ponta-a-ponta: nutricionista cria um exercício na biblioteca, seleciona
+// Fluxo ponta-a-ponta: admin cria um exercício na biblioteca, seleciona
 // num treino, e depois altera o exercício da biblioteca — o treino deve manter
 // a CÓPIA original (snapshot), sem referência viva.
 //
@@ -10,15 +10,15 @@ import { login, USERS } from "./helpers";
 // exibida como TABELA (`.table-view`), não como cards — as ações são localizadas
 // pelas linhas da tabela.
 
-test.describe("Biblioteca de exercícios (nutricionista)", () => {
+test.describe("Biblioteca de exercícios (admin)", () => {
   test("cria, busca, usa em treino e preserva snapshot após edição na biblioteca", async ({
     page,
   }) => {
-    await login(page, USERS.nutritionist.email, USERS.nutritionist.password);
-    await page.waitForURL("**/nutritionist");
+    await login(page, USERS.admin.email, USERS.admin.password);
+    await page.waitForURL("**/admin");
 
     // 1. Abre a biblioteca e cria um exercício.
-    await page.goto("/nutritionist/exercises");
+    await page.goto("/admin/exercises");
     await expect(page.getByRole("heading", { name: "Exercícios" })).toBeVisible();
     await page.getByRole("button", { name: "+ Novo exercício" }).click();
     await page.getByPlaceholder("Ex.: Supino reto").fill("Supino Inclinado E2E");
@@ -35,7 +35,7 @@ test.describe("Biblioteca de exercícios (nutricionista)", () => {
     await expect(exTable.getByText("Supino Inclinado E2E")).toBeVisible();
 
     // 3. Cria um treino e seleciona o exercício da biblioteca.
-    await page.goto("/nutritionist/workouts?new=1");
+    await page.goto("/admin/workouts?new=1");
     await page
       .getByPlaceholder("Ex.: Treino A — Peito e Tríceps")
       .fill("Treino Biblioteca E2E");
@@ -47,10 +47,10 @@ test.describe("Biblioteca de exercícios (nutricionista)", () => {
     await expect(page.getByPlaceholder("Ex.: Supino reto")).toHaveValue("Supino Inclinado E2E");
 
     await page.getByRole("button", { name: "Salvar treino" }).click();
-    await page.waitForURL("**/nutritionist/workouts");
+    await page.waitForURL("**/admin/workouts");
 
     // 4. Altera o exercício NA BIBLIOTECA (renomeia).
-    await page.goto("/nutritionist/exercises");
+    await page.goto("/admin/exercises");
     await expect(page.getByRole("heading", { name: "Exercícios" })).toBeVisible();
     const exRow = page.locator(".table-view tr", { hasText: "Supino Inclinado E2E" });
     await exRow.getByRole("button", { name: "Editar" }).click();
@@ -59,7 +59,7 @@ test.describe("Biblioteca de exercícios (nutricionista)", () => {
     await expect(page.getByRole("heading", { name: "Exercícios" })).toBeVisible();
 
     // 5. O treino continua com o SNAPSHOT original (não acompanha a biblioteca).
-    await page.goto("/nutritionist/workouts");
+    await page.goto("/admin/workouts");
     const wkRow = page.locator(".table-view tr", { hasText: "Treino Biblioteca E2E" });
     await wkRow.getByRole("button", { name: "Editar" }).click();
     await expect(page.getByPlaceholder("Ex.: Supino reto")).toHaveValue("Supino Inclinado E2E");

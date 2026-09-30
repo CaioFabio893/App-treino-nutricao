@@ -1,5 +1,33 @@
 # Spec + Plano de Implementação: Aprovação de Cadastro, Papéis, Planos (Features) e Login com Google
 
+> **AVISO — 30/09/2026: esta spec foi SUPERADA nos pontos listados abaixo.**
+>
+> **O corpo desta spec NÃO foi reescrito.** Ele continua descrevendo o desenho
+> antigo (3 papéis + login Google), como documento de especificação do momento
+> em que foi escrito. Não use o corpo como descrição do estado atual do
+> sistema.
+>
+> O que já mudou:
+>
+> - **(a) Papéis**: a spec assume `admin`, `nutritionist` e `student`. O papel
+>   `nutritionist` e o campo `NutritionistID` foram **removidos** — hoje só
+>   existem **`admin`** e **`student`** (`backend/models/types.go`). A função
+>   `service.CanAccessStudent` também foi deletada.
+> - **(b) Área**: `frontend/app/nutritionist/` foi deletada e a área de gestão
+>   virou **`/admin`** (`frontend/app/admin/`, com `admin/usuarios/`).
+> - **(c) Login Google**: o backend **ainda aceita** `password|google.com`
+>   (campo `AuthProvider` + claim do ID token em `backend/middleware/auth.go`).
+>   A remoção do fluxo Google está **decidida (ADR-002) mas não executada**.
+> - **(d) Planos/features**: **ainda existem** (`plans/`, `planID`,
+>   `features`, `RequireFeature`), com **remoção planejada** na simplificação
+>   **F3** — ainda não executada.
+>
+> Refatoração "simplificação" em 30/09/2026: **F4 (papel) já executado, ainda
+> sem commit**; F1 (gamificação), F2 (comunidade), F3 (planos/features), F5
+> (escrita do participante), F6 (modelo final) e F7 (provar a regra de acesso)
+> estão **planejados, não executados**. P1–P8 (`docs/simplificacao/04-perguntas.md`)
+> em aberto, com P1 e P2 bloqueantes.
+
 > Arquivo pensado para ser lido pelo **opencode** neste repositório (`treino-louise`).
 > Segue o formato descrito em `.opencode/skills/writing-plans/SKILL.md` (Spec → Matriz de
 > Tarefas → Cenários BDD → Checklist) e deve ser executado com a skill `executing-plans`.

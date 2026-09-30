@@ -135,13 +135,13 @@ func (a *Auth) RequireApproved(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// RequireFeature bloqueia alunos cujo plano não inclui a feature dada. Admin e
-// nutricionista sempre passam (gerenciam o conteúdo, não são limitados por plano).
+// RequireFeature bloqueia alunos cujo plano não inclui a feature dada. Admin
+// sempre passa (gerencia o conteúdo, não é limitado por plano).
 func (a *Auth) RequireFeature(f models.Feature) func(http.HandlerFunc) http.HandlerFunc {
 	return func(next http.HandlerFunc) http.HandlerFunc {
 		return func(w http.ResponseWriter, r *http.Request) {
 			role := RoleFrom(r.Context())
-			if role == models.RoleAdmin || role == models.RoleNutritionist {
+			if role == models.RoleAdmin {
 				next(w, r)
 				return
 			}

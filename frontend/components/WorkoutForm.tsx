@@ -184,7 +184,6 @@ export default function WorkoutForm({
       const token = await getToken();
       const payload: WorkoutDefine = {
         studentId,
-        nutritionistId: initial?.nutritionistId ?? "",
         name: name.trim(),
         objective: objective.trim(),
         description: description.trim(),

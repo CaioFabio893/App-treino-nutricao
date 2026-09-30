@@ -3,6 +3,13 @@
 Status: Proposto na Fase 0 (aprovação pendente no checkpoint).
 Documento vivo: atualizar conforme decisões da Fase 1+.
 
+> **Estado da refatoração**: plano em `docs/simplificacao/03-plano.md`;
+> decisões de produto em aberto em `docs/simplificacao/04-perguntas.md`
+> (P1–P8, P1/P2 bloqueantes). **F4 (papel `nutritionist` → `admin`) já
+> executado, ainda sem commit**; F1 gamificação, F2 comunidade, F3
+> planos/features, F5 escrita do participante, F6 modelo final + reindex e
+> F7 provar a regra de acesso estão **planejados, não executados**.
+
 ## Visão geral (C4 simplificado — nível container)
 
 ```
@@ -31,7 +38,7 @@ Documento vivo: atualizar conforme decisões da Fase 1+.
 | `frontend/` | Next.js 16 (App Router, standalone) | UI, estado, PWA, chamadas à API via `lib/api.ts` |
 | `backend/` | Go 1.23 (net/http, ServeMux) | API REST, autorização, regras de negócio |
 | `firestore.rules` | Regras de segurança | Proteção contra acesso direto de cliente |
-| `firestore.indexes.json` | Índices compostos | Queries com OrderBy/Where (9 índices) |
+| `firestore.indexes.json` | Índices compostos | Queries com OrderBy/Where (11 índices) |
 | Firebase Auth | Identity provider | Emissão/verificação de ID tokens |
 
 ## Camadas do backend (Clean-lite, por diretório)
@@ -58,16 +65,22 @@ nada de Firestore em handler.
    gates (`Allow`/`RequireApproved`/`RequireFeature`) para o contexto estar
    populado quando eles rodarem (causa raiz de 403 corrigida na V1).
 3. Gates: papel (`Allow`), status aprovado (`RequireApproved` — admin
-   sempre passa), feature do plano (`RequireFeature` — admin/nutri passam).
+   sempre passa), feature do plano (`RequireFeature` — admin tem bypass;
+   o aluno precisa da feature no snapshot `features[]` do perfil —
+   `middleware/auth.go:140`; `FeatureWorkouts` nunca é exigido).
 4. Handler: valida, chama service/repo, responde JSON.
 
 ## Regras de autorização (função pura)
 
+Modelo de **2 papéis** (`backend/models/types.go:12-15`): `admin` e
+`student` — não existe `nutritionist` nem `CanAccessStudent` (removidos em
+F4). A camada de acesso é **admin-vs-aluno**.
+
 `service/access.go`:
-- `CanAccessStudent(uid, role, studentID)` — admin: tudo; aluno: só a si;
-  nutricionista: alunos com `nutritionistID == uid`.
-- `CanAccessResource(uid, role, studentID, nutritionistID)` — funções puras
-  (sem I/O) para workouts/diets/history.
+- `CanAccessResource(uid, role, studentID)` — função pura (sem I/O,
+  `service/access.go:10`): admin acessa tudo; `student` só o recurso com
+  `uid == studentID`. É a mesma matriz de `canViewStudentData` nas regras
+  (`firestore.rules:89-96`).
 
 `middleware/auth.go`:
 - `RoleFrom`: devolve `student` se role vazio (compatibilidade legado).
@@ -98,12 +111,14 @@ nada de Firestore em handler.
   existe no SDK atual).
 - Backend: `gcloud builds submit --tag southamerica-east1-docker.pkg.dev/...`.
 - `firebase deploy --only firestore` para rules/índices.
-- Sem config de emuladores hoje (`firebase.json` só tem firestore). **V2 adiciona**.
+- Emuladores **configurados** em `firebase.json` (Firestore `127.0.0.1:8080`,
+  Auth `9099`) — testes de regras rodam contra o emulador (`firestore-tests/`).
 
 ## Observações V2 (deliberadas)
 
 1. **Tudo passa pela API Go** — Firestore fica closed ao cliente (rules).
-2. V2 adiciona **Firestore Emulator** para testes de regras (`firebase.json`).
+2. **Firestore Emulator** para testes de regras configurado em `firebase.json`
+   (`firestore-tests/`).
 3. V2 corrige **race condition do feed** com `RunTransaction` (3.5).
 4. V2 corrige **`PutDietLog` regravando `createdAt`**.
 5. V2 adota **TDD obrigatório** em Go (back) e Vitest/Playwright (front).

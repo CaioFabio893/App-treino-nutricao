@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"encoding/json"
@@ -74,7 +74,7 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandlePutMe atualiza o perfil do usuário autenticado (só dados de perfil —
-// ALLOWLIST). role/status/planID/features/nutritionistID/startDate/endDate/
+// ALLOWLIST). role/status/planID/features/startDate/endDate/
 // histórico de aprovação/criadoEm são definidos pelos fluxos da API Go
 // (admin/nutricionista/approval); qualquer valor desses campos no body é
 // IGNORADO. Antes da F13, startDate/endDate passavam direto para o Firestore:
@@ -96,7 +96,6 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	p.Status = ""
 	p.PlanID = ""
 	p.Features = nil
-	p.NutritionistID = ""
 	p.StartDate = ""
 	p.EndDate = ""
 	p.ApprovedBy = ""
@@ -215,20 +214,13 @@ func preserveAdminFields(existing, p *models.UserProfile) {
 	p.RejectedReason = existing.RejectedReason
 }
 
-// HandleUpdateStudent permite que o NUTRICIONISTA edite dados do próprio aluno
-// (nome, foto, status, datas) e que o ADMIN edite qualquer aluno.
-// Campos sensíveis (role, nutritionistID) são preservados do registro existente.
+// HandleUpdateStudent permite que o admin edite dados do aluno
+// (nome, foto, status, datas).
+// Campos sensíveis (role) são preservados do registro existente.
 func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
 	id := r.PathValue("id")
 
-	can, err := h.svc.CanAccessStudent(r.Context(), uid, role, id)
-	if err != nil {
-		http.Error(w, "erro ao verificar permissao", http.StatusInternalServerError)
-		return
-	}
-	if !can {
+	if !canAccessResource(r, id) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -255,7 +247,7 @@ func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
 	// Merge com o perfil existente: esta rota só permite editar dados do aluno
 	// (nome, foto, bio, status e datas). Role, vínculo, plano, features e o
 	// histórico de aprovação são SEMPRE preservados do registro existente —
-	// nunca vêm do body do nutricionista.
+	// nunca vêm do body do admin.
 	merged := mergeStudentEdits(existing, &p)
 	merged.ID = id
 	if err := h.repo.PutUserProfile(r.Context(), id, merged); err != nil {
@@ -299,30 +291,13 @@ func (h *Handlers) HandleDeleteUser(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNoContent)
 }
 
-// ── Alunos do nutricionista ──
+// ── Alunos ──
 
-// HandleListMyStudents lista alunos. Nutricionista vê somente os alunos
-// vinculados a ele; ADMIN vê todos os alunos (mesmo os aprovados SEM
-// nutricionista e SEM plano — casos válidos que não podem ficar invisíveis) —
-// mesmo padrão de escopo de ListWorkouts/ListDiets/ListHistory.
-// A rota exige role admin|nutritionist (Allow no main.go), então os demais
-// papéis nem chegam aqui; o default preserva o escopo atual por nutricionista.
+// HandleListMyStudents lista todos os alunos (inclusive os aprovados SEM plano
+// — casos válidos que não podem ficar invisíveis). Só o admin chega aqui: a
+// rota exige RoleAdmin no main.go.
 func (h *Handlers) HandleListMyStudents(w http.ResponseWriter, r *http.Request) {
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
-
-	var (
-		students []*models.UserProfile
-		err      error
-	)
-	switch role {
-	case models.RoleAdmin:
-		students, err = h.repo.ListStudentsAll(r.Context())
-	case models.RoleNutritionist:
-		students, err = h.repo.ListStudents(r.Context(), uid)
-	default:
-		students, err = h.repo.ListStudents(r.Context(), uid)
-	}
+	students, err := h.repo.ListStudentsAll(r.Context())
 	if err != nil {
 		http.Error(w, "falha ao listar alunos", http.StatusInternalServerError)
 		return
@@ -332,12 +307,7 @@ func (h *Handlers) HandleListMyStudents(w http.ResponseWriter, r *http.Request) 
 
 func (h *Handlers) HandleGetStudent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
-	can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), middleware.RoleFrom(r.Context()), id)
-	if err != nil {
-		http.Error(w, "erro ao verificar permissao", http.StatusInternalServerError)
-		return
-	}
-	if !can {
+	if !canAccessResource(r, id) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -363,8 +333,6 @@ func (h *Handlers) HandleListWorkouts(w http.ResponseWriter, r *http.Request) {
 	switch role {
 	case models.RoleAdmin:
 		workouts, err = h.repo.ListWorkouts(r.Context())
-	case models.RoleNutritionist:
-		workouts, err = h.repo.ListWorkoutsForNutritionist(r.Context(), uid)
 	default: // student
 		workouts, err = h.repo.ListWorkoutsForStudent(r.Context(), uid)
 	}
@@ -386,7 +354,7 @@ func (h *Handlers) HandleGetWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "treino nao encontrado", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, workout.StudentID, workout.NutritionistID) {
+	if !canAccessResource(r, workout.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -409,22 +377,11 @@ func (h *Handlers) HandleCreateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome, descricao ou objetivo muito longo", http.StatusBadRequest)
 		return
 	}
-	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
-	if role == models.RoleNutritionist {
-		// Treino de biblioteca (sem aluno) é válido: o aluno pode ser
-		// atribuído depois via edição (studentId) — mecanismo existente.
-		workout.NutritionistID = uid
-		if workout.StudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, workout.StudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	} else if role == models.RoleAdmin {
-		// Admin cria treino (com aluno ou como template sem nutritionistId).
-	} else {
+	// Treino de biblioteca (sem aluno) é válido: o aluno pode ser atribuído
+	// depois via edição (studentId) — mecanismo existente. Admin pode criar
+	// com aluno ou como template.
+	if role != models.RoleAdmin {
 		http.Error(w, "sem permissao para criar treino", http.StatusForbidden)
 		return
 	}
@@ -448,7 +405,7 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "treino nao encontrado", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -468,24 +425,9 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome, descricao ou objetivo muito longo", http.StatusBadRequest)
 		return
 	}
-	// Preserva donos se não vierem no body.
+	// Preserva o aluno se não vier no body.
 	if workout.StudentID == "" {
 		workout.StudentID = existing.StudentID
-	}
-	// Nutricionista NUNCA pode transferir o treino para outro nutricionista
-	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
-	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
-		workout.NutritionistID = existing.NutritionistID
-		if workout.StudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, workout.StudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	} else if workout.NutritionistID == "" {
-		// Admin sem nutritionistId no body preserva o vínculo atual.
-		workout.NutritionistID = existing.NutritionistID
 	}
 	service.NormalizeExercises(&workout)
 	if err := h.repo.UpdateWorkout(r.Context(), id, &workout); err != nil {
@@ -506,7 +448,7 @@ func (h *Handlers) HandleDeleteWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "treino nao encontrado", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -528,7 +470,7 @@ func (h *Handlers) HandleDuplicateWorkout(w http.ResponseWriter, r *http.Request
 		http.Error(w, "treino nao encontrado", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -542,20 +484,9 @@ func (h *Handlers) HandleDuplicateWorkout(w http.ResponseWriter, r *http.Request
 		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return
 	}
-	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
 	newStudentID := req.NewStudentID
 	if newStudentID == "" {
 		newStudentID = existing.StudentID
-	}
-	if role == models.RoleNutritionist {
-		if newStudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
 	}
 
 	dup := *existing
@@ -595,8 +526,6 @@ func (h *Handlers) HandleListDiets(w http.ResponseWriter, r *http.Request) {
 	switch role {
 	case models.RoleAdmin:
 		diets, err = h.repo.ListDiets(r.Context())
-	case models.RoleNutritionist:
-		diets, err = h.repo.ListDietsForNutritionist(r.Context(), uid)
 	default: // student
 		diets, err = h.repo.ListDietsForStudent(r.Context(), uid)
 	}
@@ -618,7 +547,7 @@ func (h *Handlers) HandleGetDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, d.StudentID, d.NutritionistID) {
+	if !canAccessResource(r, d.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -641,22 +570,11 @@ func (h *Handlers) HandleCreateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome, descricao ou conteudo muito longo", http.StatusBadRequest)
 		return
 	}
-	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
-	if role == models.RoleNutritionist {
-		// Dieta de biblioteca (sem aluno) é válida: o aluno pode ser
-		// atribuído depois via edição (studentId) — mecanismo existente.
-		d.NutritionistID = uid
-		if d.StudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, d.StudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	} else if role == models.RoleAdmin {
-		// Admin cria dieta (com aluno ou como template sem nutritionistId).
-	} else {
+	// Dieta de biblioteca (sem aluno) é válida: o aluno pode ser atribuído
+	// depois via edição (studentId) — mecanismo existente. Admin pode criar
+	// com aluno ou como template.
+	if role != models.RoleAdmin {
 		http.Error(w, "sem permissao para criar dieta", http.StatusForbidden)
 		return
 	}
@@ -680,7 +598,7 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -703,21 +621,6 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	if d.StudentID == "" {
 		d.StudentID = existing.StudentID
 	}
-	// Nutricionista NUNCA pode transferir a dieta para outro nutricionista
-	// (mesmo enviando nutritionistId no body): o vínculo fica o do registro.
-	if middleware.RoleFrom(r.Context()) == models.RoleNutritionist {
-		d.NutritionistID = existing.NutritionistID
-		if d.StudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), middleware.UIDFrom(r.Context()), models.RoleNutritionist, d.StudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
-	} else if d.NutritionistID == "" {
-		// Admin sem nutritionistId no body preserva o vínculo atual.
-		d.NutritionistID = existing.NutritionistID
-	}
 	service.NormalizeMeals(&d)
 	if err := h.repo.UpdateDiet(r.Context(), id, &d); err != nil {
 		http.Error(w, "falha ao atualizar dieta", http.StatusInternalServerError)
@@ -737,7 +640,7 @@ func (h *Handlers) HandleDeleteDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -759,7 +662,7 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, existing.StudentID, existing.NutritionistID) {
+	if !canAccessResource(r, existing.StudentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -773,20 +676,9 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return
 	}
-	role := middleware.RoleFrom(r.Context())
-	uid := middleware.UIDFrom(r.Context())
 	newStudentID := req.NewStudentID
 	if newStudentID == "" {
 		newStudentID = existing.StudentID
-	}
-	if role == models.RoleNutritionist {
-		if newStudentID != "" {
-			can, err := h.svc.CanAccessStudent(r.Context(), uid, role, newStudentID)
-			if err != nil || !can {
-				http.Error(w, "sem permissao", http.StatusForbidden)
-				return
-			}
-		}
 	}
 
 	dup := *existing
@@ -840,8 +732,6 @@ func (h *Handlers) HandleListHistory(w http.ResponseWriter, r *http.Request) {
 	switch role {
 	case models.RoleAdmin:
 		all, err = h.repo.ListHistory(r.Context())
-	case models.RoleNutritionist:
-		all, err = h.repo.ListHistoryForNutritionist(r.Context(), uid)
 	default:
 		all, err = h.repo.ListHistoryForStudent(r.Context(), uid)
 	}
@@ -927,7 +817,6 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 		StudentID:          workout.StudentID,
 		WorkoutID:          workout.ID,
 		WorkoutName:        workout.Name,
-		NutritionistID:     workout.NutritionistID,
 		CompletedAt:        service.Now(),
 		Duration:           req.Duration,
 		ExercisesCompleted: req.ExercisesCompleted,

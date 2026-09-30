@@ -1,4 +1,4 @@
-package handlers
+﻿package handlers
 
 import (
 	"context"
@@ -40,7 +40,6 @@ func richProfile() *models.UserProfile {
 		Name:           "João da Silva",
 		Email:          "joao@email.com",
 		Role:           models.RoleStudent,
-		NutritionistID: "nutri-1",
 		Status:         models.StatusActive,
 		PlanID:         "plano-completo",
 		Features:       []models.Feature{models.FeatureWorkouts, models.FeatureDiet, models.FeatureCommunity, models.FeatureRanking},
@@ -89,9 +88,9 @@ func TestMergeStudentEditsPreservesAdminFields(t *testing.T) {
 	if merged.RejectedReason != "" {
 		t.Errorf("RejectedReason = %q, want preservado (vazio)", merged.RejectedReason)
 	}
-	// Role/vínculo/email/criado também preservados.
-	if merged.Role != models.RoleStudent || merged.NutritionistID != "nutri-1" {
-		t.Errorf("Role/NutritionistID = %q/%q, want student/nutri-1", merged.Role, merged.NutritionistID)
+	// Role/email/criado também preservados.
+	if merged.Role != models.RoleStudent {
+		t.Errorf("Role = %q, want student (preservado)", merged.Role)
 	}
 	if merged.Email != "joao@email.com" {
 		t.Errorf("Email = %q, want joao@email.com", merged.Email)
@@ -135,7 +134,7 @@ func TestHandleUpdateUserPreservesAdminFields(t *testing.T) {
 	repo := &nutritionFakeRepo{existing: richProfile()}
 	h := newApprovalHandler(repo)
 
-	body := `{"name":"João Editado","email":"joao@email.com","role":"nutritionist","status":"active","nutritionistID":"nutri-1"}`
+	body := `{"name":"João Editado","email":"joao@email.com","role":"admin","status":"active"}`
 	rr := httptest.NewRecorder()
 	r := httptest.NewRequest("PUT", "/api/users/student-1", strings.NewReader(body))
 	r.SetPathValue("id", "student-1")
@@ -157,8 +156,8 @@ func TestHandleUpdateUserPreservesAdminFields(t *testing.T) {
 	if w.AuthProvider != "password" || w.ApprovedBy != "admin-1" || w.ApprovedAt.IsZero() {
 		t.Errorf("dados de aprovação não preservados: %+v", w)
 	}
-	if w.Role != models.RoleNutritionist || w.Status != models.StatusActive {
-		t.Errorf("Role/Status = %q/%q, want nutritionist/active (editáveis pelo admin)", w.Role, w.Status)
+	if w.Role != models.RoleAdmin || w.Status != models.StatusActive {
+		t.Errorf("Role/Status = %q/%q, want admin/active (editáveis pelo admin)", w.Role, w.Status)
 	}
 	if w.Name != "João Editado" {
 		t.Errorf("Name = %q, want João Editado", w.Name)

@@ -28,11 +28,17 @@ test.describe("Fluxo de aprovação (novo cadastro → admin aprova → acesso r
     // 3. Admin aprova (default = plano Completo E2E, a primeira feature completa).
     await logout(page);
     await login(page, USERS.admin.email, USERS.admin.password);
-    await page.waitForURL("**/nutritionist");
+    await page.waitForURL("**/admin");
     await page.getByRole("link", { name: "Usuários" }).click();
     await page.waitForURL("**/admin");
 
-    const card = page.locator(".nut-card").filter({ hasText: email });
+    // O mesmo e-mail aparece em DOIS cards legítimos: na fila de pendentes
+    // (PendingApprovals) e na lista de todos os usuários. Escopar ao card que
+    // carrega o badge "aguardando aprovação" (e o botão "Aprovar").
+    const card = page
+      .locator(".nut-card")
+      .filter({ hasText: "aguardando aprovação" })
+      .filter({ hasText: email });
     await expect(card).toBeVisible();
     await card.getByRole("button", { name: "Aprovar", exact: true }).click();
     await expect(

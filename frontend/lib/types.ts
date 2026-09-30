@@ -1,63 +1,11 @@
-export type Check = "" | "ok" | "fail";
-
-// ── Modo original (preservado) ──
-
-export interface SetData {
-  w?: number;
-  r?: number;
-  c?: Check;
-}
-
-export interface ExerciseData {
-  sets: SetData[];
-  note?: string;
-}
-
-export interface SessionData {
-  week: number;
-  day: string;
-  exercise: ExerciseData[];
-}
-
-export interface PRs {
-  a: number;
-  b: number;
-  c: number;
-}
-
-export interface AppState {
-  week: number;
-  day: number;
-}
-
-export interface ExercisePlan {
-  n: string;
-  s: number;
-  r: string;
-  o?: string;
-}
-
-export interface CardioOption {
-  op: string;
-  items: string[];
-}
-
-export interface DayPlan {
-  id: string;
-  label: string;
-  name: string;
-  ex: ExercisePlan[];
-  cardio?: CardioOption[];
-}
-
-export interface Phase {
-  pct: number;
-  label: string;
-}
+﻿export type Check = "" | "ok" | "fail";
 
 // ── Novos tipos: gestão ──
 
-export type Role = "admin" | "nutritionist" | "student";
+// Modelo de 2 papéis: quem administra a plataforma e quem consome. Aprovação e
+// pausa são eixos SEPARADOS (ver Status) — pausar não torna o cadastro
+// "não aprovado", e nenhuma regra deve tratar os dois como sinônimos.
+export type Role = "admin" | "student";
 
 /** Situação do cadastro: pendente de aprovação, ativo, pausado, inativo ou recusado. */
 export type Status = "pending_approval" | "active" | "paused" | "inactive" | "rejected";
@@ -94,7 +42,6 @@ export interface UserProfile {
   photoURL?: string;
   bio?: string;
   role: Role;
-  nutritionistID?: string;
   startDate?: string;
   endDate?: string;
   status?: Status;
@@ -116,7 +63,6 @@ export interface UserProfile {
 export interface ApproveUserRequest {
   role: Role;
   planID?: string;
-  nutritionistID?: string;
 }
 
 export interface RejectUserRequest {
@@ -160,7 +106,6 @@ export interface WorkoutDefine {
   id?: string;
   // Vazio/ausente = treino de biblioteca (ainda não atribuído a aluno).
   studentId?: string;
-  nutritionistId: string;
   name: string;
   description?: string;
   objective?: string;
@@ -192,12 +137,11 @@ export interface Diet {
   // Vazio/ausente = dieta de biblioteca; o aluno pode ser atribuído depois
   // via edição (mecanismo existente: diets.studentId).
   studentId?: string;
-  nutritionistId: string;
   name: string;
   description?: string;
   startDate?: string;
   endDate?: string;
-  /** Texto livre da dieta (formato simplificado: copiar/colar do nutricionista). */
+  /** Texto livre da dieta (formato simplificado: copiar/colar). */
   content?: string;
   /** Legado: refeições estruturadas (mantido para dietas antigas). */
   meals?: Meal[];
@@ -223,7 +167,6 @@ export interface WorkoutHistoryEntry {
   studentId: string;
   workoutId: string;
   workoutName?: string;
-  nutritionistId: string;
   completedAt?: string;
   duration?: number;
   exercisesCompleted: number;
@@ -263,7 +206,6 @@ export interface TrainingProgram {
   id?: string;
   /** vazio = programa de biblioteca (não atribuído a nenhum aluno) */
   studentId: string;
-  nutritionistId: string;
   name: string;
   description?: string;
   objective?: string;
@@ -282,7 +224,6 @@ export interface ImportProgramRequest {
   name?: string;
   /** opcional: já atribui a um aluno */
   studentId?: string;
-  nutritionistId?: string;
 }
 
 export interface AssignProgramRequest {
@@ -363,7 +304,6 @@ export interface MealCheck {
 export interface DietDailyLog {
   id?: string;
   studentId: string;
-  nutritionistId?: string;
   dietId?: string;
   dietName?: string;
   date: string;

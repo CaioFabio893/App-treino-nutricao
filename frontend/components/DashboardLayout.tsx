@@ -26,7 +26,7 @@ export default function DashboardLayout({
 
   // O redirect por papel só acontece DEPOIS que o perfil foi carregado
   // (profileLoaded). Antes disso, `role` ainda é o default "student" — decidir
-  // redirect agora faria um admin/nutritionist acessando /admin ou /nutritionist
+  // redirect agora faria um admin/admin acessando /admin ou /admin
   // por URL direta ser rebatido para "/" como se fosse aluno (corrida de
   // deep-link). A autorização real continua no backend (RequireApproved/Allow);
   // este guard é só UX de roteamento.

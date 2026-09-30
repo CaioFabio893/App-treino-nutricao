@@ -15,7 +15,7 @@ test.describe("Autenticação (fluxo real no Auth Emulator)", () => {
 
   test("admin autentica e acessa o painel de gestão", async ({ page }) => {
     await login(page, USERS.admin.email, USERS.admin.password);
-    await page.waitForURL("**/nutritionist");
+    await page.waitForURL("**/admin");
     await page.getByRole("link", { name: "Usuários" }).click();
     await page.waitForURL("**/admin");
     await expect(page.getByText("Cadastros pendentes", { exact: false })).toBeVisible();
@@ -45,18 +45,18 @@ test.describe("Autenticação (fluxo real no Auth Emulator)", () => {
   // rebatido por causa do role default "student" antes do perfil carregar. ──
   test("admin acessa /admin por URL direta (deep-link)", async ({ page }) => {
     await login(page, USERS.admin.email, USERS.admin.password);
-    await page.waitForURL("**/nutritionist");
+    await page.waitForURL("**/admin");
     // Full reload em /admin — re-hidrata a app com o perfil ainda carregando.
     await page.goto("/admin");
     await page.waitForURL("**/admin");
-    await expect(page.getByText("Cadastros pendentes", { exact: false })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Painel" })).toBeVisible();
   });
 
-  test("nutritionist acessa /nutritionist/workouts por URL direta (deep-link)", async ({ page }) => {
-    await login(page, USERS.nutritionist.email, USERS.nutritionist.password);
-    await page.waitForURL("**/nutritionist");
-    await page.goto("/nutritionist/workouts");
-    await page.waitForURL("**/nutritionist/workouts");
+  test("admin acessa /admin/workouts por URL direta (deep-link)", async ({ page }) => {
+    await login(page, USERS.admin.email, USERS.admin.password);
+    await page.waitForURL("**/admin");
+    await page.goto("/admin/workouts");
+    await page.waitForURL("**/admin/workouts");
     await expect(page.getByRole("heading", { name: "Treinos" })).toBeVisible();
   });
 });

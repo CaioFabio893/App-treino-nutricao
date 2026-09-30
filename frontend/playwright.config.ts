@@ -34,12 +34,10 @@ export default defineConfig({
     url: `http://127.0.0.1:${E2E_PORT}`,
     reuseExistingServer: !process.env.CI,
     timeout: 180_000,
-    // Sobrescreve o .env.local (que tem NEXT_PUBLIC_DEMO=1): processo externo
-    // vence variáveis de arquivo no Next. A API aponta para o backend local
-    // e o Firebase usa chaves fake + flag do Auth Emulator.
+    // A API aponta para o backend local e o Firebase usa chaves fake +
+    // flag do Auth Emulator.
     env: {
       ...process.env,
-      NEXT_PUBLIC_DEMO: "",
       NEXT_PUBLIC_API_URL: `http://127.0.0.1:${API_PORT}`,
       NEXT_PUBLIC_FIREBASE_API_KEY: "e2e-fake-api-key",
       NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN: "treino-louise.firebaseapp.com",

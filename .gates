@@ -1,0 +1,20 @@
+# Estado dos gates — gerado por verificacao real, nao chute
+# Formato: <gate>=<resultado> <timestamp>
+# Leia este arquivo ANTES de rodar suite completa. Se a data de hoje nao bate,
+# o estado e velho: rode o gate especifico da area, nao a suite toda.
+# Para atualizar: rode o gate e sobrescreva a linha do gate.
+
+go=206 PASS 2026-09-30T03:30 go vet limpo (2 papeis admin|student, sem nutricionista)
+vitest=104 PASS 2026-09-30T03:35 (18 arquivos; 3 execucoes seguidas sem flakiness)
+# rules: 86 = instancias em RUNTIME medidas por `npm test` (NUNCA grep de `it(`).
+# MEDIR sempre com `npm test`.
+rules=86 PASS 2026-09-30T03:55 (modelo de 2 papeis admin|student)
+e2e=30 PASS 2026-09-30T05:10 (2.3 min, 1 tentativa; specs migrados do papel
+#     `nutritionist` removido para `admin`; area /nutritionist -> /admin)
+tsc=OK 2026-09-30T05:05
+lint=0/0 2026-09-30T05:06
+build=OK 2026-09-30T03:45
+
+# historico: 29/09 mediu-se go=206 vitest=104 rules=86 tsc/lint/build OK.
+# e2e ficou VERMELHO (24/30) em 30/09 por causa da refatoracao de papeis e foi
+# corrigido no mesmo dia -> e2e=30. Nenhum numero deste arquivo eherdado de doc.

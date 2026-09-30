@@ -1,4 +1,4 @@
-package main
+﻿package main
 
 import (
 	"context"
@@ -135,14 +135,6 @@ func main() {
 func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth) {
 	mux.HandleFunc("GET /health", h.HandleHealth)
 
-	// ── Modo original (preservado) — exige cadastro aprovado ──
-	mux.HandleFunc("GET /api/sessions/{week}/{day}", a.Require(a.RequireApproved(h.HandleGetSession)))
-	mux.HandleFunc("PUT /api/sessions/{week}/{day}", a.Require(a.RequireApproved(h.HandlePutSession)))
-	mux.HandleFunc("GET /api/prs", a.Require(a.RequireApproved(h.HandleGetPRs)))
-	mux.HandleFunc("PUT /api/prs", a.Require(a.RequireApproved(h.HandlePutPRs)))
-	mux.HandleFunc("GET /api/state", a.Require(a.RequireApproved(h.HandleGetState)))
-	mux.HandleFunc("PUT /api/state", a.Require(a.RequireApproved(h.HandlePutState)))
-
 	// ── Perfil do usuário logado (livre para pendentes: é aqui que o cadastro começa) ──
 	mux.HandleFunc("GET /api/me", a.Require(h.HandleGetMe))
 	mux.HandleFunc("PUT /api/me", a.Require(h.HandlePutMe))
@@ -167,17 +159,17 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("DELETE /api/plans/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleDeletePlan)))
 
 	// ── Alunos ──
-	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(h.HandleListMyStudents)))
+	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleAdmin)(h.HandleListMyStudents)))
 	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
-	mux.HandleFunc("PUT /api/students/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(h.HandleUpdateStudent)))
+	mux.HandleFunc("PUT /api/students/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdateStudent)))
 
 	// ── Treinos (free tier — só exige cadastro aprovado) ──
 	mux.HandleFunc("GET /api/workouts", a.Require(a.RequireApproved(h.HandleListWorkouts)))
-	mux.HandleFunc("POST /api/workouts", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateWorkout))))
+	mux.HandleFunc("POST /api/workouts", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateWorkout))))
 	mux.HandleFunc("GET /api/workouts/{id}", a.Require(a.RequireApproved(h.HandleGetWorkout)))
-	mux.HandleFunc("PUT /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateWorkout))))
-	mux.HandleFunc("DELETE /api/workouts/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteWorkout))))
-	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateWorkout))))
+	mux.HandleFunc("PUT /api/workouts/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateWorkout))))
+	mux.HandleFunc("DELETE /api/workouts/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteWorkout))))
+	mux.HandleFunc("POST /api/workouts/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateWorkout))))
 
 	// ── Programas de treinamento (F19 — free tier, como treinos) ──
 	//
@@ -190,30 +182,30 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	// o padrão literal tem precedência, então POST /api/programs/import nunca
 	// colide com POST /api/programs/{id}/duplicate.
 	mux.HandleFunc("GET /api/programs", a.Require(a.RequireApproved(h.HandleListPrograms)))
-	mux.HandleFunc("POST /api/programs", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateProgram))))
-	mux.HandleFunc("POST /api/programs/import", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleImportProgram))))
+	mux.HandleFunc("POST /api/programs", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateProgram))))
+	mux.HandleFunc("POST /api/programs/import", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleImportProgram))))
 	mux.HandleFunc("GET /api/programs/{id}", a.Require(a.RequireApproved(h.HandleGetProgram)))
-	mux.HandleFunc("PUT /api/programs/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateProgram))))
-	mux.HandleFunc("DELETE /api/programs/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteProgram))))
-	mux.HandleFunc("POST /api/programs/{id}/assign", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleAssignProgram))))
-	mux.HandleFunc("POST /api/programs/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateProgram))))
+	mux.HandleFunc("PUT /api/programs/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateProgram))))
+	mux.HandleFunc("DELETE /api/programs/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteProgram))))
+	mux.HandleFunc("POST /api/programs/{id}/assign", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleAssignProgram))))
+	mux.HandleFunc("POST /api/programs/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateProgram))))
 
 	// ── Biblioteca de exercícios (catálogo global) ──
 	// Leitura: usuário aprovado (aluno consulta; nunca escreve). Escrita:
-	// somente nutricionista/admin — sempre via API Go (rules negam SDK cliente).
+	// somente admin — sempre via API Go (rules negam SDK cliente).
 	mux.HandleFunc("GET /api/exercises", a.Require(a.RequireApproved(h.HandleListExercises)))
 	mux.HandleFunc("GET /api/exercises/{id}", a.Require(a.RequireApproved(h.HandleGetExercise)))
-	mux.HandleFunc("POST /api/exercises", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateExercise))))
-	mux.HandleFunc("PUT /api/exercises/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateExercise))))
-	mux.HandleFunc("DELETE /api/exercises/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteExercise))))
+	mux.HandleFunc("POST /api/exercises", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateExercise))))
+	mux.HandleFunc("PUT /api/exercises/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateExercise))))
+	mux.HandleFunc("DELETE /api/exercises/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteExercise))))
 
 	// ── Dietas (feature diet) ──
 	mux.HandleFunc("GET /api/diets", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDiets))))
-	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))
+	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))
 	mux.HandleFunc("GET /api/diets/{id}", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleGetDiet))))
-	mux.HandleFunc("PUT /api/diets/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleUpdateDiet))))
-	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
-	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleNutritionist, models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))
+	mux.HandleFunc("PUT /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateDiet))))
+	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
+	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))
 
 	// ── Histórico (free tier) ──
 	mux.HandleFunc("GET /api/workout-history", a.Require(a.RequireApproved(h.HandleListHistory)))

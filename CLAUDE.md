@@ -41,10 +41,24 @@ security rules + hardening) concluída; Fase 2 (Vitest) concluída;
 Fase 3 (Playwright E2E) concluída; F14 (PWA), F15.2 (migration), F15.3
 (fechamento pós-migração), F16 (auditoria "Nova dieta"), F17 (login sem
 Google) e F19 (Programa de Treino) concluídas. Backend `go vet`/`go test`
-**208/208** · Firestore rules **76/76** · Vitest **131/131** ·
+**206/206** · Firestore rules **86/86** · Vitest **104/104** ·
 Playwright E2E **30/30** · `tsc --noEmit` ✅ · `next build` ✅ ·
-**Lint frontend 0/0** ✅.
-**Próximo passo:** decisão de produto sobre F8 e ações manuais de segurança da F16.
+**Lint frontend 0/0** ✅ (medidos em 30 set 2026).
+**Próximo passo:** decisão de produto sobre F8 e ações manuais de segurança da
+F16 — e, em paralelo, as perguntas P1–P8 da simplificação (ver seção abaixo).
+
+## Refatoração em andamento — "simplificação"
+
+Plano em `docs/simplificacao/` (`00-comandos.md`, `01-baseline.md`,
+`02-inventario.md`, `03-plano.md`, `04-perguntas.md`), fases F0–F7.
+**Já executado:** F4 — remoção do papel `nutritionist` (código **ainda sem
+commit**); hoje o backend define só `admin` e `student`
+(`backend/models/types.go`) e não existe mais o campo `NutritionistID`.
+**Planejado, não executado:** F1 gamificação, F2 comunidade, F3 planos/features,
+F5 escrita do participante, F6 modelo final + reindex, F7 provar a regra de
+acesso — gamificação, comunidade e planos/features **ainda existem** no código.
+As 8 decisões de produto P1–P8 (`docs/simplificacao/04-perguntas.md`) estão
+todas em aberto; P1 ("modo original") e P2 ("modo demo") são bloqueantes.
 
 Governança desde 20 set 2026: **execução contínua** — commits automáticos em
 checkpoints verdes (Conventional Commits), **sem push/deploy**, sem tocar na
@@ -54,12 +68,12 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 ## Stack e comandos
 
 - Backend: Go 1.23+, mod `treino-louise/backend`. Testes: `go test ./...`
-  (208 testes na V2 incluindo chain de integração, service, parser,
+  (206 testes na V2 incluindo chain de integração, service, parser,
   repository e demais).
 - Firestore rules: testes em `firestore-tests/` (`cd firestore-tests; npm test` —
-  sobe o emulador, roda 76 testes e derruba; exige Java + `firebase emulators:exec`).
+  sobe o emulador, roda 86 testes e derruba; exige Java + `firebase emulators:exec`).
 - Frontend: Next.js 16 (standalone), `npm run dev` / `npm run build` /
-  `npm run lint` / `npm test` (Vitest — 131 testes) / `npm run test:e2e`
+  `npm run lint` / `npm test` (Vitest — 104 testes) / `npm run test:e2e`
   (Playwright — 30 testes; sobe emuladores + backend + seed).
 - Firestore: regras em `firestore.rules`; índices em `firestore.indexes.json`
   (11 compostos). Emuladores configurados em `firebase.json` (Firestore
@@ -74,10 +88,16 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 ## Pontos de atenção herdados da V1 (não repetir na V2)
 
 1. **Criar perfil como `pending_approval`** sem campos administrativos
-   (role/planID/features/nutritionistID/approvedBy/approvedAt/rejectedReason)
-   — o admin é quem define (já corrigido na V1, regra `isPendingSelfProfile`).
-2. **Ownership imutável**: nutricionista nunca transfere treino/dieta para
-   outro nutricionista via body (backend força `NutritionistID` do registro).
+   (role/planID/features/approvedBy/approvedAt/rejectedReason)
+   — o admin é quem define (já corrigido na V1, regra `isPendingSelfProfile`;
+   a V1 também tinha `nutritionistID`, campo que **não existe mais** — a V2
+   tem só os papéis `admin` e `student`).
+2. **Ownership imutável (obsoleto — ver `docs/simplificacao/03-plano.md`)**:
+   a regra da V1 ("nutricionista nunca transfere treino/dieta para outro
+   nutricionista via body") dependia de `NutritionistID`, que **não existe
+   mais** no código. Hoje o acesso é admin-vs-aluno:
+   `service.CanAccessResource(uid, role, studentID)` (`backend/service/access.go`)
+   — admin acessa tudo; `student` só o recurso do próprio `studentID`.
 3. **Timezone oficial `America/Recife`** (`service/timezone.go`, `AppLoc`,
    `Now()`) — nunca `time.Now()` cru para datas de negócio.
 4. **createdAt NUNCA é sobrescrito** na atualização (`userProfileData` e
@@ -104,7 +124,7 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
       administrativos mudam somente pela API Go. Não adicionar campo novo à
       allowlist sem fluxo real que o envie e sem teste de regras. A regra vale
       **também para o `PUT /api/me` (F13)**: o handler zera toda campo não
-      editável (`role`/`status`/`planID`/`features`/`nutritionistID`/
+      editável (`role`/`status`/`planID`/`features`/
       `startDate`/`endDate`/aprovação/`createdAt`) e `AuthProvider` vem sempre
       do ID token — nunca do body. `GetOrCreateProfile` preserva do registro
       existente os dois campos que o body podia gravar antes da F13
@@ -112,10 +132,10 @@ credenciais, stack ou arquitetura fundamental. Detalhes em `docs/progress.md`.
 11. **Programa referencia treino, não o embute (F19)**: `programs/{id}` guarda
     só `workoutId`+ordem, então **toda** rota que grava ou materializa programa
     (`POST /api/programs`, `PUT`, `assign`, `duplicate`) tem de conferir a posse
-    de cada treino referenciado — `Service.ValidateProgramWorkoutOwnership` e
-    `src.NutritionistID == p.NutritionistID` no `AssignProgram`/`DuplicateProgram`
-    (admin libera). Sem isso a nutricionista A monta programa sobre o treino da B
-    e o `assign` materializa cópia do conteúdo alheio (exfiltração). Além disso
-    `PUT /api/programs/{id}` trata `nutritionistId` **e** `studentId` como
-    **incondicionalmente** do registro: reatribuir aluno só por
-    `POST /assign`, que cria as cópias e recusa (409) trocar de aluno.
+    de cada treino referenciado — `Service.ValidateProgramWorkoutOwnership`
+    compara `w.StudentID != p.StudentID` (`backend/service/program.go`): o treino
+    tem de pertencer ao **mesmo aluno** do programa. As rotas de programa são
+    admin-only (`Allow(RoleAdmin)` em `main.go`). Sem essa checagem o `assign`
+    materializa cópia de conteúdo de outro aluno (exfiltração). Reatribuir
+    aluno só por `POST /assign`, que cria as cópias e recusa (409,
+    `ErrProgramAlreadyAssigned`) trocar de aluno já atribuído.

@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"math"
@@ -272,23 +272,20 @@ func TestNormalizeMeals(t *testing.T) {
 
 func TestCanAccessResource(t *testing.T) {
 	// Admin acessa tudo.
-	if !CanAccessResource("admin-uid", models.RoleAdmin, "student-1", "nutri-1") {
+	if !CanAccessResource("admin-uid", models.RoleAdmin, "student-1") {
 		t.Error("admin should access everything")
 	}
 
 	// Aluno só o próprio.
-	if !CanAccessResource("student-1", models.RoleStudent, "student-1", "nutri-1") {
+	if !CanAccessResource("student-1", models.RoleStudent, "student-1") {
 		t.Error("student should access own resource")
 	}
-	if CanAccessResource("student-2", models.RoleStudent, "student-1", "nutri-1") {
+	if CanAccessResource("student-2", models.RoleStudent, "student-1") {
 		t.Error("student should NOT access another student's resource")
 	}
 
-	// Nutricionista só os próprios treinos.
-	if !CanAccessResource("nutri-1", models.RoleNutritionist, "student-1", "nutri-1") {
-		t.Error("nutritionist should access own workouts")
-	}
-	if CanAccessResource("nutri-2", models.RoleNutritionist, "student-1", "nutri-1") {
-		t.Error("nutritionist should NOT access another nutritionist's workout")
+	// Papel desconhecido nunca acessa nada, nem o proprio recurso.
+	if CanAccessResource("hacker", "hacker", "hacker") {
+		t.Error("papel desconhecido nao deveria acessar nada")
 	}
 }

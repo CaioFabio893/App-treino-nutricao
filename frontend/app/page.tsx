@@ -16,8 +16,8 @@ export default function Home() {
     if (!initializing && !user) router.replace("/login");
     // Cadastro pendente: a tela de espera cuida do usuário (e do auto-redirect
     // quando o admin aprovar) — nenhum redirect de papel deve disparar antes.
-    if (!initializing && user && !needsProfile && !needsApproval && (role === "nutritionist" || role === "admin")) {
-      router.replace("/nutritionist");
+    if (!initializing && user && !needsProfile && !needsApproval && (role === "admin")) {
+      router.replace("/admin");
     }
     // Alunos aprovados vão para o dashboard da área do aluno (rota própria).
     if (!initializing && user && !needsProfile && !needsApproval && role === "student") {
@@ -32,6 +32,6 @@ export default function Home() {
   if (needsProfile) return <ProfileSetup />;
   // Cadastro enviado, aguardando liberação da equipe.
   if (needsApproval) return <PendingApproval />;
-  // Aguarda o redirect acima (aluno → /treinos; gestão → /nutritionist).
+  // Aguarda o redirect acima (aluno → /treinos; gestão → /admin).
   return <LoadingScreen />;
 }

@@ -12,21 +12,14 @@ import (
 )
 
 // HandleListDietLogs devolve os logs de dieta de um aluno (para o calendário).
-// Aluno só consulta o próprio; nutricionista consulta os próprios alunos;
-// admin qualquer aluno.
+// Aluno só consulta o próprio; admin qualquer aluno.
 func (h *Handlers) HandleListDietLogs(w http.ResponseWriter, r *http.Request) {
 	uid := middleware.UIDFrom(r.Context())
-	role := middleware.RoleFrom(r.Context())
 	studentID := r.URL.Query().Get("studentId")
 	if studentID == "" {
 		studentID = uid
 	}
-	can, err := h.svc.CanAccessStudent(r.Context(), uid, role, studentID)
-	if err != nil {
-		http.Error(w, "erro ao verificar permissao", http.StatusInternalServerError)
-		return
-	}
-	if !can {
+	if !canAccessResource(r, studentID) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
@@ -78,10 +71,6 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sem permissao", http.StatusForbidden)
 		return
 	}
-	if role == models.RoleNutritionist {
-		http.Error(w, "sem permissao para marcar dieta (o aluno marca o próprio dia)", http.StatusForbidden)
-		return
-	}
 
 	// Define donos a partir do perfil e da dieta do aluno.
 	prof, err := h.repo.GetUserProfile(r.Context(), studentID)
@@ -95,12 +84,11 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 	}
 
 	log := &models.DietDailyLog{
-		StudentID:      studentID,
-		NutritionistID: prof.NutritionistID,
-		Date:           req.Date,
-		MealChecks:     req.MealChecks,
-		Note:           req.Note,
-		Caption:        req.Caption,
+		StudentID:  studentID,
+		Date:       req.Date,
+		MealChecks: req.MealChecks,
+		Note:       req.Note,
+		Caption:    req.Caption,
 	}
 
 	// Dieta ativa do aluno (para vínculo e nome no post).
@@ -112,9 +100,6 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 	if diet != nil {
 		log.DietID = diet.ID
 		log.DietName = diet.Name
-		if log.NutritionistID == "" {
-			log.NutritionistID = diet.NutritionistID
-		}
 	}
 
 	// Status do dia: explícito no request OU agregado dos checks por refeição.
@@ -139,9 +124,6 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 	if existing != nil {
 		log.PostID = existing.PostID
 		log.CreatedAt = existing.CreatedAt
-		if log.NutritionistID == "" {
-			log.NutritionistID = existing.NutritionistID
-		}
 		if log.Caption == "" {
 			log.Caption = existing.Caption
 		}

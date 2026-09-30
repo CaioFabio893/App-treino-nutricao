@@ -4,20 +4,24 @@ import ProgramDetail from "@/components/programs/ProgramDetail";
 
 const getToken = vi.fn(async () => "token");
 
-const PROGRAMS_KEY = "ll_demo_programs";
-const WORKOUTS_KEY = "ll_demo_workouts";
+let programs: unknown[] = [];
+let workouts: unknown[] = [];
 
-function setPrograms(p: unknown[]) {
-  localStorage.setItem(PROGRAMS_KEY, JSON.stringify(p));
-}
-function setWorkouts(w: unknown[]) {
-  localStorage.setItem(WORKOUTS_KEY, JSON.stringify(w));
-}
-
-vi.mock("@/lib/firebase", () => ({ firebaseAuth: null, firebaseConfigured: false }));
-vi.mock("@/lib/config", () => ({ DEMO_MODE: true }));
 vi.mock("@/lib/auth", () => ({
   useAuth: () => ({ getToken, role: "nutritionist", profile: { id: "demo-user", role: "nutritionist" } }),
+}));
+
+vi.mock("@/lib/api", () => ({
+  getProgram: vi.fn(async (id: string) => {
+    const p = programs.find((x) => (x as { id: string }).id === id);
+    if (!p) throw new Error("programa nao encontrado");
+    return p;
+  }),
+  getWorkout: vi.fn(async (id: string) => {
+    const w = workouts.find((x) => (x as { id: string }).id === id);
+    if (!w) throw new Error("treino nao encontrado");
+    return w;
+  }),
 }));
 
 const PROGRAMA = {
@@ -57,15 +61,14 @@ const TREINOS = [
 ];
 
 beforeEach(() => {
-  localStorage.clear();
-  setPrograms([PROGRAMA]);
-  setWorkouts(TREINOS);
+  programs = [PROGRAMA];
+  workouts = [...TREINOS];
   getToken.mockClear();
 });
 
 describe("ProgramDetail — programa do nutricionista", () => {
   it("mostra nome, objetivo e o total consolidado de exercícios e séries", async () => {
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
 
     expect(await screen.findByRole("heading", { name: "Louise Lima (Ciclo 2)" })).toBeInTheDocument();
     expect(screen.getByText("Hipertrofia de inferiores")).toBeInTheDocument();
@@ -79,7 +82,7 @@ describe("ProgramDetail — programa do nutricionista", () => {
   });
 
   it("renderiza os treinos na ordem do programa com o rótulo da fonte", async () => {
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
 
     expect(await screen.findByText(/A · Treino A — Pernas/)).toBeInTheDocument();
     expect(screen.getByText(/B · Treino B — Costas/)).toBeInTheDocument();
@@ -91,7 +94,7 @@ describe("ProgramDetail — programa do nutricionista", () => {
   });
 
   it("detalha os exercícios do treino carregado da referência", async () => {
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
 
     expect(await screen.findByText("Agachamento Livre com Barra")).toBeInTheDocument();
     expect(screen.getByText("Hack Squat")).toBeInTheDocument();
@@ -102,21 +105,21 @@ describe("ProgramDetail — programa do nutricionista", () => {
   });
 
   it("mostra as notas preservadas da fonte", async () => {
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
     expect(await screen.findByText(/Sem 1-2: 70%/)).toBeInTheDocument();
   });
 
   it("oferece ações de escrita para o nutricionista", async () => {
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
     expect(await screen.findByRole("link", { name: "Editar" })).toHaveAttribute(
       "href",
-      "/nutritionist/programs?edit=p1"
+      "/admin/programs?edit=p1"
     );
   });
 
   it("avisa e ignora treino que sumiu, sem quebrar a lista", async () => {
-    setWorkouts([TREINOS[0]]);
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    workouts = [TREINOS[0]];
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
 
     expect(await screen.findByText(/1 treino\(s\) deste programa não foram encontrados/)).toBeInTheDocument();
     expect(screen.getByText(/A · Treino A — Pernas/)).toBeInTheDocument();
@@ -124,14 +127,14 @@ describe("ProgramDetail — programa do nutricionista", () => {
   });
 
   it("mostra estado vazio quando o programa não tem treinos", async () => {
-    setPrograms([{ ...PROGRAMA, workouts: [] }]);
-    render(<ProgramDetail programId="p1" backHref="/nutritionist/programs" backLabel="Programas" />);
+    programs = [{ ...PROGRAMA, workouts: [] }];
+    render(<ProgramDetail programId="p1" backHref="/admin/programs" backLabel="Programas" />);
     expect(await screen.findByText(/ainda não tem treinos/)).toBeInTheDocument();
   });
 
   it("mostra erro recuperável quando o programa não existe", async () => {
-    render(<ProgramDetail programId="inexistente" backHref="/nutritionist/programs" backLabel="Programas" />);
-    // A mensagem vem do erro real (o demo responde "programa nao encontrado"),
+    render(<ProgramDetail programId="inexistente" backHref="/admin/programs" backLabel="Programas" />);
+    // A mensagem vem do erro real da API ("programa nao encontrado"),
     // e o que importa aqui é que exista o alerta com saída de recuperação —
     // não um estado vazio enganoso.
     const alerta = await screen.findByRole("alert");

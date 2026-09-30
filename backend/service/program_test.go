@@ -134,15 +134,14 @@ func TestConvertProgramNilIsSafe(t *testing.T) {
 
 func TestCreateProgramFromImportNilParsedIsSafe(t *testing.T) {
 	s := New(&programFakeRepo{})
-	if _, err := s.CreateProgramFromImport(context.Background(), "", "x.md", "", "", ""); err == nil {
+	if _, err := s.CreateProgramFromImport(context.Background(), "", "x.md", "", ""); err == nil {
 		t.Error("markdown vazio deveria falhar")
 	}
 }
 
 // TestCreateProgramFromImportOwnsTheWorkouts é uma regressão: os treinos
-// criados pela importação precisam nascer com o vínculo do importador. Sem
-// NutritionistID/StudentID eles ficam órfãos e o próprio nutricionista leva
-// 403 ao abrir o programa que acabou de importar.
+// criados pela importação precisam nascer com o StudentID informado. Sem ele o
+// programa importado fica órfão e o aluno alvo leva 403 ao abri-lo.
 func TestCreateProgramFromImportOwnsTheWorkouts(t *testing.T) {
 	repo := &programFakeRepo{}
 	s := New(repo)
@@ -150,7 +149,7 @@ func TestCreateProgramFromImportOwnsTheWorkouts(t *testing.T) {
 	res, err := s.CreateProgramFromImport(
 		context.Background(),
 		"# Programa — Teste\n\n**Foco: Hipertrofia**\n\n## TREINO A — Pernas\n\n| # | Exercício | Séries | Reps | Observação |\n|---|---|---:|---:|---|\n| 1 | Agachamento | 4 | 6-8 | |\n",
-		"treino.md", "", "", "nutri-1",
+		"treino.md", "", "",
 	)
 	if err != nil {
 		t.Fatalf("CreateProgramFromImport: %v", err)
@@ -159,9 +158,6 @@ func TestCreateProgramFromImportOwnsTheWorkouts(t *testing.T) {
 		t.Fatalf("treinos criados = %d, want 1", len(repo.created))
 	}
 	w := repo.created[0]
-	if w.NutritionistID != "nutri-1" {
-		t.Errorf("NutritionistID = %q, want nutri-1 (órfão seria lido como 403 pelo dono)", w.NutritionistID)
-	}
 	if w.StudentID != "" {
 		t.Errorf("StudentID = %q, want vazio (programa de biblioteca)", w.StudentID)
 	}
@@ -181,7 +177,7 @@ func TestCreateProgramFromImportAssignsStudentToWorkouts(t *testing.T) {
 	_, err := s.CreateProgramFromImport(
 		context.Background(),
 		"# Programa — Teste\n\n## TREINO A — Pernas\n\n| # | Exercício | Séries | Reps | Observação |\n|---|---|---:|---:|---|\n| 1 | Agachamento | 4 | 6-8 | |\n",
-		"treino.md", "", "aluno-9", "nutri-1",
+		"treino.md", "", "aluno-9",
 	)
 	if err != nil {
 		t.Fatalf("CreateProgramFromImport: %v", err)
@@ -195,7 +191,7 @@ func TestCreateProgramFromImportAssignsStudentToWorkouts(t *testing.T) {
 
 func TestDuplicateWorkoutForStudent(t *testing.T) {
 	src := &models.WorkoutDefine{
-		ID: "w-1", Name: "Treino A", StudentID: "", NutritionistID: "nutri",
+		ID: "w-1", Name: "Treino A", StudentID: "",
 		Exercises: []*models.WorkoutExercise{{ID: "ex-1", Name: "Agachamento", Order: 1}},
 	}
 	dup := DuplicateWorkoutForStudent(src, "aluno-1", "")
@@ -205,9 +201,6 @@ func TestDuplicateWorkoutForStudent(t *testing.T) {
 	}
 	if dup.StudentID != "aluno-1" {
 		t.Errorf("StudentID = %q, want aluno-1", dup.StudentID)
-	}
-	if dup.NutritionistID != "nutri" {
-		t.Errorf("NutritionistID = %q, want nutri (preservado)", dup.NutritionistID)
 	}
 	if dup.Name != "Treino A" {
 		t.Errorf("Name = %q, want o nome original", dup.Name)
@@ -288,16 +281,16 @@ func (r *programFakeRepo) CreateProgram(_ context.Context, p *models.TrainingPro
 func novoRepoPrograma() *programFakeRepo {
 	return &programFakeRepo{
 		program: &models.TrainingProgram{
-			ID: "p-1", Name: "Ciclo 2", NutritionistID: "nutri",
+			ID: "p-1", Name: "Ciclo 2",
 			Workouts: []*models.ProgramWorkout{
 				{WorkoutID: "w-1", Order: 1, Label: "A", Name: "Treino A"},
 				{WorkoutID: "w-2", Order: 2, Label: "B", Name: "Treino B"},
 			},
 		},
 		workouts: map[string]*models.WorkoutDefine{
-			"w-1": {ID: "w-1", Name: "Treino A", NutritionistID: "nutri", DayOfWeek: "monday",
+			"w-1": {ID: "w-1", Name: "Treino A", DayOfWeek: "monday",
 				Exercises: []*models.WorkoutExercise{{Name: "Agachamento", Sets: 4, Repetitions: "6-8", Order: 1}}},
-			"w-2": {ID: "w-2", Name: "Treino B", NutritionistID: "nutri", DayOfWeek: "tuesday",
+			"w-2": {ID: "w-2", Name: "Treino B", DayOfWeek: "tuesday",
 				Exercises: []*models.WorkoutExercise{{Name: "Puxada", Sets: 4, Repetitions: "8-10", Order: 1}}},
 		},
 	}

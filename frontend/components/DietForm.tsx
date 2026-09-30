@@ -99,7 +99,6 @@ export default function DietForm({
       const token = await getToken();
       const payload: Diet = {
         studentId,
-        nutritionistId: initial?.nutritionistId ?? "",
         name: name.trim(),
         description: description.trim(),
         startDate,

@@ -150,10 +150,10 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
         </div>
         {!readOnly && (
           <div className="btn-row">
-            <Link href={`/nutritionist/programs?edit=${program.id}`} className="btn-sm acc">
+            <Link href={`/admin/programs?edit=${program.id}`} className="btn-sm acc">
               Editar
             </Link>
-            <Link href={`/nutritionist/print?program=${program.id}`} className="btn-sm">
+            <Link href={`/admin/print?program=${program.id}`} className="btn-sm">
               Imprimir
             </Link>
           </div>
@@ -194,7 +194,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
                 <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
                   <span className="badge">{dia ? PROGRAM_DAY_FULL[dia] ?? dia : "Sem dia fixo"}</span>
                   {!readOnly && w?.id && (
-                    <Link href={`/nutritionist/print?workout=${w.id}`} className="btn-sm">
+                    <Link href={`/admin/print?workout=${w.id}`} className="btn-sm">
                       Imprimir
                     </Link>
                   )}

@@ -6,19 +6,29 @@
 // (config pública do Firebase Web permite acesso via SDK cliente).
 //
 // Política de acesso refletida nas regras (espelha o backend):
-//   - Aprovação: usuário com perfil sem status (legado ""), "active" ou
-//     "paused" pode acessar recursos de negócio; "pending_approval",
-//     "rejected" e "inactive" (bloqueado) NÃO. Admin sempre aprovado.
+//   - Papéis: somente 'admin' e 'student'. O modelo é de 2 papéis e não
+//     possui nenhum terceiro papel de gestão.
+//   - Aprovação e pausa são eixos SEPARADOS e nunca conflatedos:
+//       · isApprovedUser() decide APROVAÇÃO (legado "" ou "active") e nunca
+//         menciona 'paused' como critério de aprovação.
+//       · isPausedUser() expõe a pausa de forma explícita, para que qualquer
+//         funcionalidade que queira RESTRINGIR o usuário pausado possa
+//         consultar esse helper explicitamente em vez de sequestrar o
+//         conceito de "aprovado".
+//     Um aluno pausado continua sendo um cadastro aprovado: pausar a
+//     assinatura não o transforma em pendente/rejeitado.
+//   - "pending_approval", "rejected" e "inactive" (bloqueado) NÃO acessam
+//     recursos de negócio. Admin sempre passa (bypass de status).
 //   - Perfil do usuário: o próprio dono lê/cria/edita SOMENTE os campos da
 //     allowlist (name, email, photoURL, bio); tudo o mais — role, status,
-//     planID, features, nutritionistID, approvedBy, approvedAt,
+//     planID, features, approvedBy, approvedAt,
 //     rejectedReason, createdAt, authProvider, startDate... — muda SOMENTE
 //     pela API Go, nunca por SDK de cliente, nem admin (hasOnly nega até
 //     combinações "campo legítimo + campo sensível" no mesmo update).
 //   - Escrita de dados de negócio (posts, dietLogs, workouts, diets,
 //     workoutHistory, plans, scores, scores_history): SOMENTE pela API Go.
 //     O cliente (SDK) tem acesso de LEITURA quando autorizado (aprovado +
-//     relação dono/nutricionista/admin no caso de dados de aluno).
+//     relação dono/admin no caso de dados de aluno).
 rules_version = '2';
 
 service cloud.firestore {
@@ -42,25 +52,46 @@ service cloud.firestore {
       return meExists() && me().data.role == 'admin';
     }
 
-    // "Pessoa aprovada": espelha middleware.IsApproved ("" | active |
-    // paused) + bypass de admin. pending_approval/rejected/inactive
-    // (bloqueados) ficam de fora de recursos de negócio.
+    // "Cadastro APROVADO", isolado da pausa. pending_approval/rejected/inactive
+    // ficam de fora; admin passa por bypass de status.
+    //
+    // IMPORTANTE: 'paused' NÃO é critério de aprovação e não aparece aqui.
+    // Aprovação e pausa são eixos independentes (ver isPausedUser). Quem
+    // precisa do comportamento efetivo do backend (aprovado OU pausado) usa
+    // canUseBusinessResources(), não este helper.
     function isApprovedUser() {
       return meExists() && (
         me().data.role == 'admin' ||
         me().data.status == '' ||
-        me().data.status == 'active' ||
-        me().data.status == 'paused'
+        me().data.status == 'active'
       );
     }
 
+    // "Cadastro PAUSADO": predicate explícito e isolado. Existindo separado de
+    // isApprovedUser, uma funcionalidade que queira excluir o aluno pausado
+    // escreve `&& !isPausedUser()` na SUA regra, sem precisar reescrever (nem
+    // corromper) a noção de aprovação.
+    function isPausedUser() {
+      return meExists() && me().data.status == 'paused';
+    }
+
+    // Recurso de negócio exige cadastro aprovado OU pausado — as duas condições
+    // são disjuntas e checadas separadamente, sem uma tratar a outra como
+    // sinônimo. Espelha middleware.IsApproved (que aceita "", active e paused),
+    // então nenhuma regra aqui diverge da API Go.
+    function canUseBusinessResources() {
+      return isApprovedUser() || isPausedUser();
+    }
+
+    // Dados de um aluno: o próprio dono ou o admin. Como o modelo é de 2 papéis,
+    // a relação se resume a self/admin — a mesma matriz de
+    // service.CanAccessResource na API Go.
     function canViewStudentData(studentId) {
-      return isApprovedUser() && (
-        request.auth.uid == studentId ||
-        isAdmin() ||
-        (me().data.role == 'nutritionist' &&
-         exists(/databases/$(database)/documents/users/$(studentId)) &&
-         get(/databases/$(database)/documents/users/$(studentId)).data.nutritionistID == request.auth.uid)
+      return canUseBusinessResources() && (
+        request.auth != null && (
+          request.auth.uid == studentId ||
+          isAdmin()
+        )
       );
     }
     // Allowlist estrita dos campos que o DONO pode alterar no próprio perfil
@@ -88,7 +119,7 @@ service cloud.firestore {
     function isPendingSelfProfile() {
       let keys = request.resource.data.keys();
       return request.resource.data.status == 'pending_approval' &&
-             !keys.hasAny(['role', 'planID', 'features', 'nutritionistID',
+             !keys.hasAny(['role', 'planID', 'features',
                            'approvedBy', 'approvedAt', 'rejectedReason']);
     }
 
@@ -104,21 +135,16 @@ service cloud.firestore {
       allow delete: if false;
     }
 
-    // Modo original (sessions, prs, state): só o dono acessa.
-    match /users/{uid}/{subcollection}/{docId} {
-      allow read, write: if isOwner(uid);
-    }
-
     // ── Feed ──
     // Leitura: aprovados (feed é recurso de comunidade; pendente/bloqueado
     // não acessa). Escrita: SOMENTE pela API Go (transações corrigem race).
     match /posts/{postId} {
-      allow read: if isApprovedUser();
+      allow read: if canUseBusinessResources();
       allow create, update, delete: if false;
     }
 
     // ── Log diário de dieta ──
-    // Leitura: próprio aluno + seu nutricionista + admin (aprovados).
+    // Leitura: próprio aluno + admin (aprovados).
     // Escrita: só API Go (transações preservam createdAt).
     match /dietLogs/{docId} {
       allow read: if canViewStudentData(resource.data.studentId);
@@ -146,28 +172,28 @@ service cloud.firestore {
     // Leitura: aprovados. Escrita: só API Go (create/update/delete via admin
     // pelo SDK de cliente é negado - contornaria a API).
     match /plans/{planId} {
-      allow read: if isApprovedUser();
+      allow read: if canUseBusinessResources();
       allow write: if false;
     }
 
     // ── Biblioteca de exercícios (catálogo global — F5) ──
     // Leitura: aprovados (aluno consulta, mas nunca escreve). Escrita: somente
     // pela API Go — create/update/delete via SDK de cliente é negado para TODOS
-    // (aluno, nutricionista e admin), preservando "escrita de negócio só via API".
+    // (aluno e admin), preservando "escrita de negócio só via API".
     match /exercises/{exerciseId} {
-      allow read: if isApprovedUser();
+      allow read: if canUseBusinessResources();
       allow write: if false;
     }
 
     // ── Ranking ──
     // Nota corrente: leitura para aprovados; escrita só da API.
     match /scores/{uid} {
-      allow read: if isApprovedUser();
+      allow read: if canUseBusinessResources();
       allow write: if false;
     }
 
     // Histórico de ciclos (scores_history/{uid}/cycles/{cycleId}):
-    // próprio aluno, nutricionista do aluno e admin leem (aprovados).
+    // próprio aluno e admin leem (aprovados).
     match /scores_history/{uid}/{document=**} {
       allow read: if canViewStudentData(uid);
       allow write: if false;

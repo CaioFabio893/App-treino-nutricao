@@ -4,14 +4,14 @@ import { login, USERS } from "./helpers";
 // Fluxo "Nova dieta" (pós-auditoria de a11y/UI): valida que o formulário abre,
 // os campos têm labels acessíveis, a criação persiste no backend e nenhum
 // elemento fixo (Install Prompt / AdminAreaSwitch) cobre o botão de salvar.
-test.describe("Nova dieta (nutritionist)", () => {
+test.describe("Nova dieta (admin)", () => {
   test("cria dieta com labels acessíveis e sem sobreposição no botão salvar", async ({
     page,
   }) => {
-    await login(page, USERS.nutritionist.email, USERS.nutritionist.password);
-    await page.waitForURL("**/nutritionist");
+    await login(page, USERS.admin.email, USERS.admin.password);
+    await page.waitForURL("**/admin");
 
-    await page.goto("/nutritionist/diets?new=1");
+    await page.goto("/admin/diets?new=1");
 
     // 1. Formulário abre com título correto.
     await expect(page.getByRole("heading", { name: "Nova dieta", exact: true })).toBeVisible();
@@ -51,7 +51,7 @@ test.describe("Nova dieta (nutritionist)", () => {
     await save.click();
 
     // 6. onDone volta para a listagem e a dieta criada aparece.
-    await page.waitForURL("**/nutritionist/diets");
+    await page.waitForURL("**/admin/diets");
     await expect(page.getByText("Dieta E2E Nova", { exact: true })).toBeVisible();
 
     // 6. Guarda o card no Feed/Diets recarregado (verificação via backend já

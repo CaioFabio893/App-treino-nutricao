@@ -18,7 +18,8 @@ export function useNewCompletions() {
 
   const refresh = useCallback(async () => {
     // Só o nutricionista recebe os avisos.
-    if (!profile || profile.role !== "nutritionist") return;
+    // Só o admin recebe os avisos de treino concluído (único papel de gestão).
+    if (!profile || profile.role !== "admin") return;
     try {
       const token = await getToken();
       const history = await api.listHistory(token);

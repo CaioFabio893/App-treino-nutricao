@@ -4,6 +4,14 @@ Status: Proposta implementada (F19 — Programa de Treino). Base = rotas reais d
 (`backend/main.go`, `backend/handlers/`). Endpoints documentados conforme
 são implementados; contratos mantidos para compatibilidade com o frontend.
 
+> **Estado da refatoração**: plano em `docs/simplificacao/03-plano.md`;
+> decisões em aberto em `docs/simplificacao/04-perguntas.md` (P1–P8,
+> P1/P2 bloqueantes). **F4 (papel `nutritionist` → `admin`) executado, ainda
+> sem commit**; F1 (gamificação), F2 (comunidade), F3 (planos/features), F5
+> (escrita do participante), F6 (modelo + reindex) e F7 (provar a regra de
+> acesso) **planejados, não executados**. Papéis hoje: **2** —
+> `admin` e `student` (`backend/models/types.go:12-15`).
+
 ## Princípios do contrato
 
 1. **Auth**: toda rota (exceto `/health`) exige `Authorization: Bearer <idToken>`
@@ -53,7 +61,7 @@ são implementados; contratos mantidos para compatibilidade com o frontend.
 | POST | `/api/users/{id}/reject` |
 | POST | `/api/users/{id}/assign-plan` |
 
-### Planos (admin)
+### Planos (admin) — presente hoje, remoção planejada (F3)
 | Método | Rota |
 |---|---|
 | GET/POST | `/api/plans` |
@@ -62,7 +70,7 @@ são implementados; contratos mantidos para compatibilidade com o frontend.
 ### Alunos
 | Método | Rota |
 |---|---|
-| GET | `/api/students` (nutri: os dele; admin: todos) |
+| GET | `/api/students` (admin — `Allow(RoleAdmin)` + `ListStudentsAll`) |
 | GET/PUT | `/api/students/{id}` |
 
 ### Treinos
@@ -93,7 +101,7 @@ são implementados; contratos mantidos para compatibilidade com o frontend.
 | GET | `/api/workout-history` |
 | POST | `/api/workouts/complete` |
 
-### Rede social (feature community)
+### Rede social (feature community) — presente hoje, remoção planejada (F2)
 | Método | Rota |
 |---|---|
 | GET/POST | `/api/posts` |
@@ -107,7 +115,7 @@ são implementados; contratos mantidos para compatibilidade com o frontend.
 |---|---|
 | GET/PUT | `/api/diet-logs` |
 
-### Ranking / pontuação (feature ranking)
+### Ranking / pontuação (feature ranking) — presente hoje, remoção planejada (F1)
 | Método | Rota |
 |---|---|
 | GET | `/api/ranking` |
@@ -117,36 +125,37 @@ são implementados; contratos mantidos para compatibilidade com o frontend.
 ### Programas de Treino (F19)
 | Método | Rota | Quem pode | Descrição |
 |---|---|---|---|
-| GET | `/api/programs` | qualquer aprovado | Lista: nutricionista vê os próprios; aluno vê só os atribuídos |
-| POST | `/api/programs` | nutritionist/admin | Cria programa |
-| POST | `/api/programs/import` | nutritionist/admin | Importa programa via markdown; parse no servidor (`pkg programmd`) |
-| GET | `/api/programs/{id}` | dono (aluno), nutricionista dono ou admin | Detalhes do programa |
-| PUT | `/api/programs/{id}` | nutricionista dono/admin | Atualiza metadados + ordem das referências; **vínculos imutáveis** (`nutritionistId` e `studentId` vêm sempre do registro — reatribuição só via `POST /assign`) |
-| DELETE | `/api/programs/{id}` | nutricionista dono/admin | Exclui programa (NÃO apaga os treinos referenciados) |
-| POST | `/api/programs/{id}/assign` | nutricionista dono/admin | Atribui programa ao aluno; materializa cópias dos treinos; 409 se já atribuído a outro |
-| POST | `/api/programs/{id}/duplicate` | nutricionista dono/admin | Duplica programa como biblioteca |
+| GET | `/api/programs` | qualquer aprovado | Lista: admin vê todos; aluno vê só os atribuídos a ele |
+| POST | `/api/programs` | admin | Cria programa |
+| POST | `/api/programs/import` | admin | Importa programa via markdown; parse no servidor (`pkg programmd`) |
+| GET | `/api/programs/{id}` | dono (aluno) ou admin | Detalhes do programa |
+| PUT | `/api/programs/{id}` | admin | Atualiza metadados + ordem das referências; **vínculo `studentId` imutável** (vem sempre do registro — reatribuição só via `POST /assign`; o campo `nutritionistId` não existe mais) |
+| DELETE | `/api/programs/{id}` | admin | Exclui programa (NÃO apaga os treinos referenciados) |
+| POST | `/api/programs/{id}/assign` | admin | Atribui programa ao aluno; materializa cópias dos treinos; 409 se já atribuído a outro |
+| POST | `/api/programs/{id}/duplicate` | admin | Duplica programa como biblioteca |
 
 ## Gate de autorização por rota (padrão V1)
 
 - Rotas de negócio exigem `RequireApproved`; recursos por feature exigem
   `RequireFeature(diet|community|ranking)`; escrita de conteúdo (workouts,
-  diets, plans, users, approve/reject/assign) exige `Allow(nutritionist,
-  admin)` ou `Allow(admin)` conforme caso. Programas são **free tier**
+  diets, plans, users, approve/reject/assign) exige `Allow(models.RoleAdmin)`
+  (padrão único hoje — `backend/main.go:135-230`; não existe mais o papel
+  `nutritionist`). Programas são **free tier**
   (sem feature de plano) — leitura exige aprovado, escrita exige
-  `nutritionist`/`admin` + `RequireApproved`.
+  `Allow(models.RoleAdmin)` + `RequireApproved`.
 - **Ordem dos middlewares é crítica** (ver `system-architecture.md`):
   `Require` SEMPRE fora dos gates.
-- Ownership: nutricionista acessa somente recursos onde é
-  `nutritionistId`; aluno somente os próprios; admin tudo (funções puras em
-  `service/access.go`).
+- Ownership: `CanAccessResource(uid, role, studentID)`
+  (`backend/service/access.go:10`) — admin acessa tudo; aluno somente os
+  próprios recursos (`uid == studentID`). Função pura (sem I/O).
 - **Programa referencia treino, não o embute**: como o programa só guarda
   `workoutId`, toda rota que grava ou materializa o programa
   (`POST /api/programs`, `PUT`, `assign`, `duplicate`) confere a posse de cada
-  treino referenciado (`Service.ValidateProgramWorkoutOwnership` +
-  `src.NutritionistID == p.NutritionistID`). Sem isso, a nutritiousiona A
-  monto um programa sobre o treino da B e o `assign` criaria uma cópia do
-  conteúdo alheio. Treino inexistente → **404**; treino de outra →
-  **403** (a resposta não revela o dono).
+  treino referenciado (`Service.ValidateProgramWorkoutOwnership` —
+  `backend/service/program.go:106` compara `w.StudentID != p.StudentID`).
+  Sem isso, um admin montaria um programa sobre o treino de OUTRO aluno e o
+  `assign` criaria uma cópia do conteúdo alheio. Treino inexistente → **404**;
+  treino de outro aluno → **403** (a resposta não revela o dono).
 
 ## Payloads de referência (V1 — manter contrato)
 

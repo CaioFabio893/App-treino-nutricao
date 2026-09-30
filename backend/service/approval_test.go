@@ -1,4 +1,4 @@
-package service
+﻿package service
 
 import (
 	"context"
@@ -129,7 +129,7 @@ func TestApproveUser(t *testing.T) {
 			},
 		}
 		svc := New(repo)
-		err := svc.ApproveUser(context.Background(), "admin-1", "u1", models.RoleStudent, "plano-completo", "nutri-1")
+		err := svc.ApproveUser(context.Background(), "admin-1", "u1", models.RoleStudent, "plano-completo")
 		if err != nil {
 			t.Fatalf("ApproveUser: %v", err)
 		}
@@ -145,16 +145,16 @@ func TestApproveUser(t *testing.T) {
 		if updated.ApprovedBy != "admin-1" || updated.ApprovedAt.IsZero() {
 			t.Errorf("approvedBy/approvedAt não preenchidos: %+v", updated)
 		}
-		if updated.NutritionistID != "nutri-1" {
-			t.Errorf("nutritionistID = %q, want nutri-1", updated.NutritionistID)
-		}
 	})
 
-	t.Run("aprova nutricionista (sem plano/vínculo)", func(t *testing.T) {
+	// Segurança: a aprovação NUNCA concede papel de admin. Um cadastro pendente
+	// não pode ser promovido a admin por esta via (escalada de privilégio); o
+	// admin é definido pelo próprio admin, fora deste fluxo.
+	t.Run("recusa promover para admin", func(t *testing.T) {
 		var updated *models.UserProfile
 		repo := &fakeRepo{
 			getUserProfile: func(_ context.Context, _ string) (*models.UserProfile, error) {
-				return &models.UserProfile{ID: "u2", Status: models.StatusPendingApproval, NutritionistID: "antigo"}, nil
+				return &models.UserProfile{ID: "u2", Status: models.StatusPendingApproval}, nil
 			},
 			putUserProfile: func(_ context.Context, _ string, p *models.UserProfile) error {
 				updated = p
@@ -162,19 +162,18 @@ func TestApproveUser(t *testing.T) {
 			},
 		}
 		svc := New(repo)
-		err := svc.ApproveUser(context.Background(), "admin-1", "u2", models.RoleNutritionist, "", "")
-		if err != nil {
-			t.Fatalf("ApproveUser: %v", err)
+		if err := svc.ApproveUser(context.Background(), "admin-1", "u2", models.RoleAdmin, ""); !errors.Is(err, ErrInvalidRole) {
+			t.Errorf("ApproveUser(admin) err = %v, want ErrInvalidRole", err)
 		}
-		if updated.PlanID != "" || updated.NutritionistID != "" || len(updated.Features) != 0 {
-			t.Errorf("nutricionista não deveria ter plano/vínculo: %+v", updated)
+		if updated != nil {
+			t.Error("perfil não deveria ter sido gravado ao recusar o papel")
 		}
 	})
 
 	t.Run("papel invalido", func(t *testing.T) {
 		repo := &fakeRepo{}
 		svc := New(repo)
-		if err := svc.ApproveUser(context.Background(), "admin-1", "u3", "hacker", "", ""); !errors.Is(err, ErrInvalidRole) {
+		if err := svc.ApproveUser(context.Background(), "admin-1", "u3", "hacker", ""); !errors.Is(err, ErrInvalidRole) {
 			t.Errorf("err = %v, want ErrInvalidRole", err)
 		}
 	})
@@ -186,7 +185,7 @@ func TestApproveUser(t *testing.T) {
 			},
 		}
 		svc := New(repo)
-		err := svc.ApproveUser(context.Background(), "admin-1", "u4", models.RoleStudent, "nao-existe", "")
+		err := svc.ApproveUser(context.Background(), "admin-1", "u4", models.RoleStudent, "nao-existe")
 		if !errors.Is(err, ErrPlanNotFound) {
 			t.Errorf("err = %v, want ErrPlanNotFound", err)
 		}
@@ -202,7 +201,7 @@ func TestApproveUser(t *testing.T) {
 			},
 		}
 		svc := New(repo)
-		err := svc.ApproveUser(context.Background(), "admin-1", "u5", models.RoleStudent, "p-desativado", "")
+		err := svc.ApproveUser(context.Background(), "admin-1", "u5", models.RoleStudent, "p-desativado")
 		if !errors.Is(err, ErrPlanInactive) {
 			t.Errorf("err = %v, want ErrPlanInactive", err)
 		}

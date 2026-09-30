@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import ExercisesPage from "@/app/nutritionist/exercises/page";
+import ExercisesPage from "@/app/admin/exercises/page";
 import type { Exercise } from "@/lib/types";
 
 vi.mock("@/lib/auth", () => ({

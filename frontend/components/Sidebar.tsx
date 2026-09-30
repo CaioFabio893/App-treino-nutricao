@@ -9,29 +9,33 @@ import DashIcon from "./DashIcon";
 import { navAppIcons } from "./icons/AppIcons";
 
 export const NAV_ITEMS = [
-  { href: "/nutritionist", label: "Painel", icon: "grid" as const },
-  { href: "/nutritionist/students", label: "Alunos", icon: "users" as const },
-  { href: "/nutritionist/programs", label: "Programas", icon: "program" as const },
-  { href: "/nutritionist/workouts", label: "Treinos", icon: "dumbbell" as const },
-  { href: "/nutritionist/exercises", label: "Exercícios", icon: "library" as const },
-  { href: "/nutritionist/diets", label: "Dietas", icon: "leaf" as const },
-  { href: "/nutritionist/feed", label: "Feed", icon: "feed" as const },
-  { href: "/nutritionist/ranking", label: "Ranking", icon: "trophy" as const },
-  { href: "/nutritionist/timeline", label: "Timeline", icon: "clock" as const, notif: true },
-  { href: "/nutritionist/activities", label: "Atividades", icon: "activity" as const },
-  { href: "/nutritionist/profile", label: "Perfil", icon: "user" as const },
+  { href: "/admin", label: "Painel", icon: "grid" as const },
+  { href: "/admin/students", label: "Alunos", icon: "users" as const },
+  { href: "/admin/programs", label: "Programas", icon: "program" as const },
+  { href: "/admin/workouts", label: "Treinos", icon: "dumbbell" as const },
+  { href: "/admin/exercises", label: "Exercícios", icon: "library" as const },
+  { href: "/admin/diets", label: "Dietas", icon: "leaf" as const },
+  { href: "/admin/feed", label: "Feed", icon: "feed" as const },
+  { href: "/admin/ranking", label: "Ranking", icon: "trophy" as const },
+  { href: "/admin/timeline", label: "Timeline", icon: "clock" as const, notif: true },
+  { href: "/admin/activities", label: "Atividades", icon: "activity" as const },
+  { href: "/admin/profile", label: "Perfil", icon: "user" as const },
 ];
 
-const ADMIN_ITEM = { href: "/admin", label: "Usuários", icon: "shield" as const };
+// Gestão é uma área só (/admin). "Usuários" é a sub-rota de cadastro/planos e
+// entra na lista apenas para admin — o resto já é reachable por ele.
+const ADMIN_ITEM = { href: "/admin/usuarios", label: "Usuários", icon: "shield" as const };
 
 function isActive(pathname: string, href: string) {
-  return href === "/nutritionist" ? pathname === "/nutritionist" : pathname.startsWith(href);
+  // /admin é a raiz da área: casamento exato, senão TODO subdiretório marcaria
+  // "Painel" como ativo ao mesmo tempo que a sua própria entrada.
+  if (href === "/admin") return pathname === "/admin";
+  return pathname === href || pathname.startsWith(`${href}/`);
 }
 
 /** Título da seção atual, usado no topo do conteúdo (topbar). */
 export function sectionLabelFor(pathname: string): string {
-  if (pathname.startsWith("/admin")) return "Usuários";
-  const item = NAV_ITEMS.find((i) => isActive(pathname, i.href));
+  const item = [...NAV_ITEMS, ADMIN_ITEM].find((i) => isActive(pathname, i.href));
   return item?.label ?? "Painel";
 }
 
@@ -87,12 +91,12 @@ export default function Sidebar() {
                 className={`dash-nav-link${active ? " active" : ""}`}
                 onClick={() => {
                   setOpen(false);
-                  if (item.href === "/nutritionist/timeline" && count > 0) consume();
+                  if (item.href === "/admin/timeline" && count > 0) consume();
                 }}
               >
                 {AppIcon ? <AppIcon width={18} height={18} /> : <DashIcon name={item.icon} />}
                 <span>{item.label}</span>
-                {item.href === "/nutritionist/timeline" && count > 0 && (
+                {item.href === "/admin/timeline" && count > 0 && (
                   <span className="dash-nav-badge" title="Novos treinos concluídos">
                     {count > 99 ? "99+" : count}
                   </span>
@@ -107,9 +111,7 @@ export default function Sidebar() {
             <div className="dash-user-avatar">{initial}</div>
             <div className="dash-user-info">
               <div className="dash-user-name">{profile?.name || "Usuário"}</div>
-              <div className="dash-user-role">
-                {role === "admin" ? "Admin" : "Nutricionista"}
-              </div>
+              <div className="dash-user-role">Admin</div>
             </div>
           </div>
           <button type="button" className="dash-logout" onClick={() => void logout()}>

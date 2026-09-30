@@ -11,13 +11,25 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
   `00009-mfg`) + regras Firestore V2 com 9 índices compostos `READY`.
   Migração técnica V1→V2 **encerrada** (24 set 2026) — ver
   `docs/progress.md` e `docs/reports/phase-15-3-post-migration.md`.
-- **Gates verdes**: Go `147/147` ✓ · Firestore rules `64/64` ✓ · Vitest
-  `61/61` ✓ · Playwright E2E `23/23` ✓ · `tsc --noEmit` ✓ · `next build` ✓ ·
-  lint `0/0` ✓.
+- **Gates verdes** (medidos em 30 set 2026): Go `206/206` ✓ · Firestore rules
+  `86/86` ✓ · Vitest `104/104` ✓ · Playwright E2E `30/30` ✓ ·
+  `tsc --noEmit` ✓ · `next build` ✓ · lint `0/0` ✓.
 - **Pendências (decisão de produto, não bloqueiam produção)**: login Google
   (ADR-002 votado para remover, código ainda expõe o botão — ver F15.3 §7C),
   F8 alimentos (formato da dieta), validação humana da Louise (login real +
   PWA em dispositivo).
+
+## Refatoração em andamento — "simplificação"
+
+Plano com fases F0–F7 em `docs/simplificacao/` (`00-comandos.md` …
+`03-plano.md`, `04-perguntas.md`). **Já executado:** F4 — remoção do papel
+`nutritionist` (código **ainda sem commit**); hoje existem só 2 papéis,
+`admin` (gestão) e `student` (aluno). **Planejado, não executado:** F1
+gamificação, F2 comunidade, F3 planos/features, F5 escrita do participante,
+F6 modelo final + reindex, F7 provar a regra de acesso — gamificação,
+comunidade e planos/features **ainda existem** no código. As 8 decisões de
+produto P1–P8 estão **todas em aberto** (`docs/simplificacao/04-perguntas.md`),
+com **P1 ("modo original") e P2 ("modo demo") bloqueantes**.
 
 ## Como este repositório é desenvolvido (agentes)
 
@@ -51,7 +63,7 @@ credenciais (`.env*`, chaves, tokens ficam fora do git).
 
 ## 📸 Screenshots
 
-Capturas reais da aplicação (modo demo, dados de exemplo):
+Capturas reais da aplicação:
 
 - **Dashboard do aluno** — visão geral da rotina e funcionalidades disponíveis.
 - **Treinos** — gerenciamento e visualização dos treinos.
@@ -64,7 +76,7 @@ Capturas reais da aplicação (modo demo, dados de exemplo):
 
 ![Dietas](docs/screenshots/student-dietas.png)
 
-![Painel do nutricionista](docs/screenshots/nutritionist-dashboard.png)
+![Área administrativa (gestão)](docs/screenshots/nutritionist-dashboard.png)
 
 ## O que cada parte faz
 
@@ -83,7 +95,7 @@ Capturas reais da aplicação (modo demo, dados de exemplo):
 
 - **Frontend**: Next.js (React) com `output: "standalone"` — um **servidor Node**
   autocontido no **Cloud Run**. O modo servidor permite **rotas dinâmicas**
-  (ex. `/nutritionist/students/[studentId]`), que não existem em exportação
+  (ex. `/admin/students/[studentId]`), que não existem em exportação
   estática.
 - **Backend**: API em **Go** no **Cloud Run** — verifica o token do Firebase e
   acessa o Firestore (o usuário nunca fala direto com o banco).
@@ -105,10 +117,10 @@ Capturas reais da aplicação (modo demo, dados de exemplo):
 │   ├── Dockerfile    # imagem para o Cloud Run
 │   └── go.mod
 ├── frontend/         # app Next.js (Cloud Run — modo servidor/standalone)
-│   ├── app/          # páginas (login, home, aluno, painel do nutricionista, admin)
+│   ├── app/          # páginas (login, home, aluno, área admin)
 │   │   ├── (aluno)/  # área do aluno: treinos, dietas e comunidade
 │   │   ├── base.css  # design system global (dashboard.css/student.css por área)
-│   │   └── ...       # nutritionist/, admin/, profile/[id]/
+│   │   └── ...       # admin/ (gestão, incl. usuarios/), profile/[id]/
 │   ├── components/   # UI (layout, cards, timer, modais, formulários, student/)
 │   ├── lib/          # firebase, api, auth (roles), tipos, dias da semana
 │   ├── public/       # ícones, manifest, service worker
@@ -133,30 +145,12 @@ Capturas reais da aplicação (modo demo, dados de exemplo):
 
 ---
 
-## Modo demo (ver o app funcionando hoje, sem Firebase)
+## Modo demo — removido
 
-Só precisa do Node. Sem configurar nada no Google:
-
-```bash
-cd frontend
-copy .env.example .env.local   # no Linux: cp .env.example .env.local
-npm install                    # já feito se você seguiu a migração
-```
-
-No arquivo `frontend/.env.local`, coloque:
-
-```
-NEXT_PUBLIC_DEMO=1
-```
-
-Rode `npm run dev` e abra **http://localhost:3000** — o app entra direto numa
-conta demo **do nutricionista**, com alunos, treinos e dietas de exemplo
-(alunos, CRUD, duplicação, timeline e finalização de treino funcionam; tudo
-fica salvo no navegador). Troque para `NEXT_PUBLIC_DEMO=0` quando for conectar
-o Firebase de verdade.
-
-> O modo demo simula o backend Go inteiro em memória/localStorage — útil
-> também pra entender o fluxo antes de subir o Cloud Run.
+O modo demo (`NEXT_PUBLIC_DEMO`) foi **removido do código do frontend** em
+30/09/2026 — o app hoje só roda conectado ao Firebase. A decisão sobre a
+remoção definitiva (ou eventual retorno) está em aberto na pergunta **P2** de
+`docs/simplificacao/04-perguntas.md`.
 
 > ⚠️ **Windows Defender**: o `go build` local às vezes é bloqueado com
 > "contém um vírus ou software potencialmente indesejado" — é falso positivo
@@ -518,7 +512,7 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | GET    | `/api/state`                  | Lê a última posição (semana/dia)           |
 | PUT    | `/api/state`                  | Salva a última posição                     |
 
-### Gestão (nutricionista/admin/aluno) — nova área
+### Gestão (admin/aluno)
 
 | Método | Rota                          | Descrição                                  |
 |--------|-------------------------------|--------------------------------------------|
@@ -532,9 +526,9 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 | POST   | `/api/users/{id}/assign-plan` | Atribui plano (snapshot das features no perfil) |
 | GET/POST | `/api/plans`               | Lista/cria planos (admin)                   |
 | GET/PUT/DELETE | `/api/plans/{id}`    | Edita/exclui plano (admin; exclusão bloqueada se em uso) |
-| GET    | `/api/students`               | Alunos (nutricionista: os dele; admin: todos, inclusive sem nutricionista/plano) |
+| GET    | `/api/students`               | Alunos (admin: todos)                                 |
 | GET    | `/api/students/{id}`          | Detalhe de um aluno                         |
-| PUT    | `/api/students/{id}`          | Nutricionista edita dados do próprio aluno  |
+| PUT    | `/api/students/{id}`          | Edita dados do aluno (admin)                          |
 | GET/POST | `/api/workouts`             | Lista/cria treinos                          |
 | GET/PUT/DELETE | `/api/workouts/{id}`  | Edita/exclui treino                         |
 | POST   | `/api/workouts/{id}/duplicate`| Duplica treino (para outro aluno)           |
@@ -568,8 +562,8 @@ Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
 
 ### Modelo de dados (gestão)
 
-Existe um coleção de **perfis** em `users/{uid}` (nome, email, role, status,
-nutritionistID…) e três coleções raiz gerenciadas **somente pela API Go** (o
+Existe um coleção de **perfis** em `users/{uid}` (nome, email, role, status…)
+e três coleções raiz gerenciadas **somente pela API Go** (o
 cliente não as acessa direto — as regras em `firestore.rules` negam):
 
 - `workouts/{id}` — treino com `exercises: [...]` embutido (nome, séries,
@@ -579,14 +573,15 @@ cliente não as acessa direto — as regras em `firestore.rules` negam):
 - `workoutHistory/{id}` — registro de treino concluído (percentual, duração,
   data, exercícios). O aluno marca **séries executadas** (peso/reps) no modal de
   conclusão — elas ficam no campo `exercises` do registro e aparecem no
-  histórico do nutricionista (aluno, timeline e exportação CSV em Atividades).
+  histórico da área de gestão/admin (aluno, timeline e exportação CSV em Atividades).
 
-**Papéis** (`role`): `admin` (vê tudo), `nutritionist` (só o que criou),
-`student` (só o próprio). **Status** (`status`): `pending_approval` (aguardando
+**Papéis** (`role`): apenas dois — `admin` (gestão completo: alunos, treinos,
+dietas, programas, biblioteca de exercícios, planos, aprovação de cadastros;
+vê tudo) e `student` (só o próprio recurso). **Status** (`status`): `pending_approval` (aguardando
 admin; fica bloqueado no app atrás da tela PendingApproval), `active`
 (aprovado), `rejected` (recusado — a conta Firebase é excluída, o documento
 fica para auditoria), `inactive`/`paused` (desligado manualmente). O
-nutricionista gerencia **treinos por dia da semana** e dietas com
+admin gerencia **treinos por dia da semana** e dietas com
 **refeições/alimentos**, além de duplicar treinos e dietas para outros alunos.
 
 **Planos e features**: o admin cria **planos** (`plans/{id}`) com um pacote de
@@ -615,15 +610,15 @@ aluno passa a acessar o app com as features do plano.
 cd frontend && npm run dev     # desenvolvimento
 cd frontend && npm run build   # build server (standalone)
 cd frontend && npm run lint    # ESLint (0/0)
-cd frontend && npm test        # Vitest (61/61)
-cd frontend && npm run test:e2e # Playwright E2E (23/23 — sobe emuladores + backend + seed)
+cd frontend && npm test        # Vitest (104/104)
+cd frontend && npm run test:e2e # Playwright E2E (30/30 — sobe emuladores + backend + seed)
 
 # Backend (local, com service account)
 cd backend && go run .
-cd backend && go test ./...   # testes (handlers, repository, service) — 147/147
+cd backend && go test ./...   # testes (handlers, repository, service) — 206/206
 
 # Firestore rules (emulador; exige Java)
-cd firestore-tests && npm test  # 64/64 — sobe/derruba o emulador sozinho
+cd firestore-tests && npm test  # 86/86 — sobe/derruba o emulador sozinho
 
 # Deploy (região padrão usada no projeto: southamerica-east1)
 # frontend: gcloud builds submit frontend --tag southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web

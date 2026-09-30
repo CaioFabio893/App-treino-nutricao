@@ -4,6 +4,14 @@ Status: Mapeamento do modelo V1 + direção V2 (Fase 0).
 Fonte: `backend/repository/repository.go`, `backend/models/types.go`,
 `firestore.rules`, `firestore.indexes.json`.
 
+> **Estado da refatoração**: o plano vive em `docs/simplificacao/03-plano.md`
+> (decisões de produto em aberto em `docs/simplificacao/04-perguntas.md` —
+> P1–P8, com P1/P2 bloqueantes). **F4 (papel `nutritionist` → `admin`) já foi
+> executado, ainda sem commit**; F1 (gamificação), F2 (comunidade), F3
+> (planos/features), F5 (escrita do participante), F6 (modelo final +
+> reindex) e F7 (provar a regra de acesso) estão **planejados, não
+> executados**. Este documento descreve o código de HOJE.
+
 ## Convenções
 
 - IDs: documentos usam auto-IDs (`Add`) ou chaves determinísticas
@@ -31,37 +39,49 @@ Fonte: `backend/repository/repository.go`, `backend/models/types.go`,
 | `dietLogs/{studentID_date}` | DietDailyLog | determinística | API Go |
 | `scores/{uid}` | ScoreRecord | uid | API Go |
 | `scores_history/{uid}/cycles/{cycleID}` | ScoreHistoryEntry | cycleID | API Go |
-| `programs/{id}` | TrainingProgram (referências ordenadas a WorkoutDefine) | auto | API Go (nutritionist/admin) |
+| `programs/{id}` | TrainingProgram (referências ordenadas a WorkoutDefine) | auto | API Go (admin) |
+
+> **Remoções planejadas pela simplificação (F1–F3), ainda presentes no
+> código**: as coleções `scores`, `scores_history` (F1 gamificação),
+> `posts` (F2 comunidade) e `plans` (F3 planos/features) existem e são
+> usadas hoje — a remoção está **planejada, não executada**.
 
 ## Detalhes por entidade
 
 ### UserProfile (`users/{uid}`)
 ```
-id, name, email, photoURL, bio, role (admin|nutritionist|student),
-nutritionistID, startDate, endDate, status, createdAt,
+id, name, email, photoURL, bio, role (admin|student),
+startDate, endDate, status, createdAt,
 planID, features[], authProvider, approvedBy, approvedAt, rejectedReason
 ```
+- Papéis: **2 apenas** — `RoleAdmin = "admin"` e `RoleStudent = "student"`
+  (`backend/models/types.go:12-15`). `RoleNutritionist` e o campo
+  `nutritionistID` **não existem mais** em `UserProfile`
+  (`backend/models/types.go:53-72`).
 - Status: `pending_approval`, `active`, `paused`, `inactive`, `rejected`.
 - Criação: **sempre `pending_approval`** sem campos administrativos
   (regra `isPendingSelfProfile`); admin define role/plano/status.
-- `features[]` é **snapshot** do plano no momento da atribuição.
+- `features[]` é **snapshot** do plano no momento da atribuição
+  (remoção planejada — F3, ainda presente no código).
 
-### Plan (`plans/{planId}`)
+### Plan (`plans/{planId}`) — presente hoje, remoção planejada (F3)
 ```
 name, description, features[] (workouts|diet|community|ranking), active,
 createdAt, updatedAt
 ```
 - `workouts` (treino) é sempre liberado; plano adiciona as demais features.
 - Exclusão bloqueada (409) quando algum aluno usa (`CountStudentsWithPlan`).
+- **Ainda existe no código**: `plans` é removido apenas no plano F3
+  (`docs/simplificacao/03-plano.md`) — ainda não executado.
 
 ### WorkoutDefine (`workouts/{id}`)
 ```
-studentId, nutritionistId, name, description, objective, dayOfWeek,
+studentId, name, description, objective, dayOfWeek,
 exercises[] {id, name, description, sets, repetitions, weight, restSeconds,
             videoUrl, notes, order}, createdAt, updatedAt
 ```
-- Ownership: nutricionista não transfere para outro nutricionista via body
-  (backend força o `NutritionistID` do registro — seção 3.4, já corrigido).
+- Sem `nutritionistId` no documento (`backend/models/types.go:78-88`).
+- Ownership: o vínculo não é transferível via body (campo não existe mais).
 - Pode existir como **template** (studentId vazio) para duplicar depois.
 
 ### ExerciseItem (`exercises/{id}` — biblioteca global, F5)
@@ -69,7 +89,7 @@ exercises[] {id, name, description, sets, repetitions, weight, restSeconds,
 id, name, description, muscleGroup, equipment, videoUrl,
 createdAt, updatedAt
 ```
-- Catálogo GLOBAL compartilhado (sem ownerId). Nutricionista/admin mantêm;
+- Catálogo GLOBAL compartilhado (sem ownerId). Admin mantêm;
   alunos apenas consultam.
 - Listagem ordenada por `name` (índice automático de campo único — nenhum
   índice composto manual).
@@ -79,39 +99,43 @@ createdAt, updatedAt
 
 ### Diet (`diets/{id}`)
 ```
-studentId, nutritionistId, name, description, startDate, endDate,
+studentId, name, description, startDate, endDate,
 content (texto livre) OU meals[] {id, name, time, notes, order, foods[]},
 createdAt, updatedAt
 ```
+- Sem `nutritionistId` no documento (`backend/models/types.go:165-176`).
 
 ### TrainingProgram (`programs/{id}` — F19)
 ```
 id, name, description, objective, notes, source,
-nutritionistId, studentId, workouts[] {workoutId, order, label, name, dayOfWeek},
+studentId, workouts[] {workoutId, order, label, name, dayOfWeek},
 createdAt, updatedAt
 ```
+- Sem `nutritionistId` no documento (`backend/models/types.go:115-126`).
 - Um programa de treino **NÃO é entidade nova**: cada elemento de `workouts[]`
   é uma referência a um `WorkoutDefine` já existente em `workouts/{id}`.
   O programa guarda apenas uma lista ordenada de referências (`ProgramWorkout`).
   Isso mantém uma única implementação de treino (histórico, execução, impressão,
   UI do aluno continuam apontando para `workouts/{id}`) e permite reordenar,
   duplicar e reatribuir materializando cópias.
-- `studentId` vazio = programa de biblioteca (nutricionista); definido = programa
+- `studentId` vazio = programa de biblioteca (admin); definido = programa
   atribuído a um aluno (cópia dos treinos via assign).
 - `notes` armazena PRs, periodização e estrutura semanal **verbatim** do markdown.
 - `source` indica a origem da importação (ex.: `"treino.md"`).
-- Ownership imutável (nutricionista não transfere via body).
+- Ownership: `studentId` é tratado como incondicional do registro no
+  `PUT /api/programs/{id}` (reatribuição só via `POST /assign`).
 - Acesso cliente: **totalmente negado** (`allow read, write: if false`) —
   todo acesso passa pela API Go (Admin SDK).
 
 ### WorkoutHistoryEntry (`workoutHistory/{id}`)
 ```
-studentId, workoutId, workoutName, nutritionistId, completedAt,
+studentId, workoutId, workoutName, completedAt,
 duration, exercisesCompleted, totalExercises,
 exercises[] {name, order, sets[] {weight, reps, done}, note}
 ```
+- Sem `nutritionistId` no documento (`backend/models/types.go:215-225`).
 
-### Post (`posts/{id}`)
+### Post (`posts/{id}`) — presente hoje, remoção planejada (F2)
 ```
 userId, userName, userPhotoURL, type (workout|diet|text), text,
 workoutId, workoutName, dietId, dietName, date,
@@ -125,15 +149,16 @@ moderatedBy, moderatedAt, createdAt, updatedAt
 
 ### DietDailyLog (`dietLogs/{studentID_date}`)
 ```
-studentId, nutritionistId, dietId, dietName, date, status
+studentId, dietId, dietName, date, status
 (not_followed|partial|followed), mealChecks[] {mealId, mealName, followed,
 note, updatedAt}, note, caption, postId, createdAt, updatedAt
 ```
+- Sem `nutritionistId` no documento.
 - `dietLogData` preserva `createdAt` quando o log já tem data (só usa
   `ServerTimestamp` em log novo) — mesma regra do `userProfileData` (corrigido
   na Fase 1; regressão em `repository_test.go`).
 
-### ScoreRecord / ScoreHistoryEntry
+### ScoreRecord / ScoreHistoryEntry — presentes hoje, remoção planejada (F1)
 ```
 scores/{uid}: studentId, rawPoints, cycleId ("2026-Q3"), cycleStart, score,
              daysElapsed, daysCompleted, updatedAt
@@ -159,15 +184,25 @@ scores_history/{uid}/cycles/{cycleID}: studentId, cycleId, startDate, endDate,
 | 10 | programs | nutritionistId, createdAt | Asc, Desc | `ListProgramsForNutritionist` |
 | 11 | programs | studentId, createdAt | Asc, Desc | `ListProgramsForStudent` |
 
-> **Achado da Fase 0 (3.2/3.3 adicional):** a query `ListStudents` em
-> `repository.go` combina `role == student` **e** `nutritionistID == uid`
-> (dois filtros de igualdade), o que exige um índice composto
-> `users(role ASC, nutritionistID ASC)` — **ausente do arquivo versionado**.
-> O endpoint `/api/students` do nutricionista funciona em produção, então o
-> índice deve ter sido criado manualmente no console (como o de dietLogs, que
-> o README documenta como `gcloud firestore indexes composite create`). **V2
-> exige que TODOS os índices estejam versionados em `firestore.indexes.json`**
-> e testados por regras/Emulator.
+> **Dívida técnica (F6 — reindex, ainda não executada):** os **4 índices
+> por `nutritionistId`** ainda estão versionados em `firestore.indexes.json`
+> (workouts L20-27, programs L36-43, diets L52-59, workoutHistory L76-83),
+> mas as queries que os usavam — `ListWorkoutsForNutritionist`,
+> `ListDietsForNutritionist`, `ListProgramsForNutritionist` e
+> `ListHistoryForNutritionist` — **não existem mais** em
+> `backend/repository/repository.go` (sobraram só as variantes
+> `...ForStudent` e `ListStudentsAll`, `repository.go:232-233`). Os índices
+> são órfãos do campo `nutritionistId`, removido dos modelos em F4;
+> o reindex para removê-los é F6, ainda planejado.
+
+> **Achado da Fase 0 (3.2/3.3 adicional) — superado:** a query `ListStudents`
+> em `repository.go` combinava `role == student` **e** `nutritionistID == uid`
+> e exigia um índice composto `users(role ASC, nutritionistID ASC)` ausente
+> do arquivo versionado. Essa query **não existe mais**: hoje
+> `GET /api/students` usa `ListStudentsAll` (`backend/handlers/nutrition.go:300`
+> e `repository.go:233`), sem filtro de vínculo. **V2 exige que TODOS os
+> índices estejam versionados em `firestore.indexes.json`** e testados por
+> regras/Emulator.
 
 V1 aprendeu na prática (README): falta de índice → `FAILED_PRECONDITION:
 the query requires an index` e 500 em produção (diet-logs). **V2 testa com
@@ -181,7 +216,7 @@ Fase 1 + hardening pré-F13):
 
 - `users/{uid}`: dono LÊ o próprio perfil; CRIA só o próprio perfil
   `pending_approval` SEM campos administrativos (`isPendingSelfProfile` —
-  role/planID/features/nutritionistID/approvedBy/approvedAt/rejectedReason =
+  role/planID/features/approvedBy/approvedAt/rejectedReason =
   negado); ATUALIZA só os campos da allowlist estrita
   (`allowedSelfProfileUpdate` com `affectedKeys().hasOnly(['name','email',
   'photoURL','bio'])` — qualquer outro campo, inclusive `createdAt` e
@@ -192,15 +227,16 @@ Fase 1 + hardening pré-F13):
   `""|active|paused` ou admin; `pending_approval`/`rejected`/`inactive` ficam
   fora); ESCRITA somente API Go (negada a clientes, inclusive admin).
 - `exercises`: LEITURA para usuário aprovado (aluno consulta); ESCRITA somente
-  API Go (negada a clientes — aluno, nutricionista e admin).
-- `dietLogs`, `scores_history`: leitura do próprio aluno + nutricionista do
-  aluno + admin (aprovados — `canViewStudentData`); escrita só API Go.
+  API Go (negada a clientes — aluno e admin).
+- `dietLogs`, `scores_history`: leitura do próprio aluno + admin
+  (`canViewStudentData` = dono + admin, `firestore.rules:89-96` — modelo de
+  2 papéis, sem terceiro papel de gestão); escrita só API Go.
 - `workouts`, `diets`, `workoutHistory`, `scores`: **negados a clientes**
   (leitura e escrita — só API Go).
 - `programs`: **negados a clientes** (leitura e escrita — só API Go).
   Todo acesso de programas passa pela API Go (Admin SDK ignora as regras).
 - Toda escrita de dados de negócio passa pela API Go desde 20 set 2026 (regras
-  testadas no Emulator — `firestore-tests/`, 76 testes).
+  testadas no Emulator — `firestore-tests/`, **86 testes**).
 
 ## Notas para o V2 (direção)
 

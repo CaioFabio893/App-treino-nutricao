@@ -3,6 +3,11 @@
 Status: **Consultado e aprovado na Fase 0** — registro: `docs/decisions/ADR-001-stack.md`.
 Aplicável a: toda a implementação do V2.
 
+> **Estado da refatoração**: plano em `docs/simplificacao/03-plano.md`;
+> decisões em aberto em `docs/simplificacao/04-perguntas.md` (P1–P8,
+> P1/P2 bloqueantes). **F4 (papel `nutritionist` → `admin`) executado, ainda
+> sem commit**; F1/F2/F3/F5/F6/F7 planejados, não executados.
+
 ## Contexto
 
 O V2 é um rebuild profissional do app "Treino & Nutrição". A V1 roda em
@@ -11,7 +16,7 @@ produção com:
 - **Frontend**: Next.js 16.3.5 (React 19.2.8, TypeScript) — Cloud Run (standalone).
 - **Backend**: API REST em Go 1.23 — Cloud Run (South America East 1).
 - **Banco**: Firestore (NoSQL) + Firebase Auth (e-mail/senha e Google).
-- **Regras/índices**: `firestore.rules` + 9 índices compostos.
+- **Regras/índices**: `firestore.rules` + 11 índices compostos.
 
 O V2 poderia manter essa stack (menor risco, migração incremental) ou trocar
 alguma camada. Esta decisão precisa ser **técnica e registrada**, não
@@ -48,14 +53,15 @@ Justificativa resumida:
 ### 1. Backend — Go > Node.js
 
 - **Correção/segurança**: Go é compilado, com `go vet`, `go test` e
-  `http.ServeMux` com rotas tipadas (Go 1.22+). A V1 já tem **77 testes**
-  incluindo cadeia de autorização completa com fakes (sem Firebase real)
-  em `main_test.go` — prova de que o TDD de backend funciona neste formato.
+  `http.ServeMux` com rotas tipadas (Go 1.22+). O backend tem **206 testes**
+  (medidos em 30/09/2026) incluindo cadeia de autorização completa com fakes
+  (sem Firebase real) em `main_test.go` — prova de que o TDD de backend
+  funciona neste formato.
 - **Performance**: Go é um dos melhores em latência p99 para APIs simples e
   tem runtime de baixa memória (a V1 roda com `--memory 128Mi`).
 - **Simplicidade**: sem runtime JS no servidor de API; binário único, deploy
   trivial no Cloud Run; stdlib cobre 95% das necessidades.
-- **Risco de migração**: trocar Go → Node seria reescrever 77 testes e toda a
+- **Risco de migração**: trocar Go → Node seria reescrever os 206 testes e toda a
   camada de service/repository com o único ganho de "mesma linguagem do
   frontend" — que **não** é critério técnico para este tamanho de produto e
   atrapalha a prioridade Simplicidade.
@@ -67,7 +73,7 @@ correção/testabilidade/manutenibilidade já provadas em Go neste repo.
 
 ### 2. Frontend — Next.js (server) > SPA estática
 
-- **Rotas dinâmicas reais** (`/nutritionist/students/[studentId]`) exigem
+- **Rotas dinâmicas reais** (`/admin/students/[studentId]`) exigem
   servidor Node — a V1 já usa `output: "standalone"` e funciona.
 - **SSR/SSG** ajudam SEO/UX e permitem `next/font` self-hosted (privacidade,
   performance, PWA offline).
@@ -86,7 +92,7 @@ correção/testabilidade/manutenibilidade já provadas em Go neste repo.
 - **Simplicidade**: evita migrar schema relacional, restrições de row-level
   security e o custo/ops de um Postgres gerenciado para um produto deste porte.
 - **Mitigação de desvantagens**: queries exigem índices compostos (já mapeados
-  em `firestore.indexes.json` — 9); a V2 os **testa com Emulator** e os
+  em `firestore.indexes.json` — 11); a V2 os **testa com Emulator** e os
   sincroniza com o código (evita o `FAILED_PRECONDITION: requires index` visto
   em produção na V1 com o endpoint de diet-logs).
 
@@ -114,7 +120,7 @@ correção/testabilidade/manutenibilidade já provadas em Go neste repo.
 
 | Alternativa | Motivo da rejeição |
 |---|---|
-| Backend em Node/Fastify | Reescreve 77 testes sem ganho técnico; fere Simplicidade/Manutenibilidade |
+| Backend em Node/Fastify | Reescreve 206 testes sem ganho técnico; fere Simplicidade/Manutenibilidade |
 | Vite SPA estático | Perde rotas dinâmicas/SSR; PWA e hospedagem ficam mais complexos |
 | Supabase/Postgres | Custo/ops maiores; migração de regras + índices sem ganho para o porte |
 | Auth próprio | Reimplementa segurança sensível sem necessidade (Firebase cobre) |

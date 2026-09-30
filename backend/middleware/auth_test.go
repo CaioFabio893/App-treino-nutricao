@@ -137,16 +137,7 @@ func TestRequireFeature(t *testing.T) {
 		t.Errorf("com diet code = %d, want 200", rr.Code)
 	}
 
-	// Nutricionista (mesmo sem features) → 200.
-	r = httptest.NewRequest("GET", "/api/diets", nil)
-	ctx = context.WithValue(r.Context(), roleKey, models.RoleNutritionist)
-	rr = httptest.NewRecorder()
-	h(rr, r.WithContext(ctx))
-	if rr.Code != http.StatusOK {
-		t.Errorf("nutritionist code = %d, want 200", rr.Code)
-	}
-
-	// Admin → 200.
+	// Admin (mesmo sem features) → 200: admin não passa pelo gate de feature.
 	r = httptest.NewRequest("GET", "/api/diets", nil)
 	ctx = context.WithValue(r.Context(), roleKey, models.RoleAdmin)
 	rr = httptest.NewRecorder()

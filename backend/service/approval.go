@@ -6,11 +6,15 @@ import (
 	"treino-louise/backend/models"
 )
 
-// ApproveUser aprova um cadastro pendente: define papel (student|nutritionist),
-// ativa o perfil (status=active), grava quem/quando aprovou e, para aluno com
-// plano, snapshota as features do plano no perfil.
-func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, role models.Role, planID, nutritionistID string) error {
-	if role != models.RoleStudent && role != models.RoleNutritionist {
+// ApproveUser aprova um cadastro pendente: confirma o papel de aluno, ativa o
+// perfil (status=active), grava quem/quando aprovou e, para aluno com plano,
+// snapshota as features do plano no perfil.
+//
+// Aprovação só concede RoleStudent. O papel de admin não é concedido por esta
+// via (evita escalada de privilégio a partir de um cadastro pendente); admin é
+// definido na criação/edição do usuário pelo admin.
+func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, role models.Role, planID string) error {
+	if role != models.RoleStudent {
 		return ErrInvalidRole
 	}
 
@@ -28,33 +32,23 @@ func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, ro
 	prof.ApprovedAt = Now()
 	prof.RejectedReason = ""
 
-	if role == models.RoleStudent {
-		if nutritionistID != "" {
-			prof.NutritionistID = nutritionistID
+	if planID != "" {
+		plan, err := s.repo.GetPlan(ctx, planID)
+		if err != nil {
+			return err
 		}
-		if planID != "" {
-			plan, err := s.repo.GetPlan(ctx, planID)
-			if err != nil {
-				return err
-			}
-			if plan == nil {
-				return ErrPlanNotFound
-			}
-			if !plan.Active {
-				return ErrPlanInactive
-			}
-			prof.PlanID = plan.ID
-			prof.Features = plan.Features
-		} else {
-			// Aluno aprovado sem plano: sem entitlements além do free tier (workouts).
-			prof.PlanID = ""
-			prof.Features = nil
+		if plan == nil {
+			return ErrPlanNotFound
 		}
+		if !plan.Active {
+			return ErrPlanInactive
+		}
+		prof.PlanID = plan.ID
+		prof.Features = plan.Features
 	} else {
-		// Nutricionista não tem plano nem vínculo com nutricionista.
+		// Aluno aprovado sem plano: sem entitlements além do free tier (workouts).
 		prof.PlanID = ""
 		prof.Features = nil
-		prof.NutritionistID = ""
 	}
 
 	return s.repo.PutUserProfile(ctx, targetID, prof)

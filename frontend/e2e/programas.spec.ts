@@ -4,15 +4,15 @@ import { login, USERS } from "./helpers";
 // F19 — Programa de Treino (coleção que agrupa TREINOS por referência).
 //
 // O teste cobre o caminho completo que elimina a digitação manual:
-//   1. nutricionista importa um programa em MARKDOWN (sem digitar exercício);
+//   1. admin importa um programa em MARKDOWN (sem digitar exercício);
 //   2. confere que os 5 treinos e os 30 exercícios foram criados;
 //   3. duplica o programa para ajustar sem mexer no original;
 //   4. atribui a um aluno (materializa cópias dos treinos);
 //   5. o aluno vê o programa atribuído, em modo leitura.
 //
 // Playwright roda em Desktop Chrome (viewport >= 901px), então a listagem do
-// nutricionista aparece como TABELA (.table-view) e as ações são localizadas
-// pelas linhas. O detalhe fica em ?id=<id> (rota /nutritionist/programs).
+// admin aparece como TABELA (.table-view) e as ações são localizadas
+// pelas linhas. O detalhe fica em ?id=<id> (rota /admin/programs).
 
 // Mesmo formato do material de referência (treino.md), em versão reduzida
 // para o teste: 2 treinos. O volume real (5/30) é validado no parser Go.
@@ -48,15 +48,15 @@ const MARKDOWN = `# Programa de Treino — Louise Lima (Ciclo 2)
 Sem 1-2: 70% · Sem 7: Deload 70%
 `;
 
-test.describe("Programa de treino (nutricionista)", () => {
+test.describe("Programa de treino (admin)", () => {
   test("importa markdown, duplica, atribui a aluno e o aluno visualiza em leitura", async ({
     page,
   }) => {
-    await login(page, USERS.nutritionist.email, USERS.nutritionist.password);
-    await page.waitForURL("**/nutritionist");
+    await login(page, USERS.admin.email, USERS.admin.password);
+    await page.waitForURL("**/admin");
 
     // ── 1. Importação a partir do markdown ─────────────────────────────────
-    await page.goto("/nutritionist/programs");
+    await page.goto("/admin/programs");
     await expect(page.getByRole("heading", { name: "Programas" })).toBeVisible();
     await page.getByRole("button", { name: "Importar de .md" }).click();
 
@@ -86,13 +86,13 @@ test.describe("Programa de treino (nutricionista)", () => {
     // Origem registrada.
     await expect(page.getByRole("link", { name: "Editar" })).toHaveAttribute(
       "href",
-      /\/nutritionist\/programs\?edit=/
+      /\/admin\/programs\?edit=/
     );
 
     const detailUrl = page.url();
 
     // ── 3. Duplicar preserva o original ────────────────────────────────────
-    await page.goto("/nutritionist/programs");
+    await page.goto("/admin/programs");
     const table = page.locator(".table-view");
     // O nome da cópia CONTÉM o do original, então o filtro precisa excluir
     // "(copia)" para não casar com as duas linhas.
@@ -136,7 +136,7 @@ test.describe("Programa de treino (nutricionista)", () => {
     await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Imprimir" })).toHaveCount(0);
 
-    // A rota do detalhe do nutricionista continua acessível pelo backend.
-    expect(detailUrl).toContain("/nutritionist/programs?id=");
+    // A rota do detalhe do admin continua acessível pelo backend.
+    expect(detailUrl).toContain("/admin/programs?id=");
   });
 });
