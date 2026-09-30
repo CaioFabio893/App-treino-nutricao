@@ -1,3 +1,8 @@
+> Atualização atual: web treino-web-00019-xak com execução de séries, cargas,
+> repetições, sucesso/falha, cronômetro, PRs, semanas e histórico local por conta.
+> Programa do aluno e biblioteca reparados: 2 programas, 10 treinos; existentes
+> preservados. Ver app-execucao-exemplo-2026-09-30.md para instruções e rollback.
+> As indicações de web e inventário abaixo são históricas.
 > Atualização posterior: programa completo do exemplo cadastrado na biblioteca,
 > A–E/30 exercícios/103 séries. Programas → Associar programa inteiro → aluno.
 > Web atual treino-web-00016-juj. Há 2 contas/perfis reais, zero fixtures.

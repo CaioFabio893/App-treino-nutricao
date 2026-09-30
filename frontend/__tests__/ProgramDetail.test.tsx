@@ -153,9 +153,11 @@ describe("ProgramDetail — visão do aluno (read-only)", () => {
     expect(screen.queryByRole("link", { name: "Imprimir" })).not.toBeInTheDocument();
   });
 
-  it("mostra os mesmos exercícios, só que somente leitura", async () => {
+  it("permite executar séries sem editar a prescrição", async () => {
     render(<ProgramDetail programId="p1" readOnly backHref="/programas" backLabel="Seu programa" />);
-    expect(await screen.findByText("Agachamento Livre com Barra")).toBeInTheDocument();
-    expect(screen.getByText("Hack Squat")).toBeInTheDocument();
+    expect((await screen.findAllByText("Agachamento Livre com Barra")).length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Hack Squat").length).toBeGreaterThan(0);
+    expect(screen.getByLabelText("Agachamento Livre com Barra série 1 carga")).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
   });
 });

@@ -6,11 +6,12 @@ Fonte operacional: docs/reports/production-reset-and-rollout-2026-09-30.md.
 ## Produção atual
 
 Projeto treino-louise, Firestore (default), região southamerica-east1.
-API treino-api-00016-gic e web treino-web-00016-juj, ambas com 100% tráfego.
+API treino-api-00016-gic e web treino-web-00019-xak, ambas com 100% tráfego.
 https://treino-web-834622951375.southamerica-east1.run.app
 Admin preservado: caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
 UID/senha/perfil preservados. Duas contas e nove documentos reais removidos;
-Reset anterior concluído. Depois, exemplo A–E cadastrado: 1 programa e 5 treinos.
+Reset anterior concluído. Exemplo A–E: 2 programas e 10 treinos, biblioteca e
+programa completo do aluno separados, preservando os 5 treinos já atribuídos.
 Inventário atual: 2 contas/perfis reais; zero fixtures. Não repetir reset.
 Regras publicadas; três índices necessários READY, antigos mantidos.
 Chave Web antiga excluída: teste mesma origem antiga400/expired, nova200.
@@ -19,6 +20,11 @@ Google não configurado; conta preservada já possuía password, sem migração.
 API aceita somente claim verificada password e verifica revogação/exclusão.
 
 ## Autorização atual
+
+Pedido posterior: reproduzir as funções do app de exemplo, incluindo execução.
+Painel com séries/carga/reps/resultados, cronômetro, PRs, oito semanas e histórico
+implementado. Registros pessoais locais por UID/programa; sem sincronização cloud.
+Consultar docs/reports/app-execucao-exemplo-2026-09-30.md para uso e rollback.
 
 Dono autorizou executar todas as pendências e depois excluir dados/contas,
 preservando só seu administrador. Isso substitui o antigo plano-only K6,

@@ -105,6 +105,13 @@ test.describe("Programa de treino (admin)", () => {
     // ... mas sem ações de escrita.
     await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Imprimir" })).toHaveCount(0);
+    await page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true }).fill("40");
+    await page.getByLabel("Agachamento Livre com Barra série 1 repetições", { exact: true }).fill("8");
+    await page.getByRole("button", { name: "Agachamento Livre com Barra série 1: não marcada", exact: true }).click();
+    await expect(page.getByText("1 / 19 séries concluídas com sucesso")).toBeVisible();
+    await page.reload();
+    await expect(page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true })).toHaveValue("40");
+    await expect(page.getByRole("button", { name: "Agachamento Livre com Barra série 1: conseguiu", exact: true })).toBeVisible();
 
     // A rota do detalhe do admin continua acessível pelo backend.
     expect(detailUrl).toContain("/admin/programs?id=");

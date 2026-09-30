@@ -1,9 +1,9 @@
 # Gates pós-rollout/reset — 30/09/2026
 
 go=188 PASS (go vet limpo)
-vitest=124 PASS (21 arquivos)
+vitest=129 PASS (22 arquivos; execução do programa)
 rules=106 PASS (gate anterior; rules sem mudança, compilação/deploy PASS)
-e2e=31 PASS (1.6 min; programa exemplo integral A-E)
+e2e=31 PASS (1.5 min; programa integral e recuperação das séries após reload)
 tsc=OK
 lint=0/0
 build=OK (Cloud Build final: Go e Next standalone)
@@ -11,9 +11,9 @@ production_api=61 PASS
 production_browser=8 PASS (viewport mobile simulada e desktop)
 key_rotation=old400 expired / new200 / forbidden-origin403
 reset_anterior=1 conta + 1 perfil admin / zero dados (histórico antes do exemplo)
-program_example=1 programa + 5 treinos / 30 exercícios / 103 séries
+program_example=2 programas + 10 treinos / biblioteca e aluno independentes
 program_assignment=PASS em produção (A-E completos)
-program_ui=6 PASS em produção
+program_ui=13 PASS em produção (séries/reload/PRs/semanas/histórico/cronômetro/cardio)
 current_auth=2 contas reais / zero fixtures
 # docs/reports/production-reset-and-rollout-2026-09-30.md
 # Dispositivos físicos e aceite humano continuam pendentes.

@@ -6,11 +6,14 @@ import * as api from "@/lib/api";
 import type { WorkoutDefine } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 import LoadError from "@/components/LoadError";
+import Link from "next/link";
+import WorkoutPlayer from "@/components/programs/WorkoutPlayer";
 import { APP_TIME_ZONE, WEEK_DAY_KEY, WEEK_DAY_LABEL, todayDateLabel } from "@/lib/days";
 
-/** Consulta dos treinos atribuídos: seleção local, sem registrar execução. */
+/** Prescrição atribuída com acesso à execução pessoal salva no navegador. */
 export default function StudentWorkoutsPage() {
-  const { getToken, profile } = useAuth();
+  const { getToken, profile, user } = useAuth();
+  const [playing, setPlaying] = useState(false);
   const [workouts, setWorkouts] = useState<WorkoutDefine[]>([]);
   const [selectedId, setSelectedId] = useState("");
   const [ready, setReady] = useState(false);
@@ -34,6 +37,7 @@ export default function StudentWorkoutsPage() {
   return (
     <div>
       <div className="page-head"><div><h1>Seus treinos</h1><div className="page-sub">{todayDateLabel()}</div></div></div>
+      <Link className="btn-sm acc" href="/programas">Abrir programa completo: cronômetro, séries e progresso</Link>
       {loadError ? <LoadError message="Não foi possível carregar seus treinos." onRetry={() => void load()} /> : workouts.length === 0 ? (
         <div className="empty-box">Nenhum treino atribuído a você ainda.</div>
       ) : (
@@ -45,6 +49,8 @@ export default function StudentWorkoutsPage() {
             </button>)}
           </div>
           {selected && <section className="stu-card" aria-label="Detalhes do treino">
+            <button type="button" className="btn-sm acc" onClick={() => setPlaying(!playing)}>{playing ? "Fechar execução" : "Iniciar este treino"}</button>
+            {playing && profile?.id && <WorkoutPlayer userId={user?.uid ?? profile.id} programId={`workout:${selected.id}`} workouts={[selected]} />}
             <h2 className="stu-card-title">{selected.name}</h2>
             {selected.description && <p style={{ whiteSpace: "pre-wrap" }}>{selected.description}</p>}
             {selected.objective && <p>Objetivo: {selected.objective}</p>}

@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import type { ProgramWorkout, TrainingProgram, WorkoutDefine } from "@/lib/types";
 import { dayLabel, PROGRAM_DAY_FULL, programExerciseCount } from "@/lib/programDays";
 import LoadError from "@/components/LoadError";
+import WorkoutPlayer from "./WorkoutPlayer";
 
 interface Props {
   programId: string;
@@ -26,7 +27,8 @@ type Status = "loading" | "ready" | "error";
  * contamos quantos resolveram, sinalizando os que sumiram.
  */
 export default function ProgramDetail({ programId, readOnly, backHref, backLabel }: Props) {
-  const { getToken } = useAuth();
+  const { getToken, user, profile } = useAuth();
+  const [preview, setPreview] = useState(false);
   const [program, setProgram] = useState<TrainingProgram | null>(null);
   const [workouts, setWorkouts] = useState<Record<string, WorkoutDefine>>({});
   const [missing, setMissing] = useState<string[]>([]);
@@ -173,6 +175,11 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
         </div>
       )}
 
+      {!readOnly && <button type="button" className="btn-sm acc" onClick={() => setPreview(!preview)}>{preview ? "Fechar execução" : "Abrir app de treino / testar execução"}</button>}
+      {(readOnly || preview) && (user?.uid || profile?.id) && <WorkoutPlayer userId={user?.uid ?? profile!.id} programId={programId} workouts={ordered.flatMap(ref => workouts[ref.workoutId] ? [workouts[ref.workoutId]] : [])} labels={ordered.filter(ref => workouts[ref.workoutId]).map((ref, i) => ref.label ?? String.fromCharCode(65 + i))} periodized={Boolean(program.notes?.includes("82,5%"))} />}
+
+      <details open={!readOnly}>
+      <summary className="section-label">Consultar prescrição completa</summary>
       <div className="section-label">Treinos do programa</div>
 
       {ordered.length === 0 ? (
@@ -275,6 +282,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
           ? ordered.map((r) => dayLabel(workouts[r.workoutId]?.dayOfWeek || r.dayOfWeek)).join(" · ")
           : "—"}
       </div>
+      </details>
     </div>
   );
 }
