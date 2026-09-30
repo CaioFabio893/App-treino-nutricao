@@ -4,6 +4,17 @@
 
 ---
 
+## 30/09/2026 — F2 comunidade removida (Codex)
+
+- Removidos posts, comentários, likes, feed, publicação automática e perfil
+  social; foto/bio retirados, Avatar preservado com iniciais.
+- Regressões: URLs sociais 404, posts legados e update foto/bio negados.
+- Gates medidos: Go 185/vet limpo, Vitest 99, rules 88, E2E 28 (1,7 min),
+  tsc/lint/build OK. Memória e relatório F2 atualizados.
+- Índice de posts removido somente localmente. Sem deleção real/push/deploy.
+- Próxima fase F3 planos/features; preserva aprovação/papéis/ownership.
+
+
 ## 30/09/2026 — F1 gamificação: checkpoint verde (Codex assume OpenCode)
 
 - Dono autorizou Codex a executar também volume, testes e documentação após

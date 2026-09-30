@@ -1,11 +1,12 @@
 "use client";
 
+import Avatar from "@/components/Avatar";
+
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Plan, UserProfile } from "@/lib/types";
 import { AdminSkeleton } from "@/components/Skeleton";
-import Avatar from "@/components/Avatar";
 import PendingApprovals from "@/components/admin/PendingApprovals";
 import PlansManager from "@/components/admin/PlansManager";
 
@@ -251,11 +252,7 @@ export default function AdminPage() {
           <div key={u.id} className="nut-card">
             <div className="nut-card-head">
               <div className="avatar">
-                {u.photoURL ? (
-                  <Avatar src={u.photoURL} alt={u.name} />
-                ) : (
-                  u.name?.charAt(0)?.toUpperCase() || "?"
-                )}
+                <Avatar alt={u.name} />
               </div>
               <div>
                 <div className="nut-card-title">{u.name || u.id}</div>

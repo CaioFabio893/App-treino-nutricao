@@ -20,12 +20,12 @@
 //   - "pending_approval", "rejected" e "inactive" (bloqueado) NÃO acessam
 //     recursos de negócio. Admin sempre passa (bypass de status).
 //   - Perfil do usuário: o próprio dono lê/cria/edita SOMENTE os campos da
-//     allowlist (name, email, photoURL, bio); tudo o mais — role, status,
+//     allowlist (name, email); tudo o mais — role, status,
 //     planID, features, approvedBy, approvedAt,
 //     rejectedReason, createdAt, authProvider, startDate... — muda SOMENTE
 //     pela API Go, nunca por SDK de cliente, nem admin (hasOnly nega até
 //     combinações "campo legítimo + campo sensível" no mesmo update).
-//   - Escrita de dados de negócio (posts, dietLogs, workouts, diets,
+//   - Escrita de dados de negócio (dietLogs, workouts, diets,
 //     workoutHistory, plans): SOMENTE pela API Go.
 //     O cliente (SDK) tem acesso de LEITURA quando autorizado (aprovado +
 //     relação dono/admin no caso de dados de aluno).
@@ -96,7 +96,7 @@ service cloud.firestore {
     }
     // Allowlist estrita dos campos que o DONO pode alterar no próprio perfil
     // via SDK de cliente. Derivada dos fluxos reais (GET/PUT /api/me: name,
-    // email, photoURL, bio). Qualquer outro campo — incluindo createdAt e
+    // email). Qualquer outro campo — incluindo createdAt e
     // authProvider (controles internos de escrita) — só muda pela API Go
     // (Admin SDK, que ignora estas regras). affectedKeys().hasOnly() bloqueia
     // o update INTEIRO se QUALQUER outra chave for tocada: uma requisição
@@ -106,9 +106,7 @@ service cloud.firestore {
     function allowedSelfProfileUpdate() {
       return request.resource.data.diff(resource.data).affectedKeys().hasOnly([
         'name',
-        'email',
-        'photoURL',
-        'bio'
+        'email'
       ]);
     }
 
@@ -133,14 +131,6 @@ service cloud.firestore {
       allow create: if isOwner(uid) && isPendingSelfProfile();
       allow update: if isOwner(uid) && allowedSelfProfileUpdate();
       allow delete: if false;
-    }
-
-    // ── Feed ──
-    // Leitura: aprovados (feed é recurso de comunidade; pendente/bloqueado
-    // não acessa). Escrita: SOMENTE pela API Go (transações corrigem race).
-    match /posts/{postId} {
-      allow read: if canUseBusinessResources();
-      allow create, update, delete: if false;
     }
 
     // ── Log diário de dieta ──

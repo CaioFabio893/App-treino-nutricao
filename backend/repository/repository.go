@@ -5,8 +5,6 @@ package repository
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"time"
 
 	"cloud.google.com/go/firestore"
@@ -15,15 +13,6 @@ import (
 	"google.golang.org/grpc/status"
 
 	"treino-louise/backend/models"
-)
-
-// Erros sentinela de domínio do feed, traduzidos em HTTP pelos handlers.
-var (
-	// ErrPostNotFound indica que o post não existe (nem como documento) ou já
-	// foi removido por moderação no momento da transação.
-	ErrPostNotFound = errors.New("post nao encontrado")
-	// ErrCommentNotFound indica que o comentário alvo não existe mais.
-	ErrCommentNotFound = errors.New("comentario nao encontrado")
 )
 
 // Estrutura no Firestore:
@@ -99,21 +88,6 @@ type Repository interface {
 	ListHistory(ctx context.Context) ([]*models.WorkoutHistoryEntry, error)
 	ListHistoryForStudentSince(ctx context.Context, studentID string, since, until time.Time) ([]*models.WorkoutHistoryEntry, error)
 
-	// Rede social: posts
-	CreatePost(ctx context.Context, p *models.Post) (*models.Post, error)
-	GetPost(ctx context.Context, id string) (*models.Post, error)
-	ListPosts(ctx context.Context, limit int, cursor string) ([]*models.Post, string, error)
-	// UpdatePostTx executa leitura-modificação-escrita de um post DENTRO de uma
-	// transação (RunTransaction): o post atual é lido, passado para mutate (que
-	// pode abortar devolvendo erro), e regravado na mesma transação. Elimina a
-	// race do feed (curtidas/comentários perdidos) do padrão antigo
-	// GetPost→modifica→UpdatePost.
-	UpdatePostTx(ctx context.Context, id string, mutate func(*models.Post) error) error
-	DeletePost(ctx context.Context, id string) error
-	// FindAutoPostToday devolve o post automático do tipo dado criado a partir
-	// de start (inclusive) pelo aluno — para não publicar duas vezes no dia.
-	FindAutoPostToday(ctx context.Context, userID string, postType models.PostType, start time.Time) (*models.Post, error)
-
 	// Dieta diária
 	GetDietLog(ctx context.Context, studentID, date string) (*models.DietDailyLog, error)
 	PutDietLog(ctx context.Context, log *models.DietDailyLog) error
@@ -186,22 +160,20 @@ func userProfileData(p *models.UserProfile) map[string]any {
 		createdAt = p.CreatedAt
 	}
 	return map[string]any{
-		"name":            p.Name,
-		"email":           p.Email,
-		"photoURL":        p.PhotoURL,
-		"bio":             p.Bio,
-		"role":            string(p.Role),
-		"startDate":       p.StartDate,
-		"endDate":         p.EndDate,
-		"status":          p.Status,
-		"planID":          p.PlanID,
-		"features":        p.Features,
-		"authProvider":    p.AuthProvider,
-		"approvedBy":      p.ApprovedBy,
-		"approvedAt":      p.ApprovedAt,
-		"rejectedReason":  p.RejectedReason,
-		"createdAt":       createdAt,
-		"updatedAt":       firestore.ServerTimestamp,
+		"name":           p.Name,
+		"email":          p.Email,
+		"role":           string(p.Role),
+		"startDate":      p.StartDate,
+		"endDate":        p.EndDate,
+		"status":         p.Status,
+		"planID":         p.PlanID,
+		"features":       p.Features,
+		"authProvider":   p.AuthProvider,
+		"approvedBy":     p.ApprovedBy,
+		"approvedAt":     p.ApprovedAt,
+		"rejectedReason": p.RejectedReason,
+		"createdAt":      createdAt,
+		"updatedAt":      firestore.ServerTimestamp,
 	}
 }
 
@@ -361,14 +333,14 @@ func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {
 
 func (r *firestoreRepo) CreateWorkout(ctx context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error) {
 	ref, _, err := r.fs.Collection("workouts").Add(ctx, map[string]any{
-		"studentId":      w.StudentID,
-		"name":           w.Name,
-		"description":    w.Description,
-		"objective":      w.Objective,
-		"dayOfWeek":      w.DayOfWeek,
-		"exercises":      w.Exercises,
-		"createdAt":      firestore.ServerTimestamp,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   w.StudentID,
+		"name":        w.Name,
+		"description": w.Description,
+		"objective":   w.Objective,
+		"dayOfWeek":   w.DayOfWeek,
+		"exercises":   w.Exercises,
+		"createdAt":   firestore.ServerTimestamp,
+		"updatedAt":   firestore.ServerTimestamp,
 	})
 	if err != nil {
 		return nil, err
@@ -429,13 +401,13 @@ func workoutsFromIter(iter docIterator) ([]*models.WorkoutDefine, error) {
 
 func (r *firestoreRepo) UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error {
 	_, err := r.fs.Collection("workouts").Doc(id).Set(ctx, map[string]any{
-		"studentId":      w.StudentID,
-		"name":           w.Name,
-		"description":    w.Description,
-		"objective":      w.Objective,
-		"dayOfWeek":      w.DayOfWeek,
-		"exercises":      w.Exercises,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   w.StudentID,
+		"name":        w.Name,
+		"description": w.Description,
+		"objective":   w.Objective,
+		"dayOfWeek":   w.DayOfWeek,
+		"exercises":   w.Exercises,
+		"updatedAt":   firestore.ServerTimestamp,
 	}, firestore.MergeAll)
 	return err
 }
@@ -453,15 +425,15 @@ func (r *firestoreRepo) DeleteWorkout(ctx context.Context, id string) error {
 
 func (r *firestoreRepo) CreateProgram(ctx context.Context, p *models.TrainingProgram) (*models.TrainingProgram, error) {
 	ref, _, err := r.fs.Collection("programs").Add(ctx, map[string]any{
-		"studentId":      p.StudentID,
-		"name":           p.Name,
-		"description":    p.Description,
-		"objective":      p.Objective,
-		"workouts":       p.Workouts,
-		"notes":          p.Notes,
-		"source":         p.Source,
-		"createdAt":      firestore.ServerTimestamp,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   p.StudentID,
+		"name":        p.Name,
+		"description": p.Description,
+		"objective":   p.Objective,
+		"workouts":    p.Workouts,
+		"notes":       p.Notes,
+		"source":      p.Source,
+		"createdAt":   firestore.ServerTimestamp,
+		"updatedAt":   firestore.ServerTimestamp,
 	})
 	if err != nil {
 		return nil, err
@@ -524,14 +496,14 @@ func programsFromIter(iter docIterator) ([]*models.TrainingProgram, error) {
 // gravado na criação (regra: createdAt NUNCA é sobrescrito).
 func (r *firestoreRepo) UpdateProgram(ctx context.Context, id string, p *models.TrainingProgram) error {
 	_, err := r.fs.Collection("programs").Doc(id).Set(ctx, map[string]any{
-		"studentId":      p.StudentID,
-		"name":           p.Name,
-		"description":    p.Description,
-		"objective":      p.Objective,
-		"workouts":       p.Workouts,
-		"notes":          p.Notes,
-		"source":         p.Source,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   p.StudentID,
+		"name":        p.Name,
+		"description": p.Description,
+		"objective":   p.Objective,
+		"workouts":    p.Workouts,
+		"notes":       p.Notes,
+		"source":      p.Source,
+		"updatedAt":   firestore.ServerTimestamp,
 	}, firestore.MergeAll)
 	return err
 }
@@ -545,15 +517,15 @@ func (r *firestoreRepo) DeleteProgram(ctx context.Context, id string) error {
 
 func (r *firestoreRepo) CreateDiet(ctx context.Context, d *models.Diet) (*models.Diet, error) {
 	ref, _, err := r.fs.Collection("diets").Add(ctx, map[string]any{
-		"studentId":      d.StudentID,
-		"name":           d.Name,
-		"description":    d.Description,
-		"startDate":      d.StartDate,
-		"endDate":        d.EndDate,
-		"content":        d.Content,
-		"meals":          d.Meals,
-		"createdAt":      firestore.ServerTimestamp,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   d.StudentID,
+		"name":        d.Name,
+		"description": d.Description,
+		"startDate":   d.StartDate,
+		"endDate":     d.EndDate,
+		"content":     d.Content,
+		"meals":       d.Meals,
+		"createdAt":   firestore.ServerTimestamp,
+		"updatedAt":   firestore.ServerTimestamp,
 	})
 	if err != nil {
 		return nil, err
@@ -614,14 +586,14 @@ func dietsFromIter(iter docIterator) ([]*models.Diet, error) {
 
 func (r *firestoreRepo) UpdateDiet(ctx context.Context, id string, d *models.Diet) error {
 	_, err := r.fs.Collection("diets").Doc(id).Set(ctx, map[string]any{
-		"studentId":      d.StudentID,
-		"name":           d.Name,
-		"description":    d.Description,
-		"startDate":      d.StartDate,
-		"endDate":        d.EndDate,
-		"content":        d.Content,
-		"meals":          d.Meals,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":   d.StudentID,
+		"name":        d.Name,
+		"description": d.Description,
+		"startDate":   d.StartDate,
+		"endDate":     d.EndDate,
+		"content":     d.Content,
+		"meals":       d.Meals,
+		"updatedAt":   firestore.ServerTimestamp,
 	}, firestore.MergeAll)
 	return err
 }
@@ -784,219 +756,6 @@ func (r *firestoreRepo) ListHistoryForStudentSince(ctx context.Context, studentI
 	return historyFromIter(iter)
 }
 
-// ── Rede social: posts ──
-
-func (r *firestoreRepo) CreatePost(ctx context.Context, p *models.Post) (*models.Post, error) {
-	ref, _, err := r.fs.Collection("posts").Add(ctx, map[string]any{
-		"userId":       p.UserID,
-		"userName":     p.UserName,
-		"userPhotoURL": p.UserPhotoURL,
-		"type":         string(p.Type),
-		"text":         p.Text,
-		"workoutId":    p.WorkoutID,
-		"workoutName":  p.WorkoutName,
-		"dietId":       p.DietID,
-		"dietName":     p.DietName,
-		"date":         p.Date,
-		"likes":        map[string]bool{},
-		"likeCount":    0,
-		"comments":     p.Comments,
-		"deleted":      p.Deleted,
-		"moderatedBy":  p.ModeratedBy,
-		"moderatedAt":  p.ModeratedAt,
-		"createdAt":    p.CreatedAt,
-		"updatedAt":    p.UpdatedAt,
-	})
-	if err != nil {
-		return nil, err
-	}
-	p.ID = ref.ID
-	return p, nil
-}
-
-func (r *firestoreRepo) GetPost(ctx context.Context, id string) (*models.Post, error) {
-	doc, err := r.fs.Collection("posts").Doc(id).Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.Post{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	out.ID = doc.Ref.ID
-	if out.Likes == nil {
-		out.Likes = map[string]bool{}
-	}
-	if out.Comments == nil {
-		out.Comments = []*models.PostComment{}
-	}
-	return out, nil
-}
-
-// ListPosts lista o feed do mais recente para o mais antigo, paginado.
-// cursor tem o formato "<createdAtUnixMilli>,<postId>" (da página anterior).
-func (r *firestoreRepo) ListPosts(ctx context.Context, limit int, cursor string) ([]*models.Post, string, error) {
-	if limit < 1 {
-		limit = 20
-	}
-	if limit > 50 {
-		limit = 50
-	}
-	q := r.fs.Collection("posts").
-		OrderBy("createdAt", firestore.Desc).
-		OrderBy(firestore.DocumentID, firestore.Desc).
-		Limit(limit)
-	if cursor != "" {
-		if milli, id, ok := parseCursor(cursor); ok {
-			q = q.StartAfter(time.UnixMilli(milli), id)
-		}
-	}
-	iter := q.Documents(ctx)
-	defer iter.Stop()
-	var out []*models.Post
-	var last *models.Post
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, "", err
-		}
-		p := &models.Post{}
-		if err := doc.DataTo(p); err != nil {
-			continue
-		}
-		p.ID = doc.Ref.ID
-		if p.Likes == nil {
-			p.Likes = map[string]bool{}
-		}
-		if p.Comments == nil {
-			p.Comments = []*models.PostComment{}
-		}
-		out = append(out, p)
-		last = p
-	}
-	next := ""
-	if last != nil {
-		next = encodeCursor(last)
-	}
-	return ensureNonNilSlice(out), next, nil
-}
-
-// parseCursor decodifica "<milli>,<id>".
-func parseCursor(cursor string) (milli int64, id string, ok bool) {
-	for i := 0; i < len(cursor); i++ {
-		if cursor[i] == ',' {
-			var m int64
-			n, err := fmt.Sscanf(cursor[:i], "%d", &m)
-			if err != nil || n != 1 {
-				return 0, "", false
-			}
-			return m, cursor[i+1:], true
-		}
-	}
-	return 0, "", false
-}
-
-func encodeCursor(p *models.Post) string {
-	return fmt.Sprintf("%d,%s", p.CreatedAt.UnixMilli(), p.ID)
-}
-
-// postData monta o mapa de escrita de um post. Extraído para poder ser testado
-// e compartilhado entre UpdatePost e UpdatePostTx (nunca perder campos do
-// documento ao gravar).
-// updatedAt usa p.UpdatedAt (preservado do struct), e NÃO time.Now() cru: o
-// timestamp é definido pelo chamador (handler/service) com service.Now()
-// (America/Recife) — o repository não conhece o fuso de negócio e não deve
-// derivá-lo sozinho.
-func postData(p *models.Post) map[string]any {
-	return map[string]any{
-		"userId":       p.UserID,
-		"userName":     p.UserName,
-		"userPhotoURL": p.UserPhotoURL,
-		"type":         string(p.Type),
-		"text":         p.Text,
-		"workoutId":    p.WorkoutID,
-		"workoutName":  p.WorkoutName,
-		"dietId":       p.DietID,
-		"dietName":     p.DietName,
-		"date":         p.Date,
-		"likes":        p.Likes,
-		"likeCount":    p.LikeCount,
-		"comments":     p.Comments,
-		"deleted":      p.Deleted,
-		"moderatedBy":  p.ModeratedBy,
-		"moderatedAt":  p.ModeratedAt,
-		"createdAt":    p.CreatedAt,
-		"updatedAt":    p.UpdatedAt,
-	}
-}
-
-// UpdatePostTx executa a leitura-modificação-escrita de um post DENTRO de uma
-// transação Firestore. O callback recebe o post atual (mutações aplicadas em
-// memória); ao final, o documento é regravado na mesma transação. Se o post
-// não existir, o callback não é chamado e devolve ErrPostNotFound. Isso
-// elimina a race do padrão antigo GetPost→modifica→UpdatePost, em que duas
-// curtidas/comentários concorrentes podiam se sobrescrever (item 3.5).
-func (r *firestoreRepo) UpdatePostTx(ctx context.Context, id string, mutate func(*models.Post) error) error {
-	ref := r.fs.Collection("posts").Doc(id)
-	err := r.fs.RunTransaction(ctx, func(_ context.Context, tx *firestore.Transaction) error {
-		doc, err := tx.Get(ref)
-		if err != nil {
-			if isNotFound(err) {
-				return ErrPostNotFound
-			}
-			return err
-		}
-		p := &models.Post{}
-		if err := doc.DataTo(p); err != nil {
-			return err
-		}
-		p.ID = id
-		if err := mutate(p); err != nil {
-			return err
-		}
-		return tx.Set(ref, postData(p), firestore.MergeAll)
-	})
-	return err
-}
-
-// DeletePost remove o documento do post (remoção real feita pelo autor).
-func (r *firestoreRepo) DeletePost(ctx context.Context, id string) error {
-	_, err := r.fs.Collection("posts").Doc(id).Delete(ctx)
-	return err
-}
-
-// FindAutoPostToday devolve o post automático do tipo dado criado a partir de
-// start (inclusive) pelo aluno — para não publicar duas vezes no mesmo dia.
-func (r *firestoreRepo) FindAutoPostToday(ctx context.Context, userID string, postType models.PostType, start time.Time) (*models.Post, error) {
-	iter := r.fs.Collection("posts").
-		Where("userId", "==", userID).
-		Where("type", "==", string(postType)).
-		Where("createdAt", ">=", start).
-		OrderBy("createdAt", firestore.Desc).
-		Limit(1).
-		Documents(ctx)
-	defer iter.Stop()
-	doc, err := iter.Next()
-	if err != nil {
-		if err == iterator.Done {
-			return nil, nil
-		}
-		return nil, err
-	}
-	p := &models.Post{}
-	if err := doc.DataTo(p); err != nil {
-		return nil, err
-	}
-	p.ID = doc.Ref.ID
-	return p, nil
-}
-
 // ── Dieta diária ──
 
 func dietLogDocID(studentID, date string) string {
@@ -1029,17 +788,15 @@ func dietLogData(log *models.DietDailyLog) map[string]any {
 		createdAt = log.CreatedAt
 	}
 	return map[string]any{
-		"studentId":      log.StudentID,
-		"dietId":         log.DietID,
-		"dietName":       log.DietName,
-		"date":           log.Date,
-		"status":         string(log.Status),
-		"mealChecks":     log.MealChecks,
-		"note":           log.Note,
-		"caption":        log.Caption,
-		"postId":         log.PostID,
-		"createdAt":      createdAt,
-		"updatedAt":      firestore.ServerTimestamp,
+		"studentId":  log.StudentID,
+		"dietId":     log.DietID,
+		"dietName":   log.DietName,
+		"date":       log.Date,
+		"status":     string(log.Status),
+		"mealChecks": log.MealChecks,
+		"note":       log.Note,
+		"createdAt":  createdAt,
+		"updatedAt":  firestore.ServerTimestamp,
 	}
 }
 

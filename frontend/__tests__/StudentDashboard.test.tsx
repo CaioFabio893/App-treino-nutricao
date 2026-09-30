@@ -56,7 +56,7 @@ describe("StudentDashboard — cards de módulo por feature do plano", () => {
     });
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Comunidade/ })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
   });

@@ -1,5 +1,7 @@
 "use client";
 
+import Avatar from "@/components/Avatar";
+
 import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -14,7 +16,6 @@ import type {
   Status,
 } from "@/lib/types";
 import { ProfileSkeleton } from "@/components/Skeleton";
-import Avatar from "@/components/Avatar";
 
 const WEEK_DAY_LABEL: Record<string, string> = {
   monday: "Segunda",
@@ -54,8 +55,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({
     name: student.name || "",
-    photoURL: student.photoURL || "",
-    bio: student.bio || "",
     status: student.status || "active",
     startDate: student.startDate || "",
     endDate: student.endDate || "",
@@ -147,8 +146,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         student.id,
         {
           name: editForm.name.trim() || student.name,
-          photoURL: editForm.photoURL.trim(),
-          bio: editForm.bio.trim(),
           status: editForm.status,
           startDate: editForm.startDate,
           endDate: editForm.endDate,
@@ -261,29 +258,11 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
       {editing ? (
         <div className="nut-card" style={{ cursor: "default" }}>
           <div className="frm-row">
-            <label className="frm-label">Foto (URL)</label>
-            <input
-              type="url"
-              placeholder="https://…"
-              value={editForm.photoURL}
-              onChange={(e) => setEditForm({ ...editForm, photoURL: e.target.value })}
-            />
-          </div>
-          <div className="frm-row">
             <label className="frm-label">Nome</label>
             <input
               type="text"
               value={editForm.name}
               onChange={(e) => setEditForm({ ...editForm, name: e.target.value })}
-            />
-          </div>
-          <div className="frm-row">
-            <label className="frm-label">Bio (perfil público)</label>
-            <textarea
-              rows={2}
-              placeholder="Ex.: Focado em hipertrofia. 🏋️"
-              value={editForm.bio}
-              onChange={(e) => setEditForm({ ...editForm, bio: e.target.value })}
             />
           </div>
           <div className="frm-grid" style={{ gridTemplateColumns: "1fr 1fr" }}>
@@ -355,11 +334,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             <div className="k">Foto</div>
             <div className="v">
               <div className="avatar">
-                {student.photoURL ? (
-                  <Avatar src={student.photoURL} alt={student.name} />
-                ) : (
-                  student.name?.charAt(0)?.toUpperCase() || "?"
-                )}
+                <Avatar alt={student.name} />
               </div>
             </div>
           </div>

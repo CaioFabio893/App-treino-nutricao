@@ -19,14 +19,12 @@ const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "pro
   { href: "/programas", label: "Programa", icon: "program" },
   { href: "/treinos", label: "Treinos", icon: "dumbbell" },
   { href: "/dietas", label: "Dietas", icon: "leaf", feature: "diet" },
-  { href: "/comunidade", label: "Comunidade", icon: "feed", feature: "community" },
 ];
 
 // Guarda de rota: prefixo → feature exigida para o aluno acessar aquela página.
 // Sem a feature no plano, redireciona para o dashboard. Admin/preview ignora.
 const PATH_FEATURES: { prefix: string; feature: Feature }[] = [
   { prefix: "/dietas", feature: "diet" },
-  { prefix: "/comunidade", feature: "community" },
 ];
 
 /**

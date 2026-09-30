@@ -14,9 +14,6 @@ export const NAV_ITEMS = [
   { href: "/admin/workouts", label: "Treinos", icon: "dumbbell" as const },
   { href: "/admin/exercises", label: "Exercícios", icon: "library" as const },
   { href: "/admin/diets", label: "Dietas", icon: "leaf" as const },
-  { href: "/admin/feed", label: "Feed", icon: "feed" as const },
-  { href: "/admin/activities", label: "Atividades", icon: "activity" as const },
-  { href: "/admin/profile", label: "Perfil", icon: "user" as const },
 ];
 
 // Gestão é uma área só (/admin). "Usuários" é a sub-rota de cadastro/planos e

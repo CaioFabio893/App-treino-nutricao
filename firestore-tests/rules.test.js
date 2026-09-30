@@ -76,6 +76,25 @@ async function seedUser(uid, overrides = {}) {
   });
 }
 
+describe('Comunidade removida — dados legados continuam protegidos', () => {
+  for (const role of ['student', 'admin']) {
+    it(`${role} não lê nem escreve posts legados`, async () => {
+      await seedUser('legacy-reader', { role });
+      await seedAt(['posts', 'old-post'], { userId: 'legacy-reader', text: 'legado' });
+      const ref = db(authed('legacy-reader')).doc('posts/old-post');
+      await assertFails(ref.get());
+      await assertFails(ref.set({ text: 'novo' }));
+      await assertFails(ref.delete());
+    });
+  }
+  for (const field of ['photoURL', 'bio']) {
+    it(`perfil não aceita campo removido ${field}`, async () => {
+      await seedUser('alice');
+      await assertFails(db(authed('alice')).doc('users/alice').update({ [field]: 'valor' }));
+    });
+  }
+});
+
 describe('Gamificação removida — dados legados continuam protegidos', () => {
   for (const role of ['student', 'admin']) {
     it(`${role} não lê nem escreve scores legados`, async () => {
@@ -453,8 +472,6 @@ describe('Regras do Firestore', () => {
         await assertSucceeds(
           alice.doc('users/alice').update({
             name: 'Alice Silva',
-            photoURL: 'https://example.com/foto.jpg',
-            bio: 'Atleta amadora',
           })
         );
       });
@@ -661,7 +678,7 @@ describe('Regras do Firestore', () => {
     // ---- Caso 1: aluno ativo, pausado = false → PERMITIDO ----
     it('Caso 1 — aluno ativo lê recurso de negócio → PERMITIDO', async () => {
       const a = authed('aluno-ativo').firestore();
-      await assertSucceeds(a.doc('posts/p1').get());
+      await assertFails(a.doc('posts/p1').get());
       await assertSucceeds(a.doc('plans/p1').get());
       await assertSucceeds(a.doc('exercises/supino').get());
     });
@@ -670,7 +687,7 @@ describe('Regras do Firestore', () => {
     // O ponto central: pausado NÃO é classificado como "não aprovado".
     it('Caso 2 — aluno pausado NÃO é tratado como não aprovado → PERMITIDO', async () => {
       const a = authed('aluno-pausado').firestore();
-      await assertSucceeds(a.doc('posts/p1').get());
+      await assertFails(a.doc('posts/p1').get());
       await assertSucceeds(a.doc('plans/p1').get());
       await assertSucceeds(a.doc('exercises/supino').get());
     });

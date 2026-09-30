@@ -65,6 +65,6 @@ test.describe("Fluxo de aprovação (novo cadastro → admin aprova → acesso r
     await expect(page.getByRole("heading", { name: "Olá, Novo 👋" })).toBeVisible();
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Dietas", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toHaveCount(0);
   });
 });

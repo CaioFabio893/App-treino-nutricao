@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"encoding/json"
@@ -29,7 +29,7 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if prof == nil {
-		// Cadastro novo: preenche name/email/photoURL com o registro do
+		// Cadastro novo: preenche name/email com o registro do
 		// Firebase Auth (login Google já traz tudo pronto; e-mail/senha entra
 		// sem nome e o ProfileSetup coleta depois).
 		p := &models.UserProfile{AuthProvider: middleware.AuthProviderFrom(r.Context())}
@@ -37,7 +37,6 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 			if rec, err := h.auth.GetUser(r.Context(), uid); err == nil {
 				p.Name = rec.DisplayName
 				p.Email = rec.Email
-				p.PhotoURL = rec.PhotoURL
 			}
 		}
 		if err := h.svc.GetOrCreateProfile(r.Context(), uid, p); err != nil {
@@ -61,7 +60,6 @@ func (h *Handlers) HandleGetMe(w http.ResponseWriter, r *http.Request) {
 			"id":            prof.ID,
 			"name":          prof.Name,
 			"email":         prof.Email,
-			"photoURL":      prof.PhotoURL,
 			"role":          "",
 			"status":        prof.Status,
 			"authProvider":  prof.AuthProvider,
@@ -89,7 +87,7 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	// Allowlist estrita (mesmo contrato do allowedSelfProfileUpdate das regras
-	// Firestore): o cliente só edita name/email/photoURL/bio. Todo o resto é
+	// Firestore): o cliente só edita name/email/bio. Todo o resto é
 	// decisão de servidor — zera cada campo não editável para que o body não
 	// tenha efeito algum sobre eles.
 	p.Role = ""
@@ -107,10 +105,6 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	p.AuthProvider = middleware.AuthProviderFrom(r.Context())
 	if tooLong(p.Name, service.MaxNameLength) {
 		http.Error(w, "nome muito longo", http.StatusBadRequest)
-		return
-	}
-	if tooLong(p.Bio, service.MaxBioLength) {
-		http.Error(w, "bio muito longa", http.StatusBadRequest)
 		return
 	}
 	if err := h.svc.GetOrCreateProfile(r.Context(), uid, &p); err != nil {
@@ -240,12 +234,12 @@ func (h *Handlers) HandleUpdateStudent(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
-	if tooLong(p.Name, service.MaxNameLength) || tooLong(p.Bio, service.MaxBioLength) {
-		http.Error(w, "nome ou bio muito longos", http.StatusBadRequest)
+	if tooLong(p.Name, service.MaxNameLength) {
+		http.Error(w, "nome muito longo", http.StatusBadRequest)
 		return
 	}
 	// Merge com o perfil existente: esta rota só permite editar dados do aluno
-	// (nome, foto, bio, status e datas). Role, vínculo, plano, features e o
+	// (nome, status e datas). Role, vínculo, plano, features e o
 	// histórico de aprovação são SEMPRE preservados do registro existente —
 	// nunca vêm do body do admin.
 	merged := mergeStudentEdits(existing, &p)
@@ -265,8 +259,6 @@ func mergeStudentEdits(existing, p *models.UserProfile) *models.UserProfile {
 	out := *existing
 	out.ID = existing.ID
 	out.Name = p.Name
-	out.PhotoURL = p.PhotoURL
-	out.Bio = p.Bio
 	out.Status = p.Status
 	out.StartDate = p.StartDate
 	out.EndDate = p.EndDate
@@ -791,10 +783,6 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 		http.Error(w, "workoutId obrigatorio", http.StatusBadRequest)
 		return
 	}
-	if tooLong(req.Caption, service.MaxPostText) {
-		http.Error(w, "legenda muito longa", http.StatusBadRequest)
-		return
-	}
 	uid := middleware.UIDFrom(r.Context())
 	role := middleware.RoleFrom(r.Context())
 
@@ -826,13 +814,6 @@ func (h *Handlers) HandleCompleteWorkout(w http.ResponseWriter, r *http.Request)
 	created, err := h.repo.CreateHistoryEntry(r.Context(), entry)
 	if err != nil {
 		http.Error(w, "falha ao registrar conclusao", http.StatusInternalServerError)
-		return
-	}
-
-	// Rede social: publicação automática no feed (uma por dia) com a legenda
-	// opcional do aluno.
-	if err := h.svc.PublishWorkoutPost(r.Context(), created, req.Caption); err != nil {
-		http.Error(w, "falha ao publicar no feed", http.StatusInternalServerError)
 		return
 	}
 

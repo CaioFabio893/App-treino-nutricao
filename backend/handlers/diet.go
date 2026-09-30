@@ -2,12 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
-	"errors"
 	"net/http"
 
 	"treino-louise/backend/middleware"
 	"treino-louise/backend/models"
-	"treino-louise/backend/repository"
 	"treino-louise/backend/service"
 )
 
@@ -37,7 +35,7 @@ func (h *Handlers) HandleListDietLogs(w http.ResponseWriter, r *http.Request) {
 }
 
 // HandleUpsertDietLog salva o log do dia (o aluno marca por refeição durante
-// o dia; o status agregado alimenta calendário, feed e ranking).
+// o dia; o status agregado alimenta o calendário).
 func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 	var req models.UpsertDietLogRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
@@ -53,10 +51,6 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 	}
 	if tooLong(req.Note, service.MaxNoteLength) {
 		http.Error(w, "nota muito longa", http.StatusBadRequest)
-		return
-	}
-	if tooLong(req.Caption, service.MaxPostText) {
-		http.Error(w, "legenda muito longa", http.StatusBadRequest)
 		return
 	}
 
@@ -88,7 +82,6 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		Date:       req.Date,
 		MealChecks: req.MealChecks,
 		Note:       req.Note,
-		Caption:    req.Caption,
 	}
 
 	// Dieta ativa do aluno (para vínculo e nome no post).
@@ -115,56 +108,19 @@ func (h *Handlers) HandleUpsertDietLog(w http.ResponseWriter, r *http.Request) {
 		log.Status = service.AggregateStatus(req.MealChecks)
 	}
 
-	// Preserva postId de um log já existente (para saber qual post desfazer).
+	// Preserva a data de criação do log existente.
 	existing, err := h.repo.GetDietLog(r.Context(), studentID, req.Date)
 	if err != nil {
 		http.Error(w, "falha ao ler log", http.StatusInternalServerError)
 		return
 	}
 	if existing != nil {
-		log.PostID = existing.PostID
 		log.CreatedAt = existing.CreatedAt
-		if log.Caption == "" {
-			log.Caption = existing.Caption
-		}
 	}
 
 	if err := h.repo.PutDietLog(r.Context(), log); err != nil {
 		http.Error(w, "falha ao salvar log de dieta", http.StatusInternalServerError)
 		return
-	}
-
-	// Post automático: publica quando o dia passa a "followed"; se sair de
-	// "followed", remove o post (removido com auditoria).
-	if log.Status == models.DietFollowed {
-		postID, err := h.svc.PublishDietPost(r.Context(), log)
-		if err != nil {
-			http.Error(w, "falha ao publicar no feed", http.StatusInternalServerError)
-			return
-		}
-		if postID != "" && postID != log.PostID {
-			log.PostID = postID
-			_ = h.repo.PutDietLog(r.Context(), log)
-		}
-	} else if log.PostID != "" {
-		// Remove o post automático (soft delete auditado) dentro de uma
-		// transação — o aluno/nutricionista que salvou o log é o moderador.
-		err := h.repo.UpdatePostTx(r.Context(), log.PostID, func(post *models.Post) error {
-			if post == nil || post.Deleted {
-				return repository.ErrPostNotFound // já removido: nada a fazer
-			}
-			post.Deleted = true
-			post.ModeratedBy = uid
-			post.ModeratedAt = service.Now()
-			post.UpdatedAt = service.Now()
-			return nil
-		})
-		if err != nil && !errors.Is(err, repository.ErrPostNotFound) {
-			http.Error(w, "falha ao remover post do feed", http.StatusInternalServerError)
-			return
-		}
-		log.PostID = ""
-		_ = h.repo.PutDietLog(r.Context(), log)
 	}
 
 	writeJSON(w, http.StatusOK, log)

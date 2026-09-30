@@ -4,17 +4,13 @@
 import type {
   ApproveUserRequest,
   AssignProgramRequest,
-  CommentRequest,
   CompleteWorkoutRequest,
-  CreatePostRequest,
   Diet,
   DietDailyLog,
   DuplicateRequest,
   Exercise,
   ImportProgramRequest,
   Plan,
-  Post,
-  PostsPage,
   RejectUserRequest,
   TrainingProgram,
   UpsertDietLogRequest,
@@ -450,52 +446,6 @@ export function completeWorkout(req: CompleteWorkoutRequest, token: string): Pro
     method: "POST",
     body: JSON.stringify(req),
   });
-}
-
-// ── Rede social (feed global) ──────────────────────────────────────────────
-
-// Feed paginado (mais recentes primeiro). O backend aceita limit e cursor
-// e devolve { posts, next }.
-export function listPosts(
-  token: string,
-  opts: { limit?: number; cursor?: string } = {}
-): Promise<PostsPage> {
-  const qs = new URLSearchParams();
-  if (opts.limit) qs.set("limit", String(opts.limit));
-  if (opts.cursor) qs.set("cursor", opts.cursor);
-  const q = qs.toString();
-  return request<{ posts: Post[]; next?: string }>(
-    `/api/posts${q ? `?${q}` : ""}`,
-    token
-  ).then((r) => ({ posts: r.posts, nextCursor: r.next }));
-}
-
-export function createPost(req: CreatePostRequest, token: string): Promise<Post> {
-  return request<Post>("/api/posts", token, {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-}
-
-export function toggleLike(postId: string, token: string): Promise<Post> {
-  return request<Post>(`/api/posts/${postId}/like`, token, { method: "POST" });
-}
-
-export function addComment(postId: string, req: CommentRequest, token: string): Promise<Post> {
-  return request<Post>(`/api/posts/${postId}/comments`, token, {
-    method: "POST",
-    body: JSON.stringify(req),
-  });
-}
-
-export function deleteComment(postId: string, commentId: string, token: string): Promise<Post> {
-  return request<Post>(`/api/posts/${postId}/comments/${commentId}`, token, {
-    method: "DELETE",
-  });
-}
-
-export function deletePost(postId: string, token: string): Promise<void> {
-  return request<void>(`/api/posts/${postId}`, token, { method: "DELETE" });
 }
 
 // ── Dieta diária (dia + refeição) ──────────────────────────────────────────

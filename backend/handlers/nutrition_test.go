@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"context"
@@ -36,32 +36,30 @@ func (f *nutritionFakeRepo) PutUserProfile(_ context.Context, _ string, p *model
 // edição comum).
 func richProfile() *models.UserProfile {
 	return &models.UserProfile{
-		ID:             "student-1",
-		Name:           "João da Silva",
-		Email:          "joao@email.com",
-		Role:           models.RoleStudent,
-		Status:         models.StatusActive,
-		PlanID:         "plano-completo",
-		Features:       []models.Feature{models.FeatureWorkouts, models.FeatureDiet, models.FeatureCommunity, models.FeatureRanking},
-		AuthProvider:   "password",
-		ApprovedBy:     "admin-1",
-		ApprovedAt:     time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC),
-		StartDate:      "2026-01-15",
-		EndDate:        "2026-12-31",
-		CreatedAt:      time.Date(2025, 12, 1, 9, 0, 0, 0, time.UTC),
+		ID:           "student-1",
+		Name:         "João da Silva",
+		Email:        "joao@email.com",
+		Role:         models.RoleStudent,
+		Status:       models.StatusActive,
+		PlanID:       "plano-completo",
+		Features:     []models.Feature{models.FeatureWorkouts, models.FeatureDiet, models.FeatureCommunity, models.FeatureRanking},
+		AuthProvider: "password",
+		ApprovedBy:   "admin-1",
+		ApprovedAt:   time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC),
+		StartDate:    "2026-01-15",
+		EndDate:      "2026-12-31",
+		CreatedAt:    time.Date(2025, 12, 1, 9, 0, 0, 0, time.UTC),
 	}
 }
 
 // TestMergeStudentEditsPreservesAdminFields simula a edição normal de aluno
-// (name, photoURL, bio, status, startDate, endDate) sobre um perfil rico e
+// (name, status, startDate, endDate) sobre um perfil rico e
 // confirma que planID, features, authProvider, approvedBy, approvedAt e
 // rejectedReason permanecem intactos — além de role, vínculo, email e createdAt.
 func TestMergeStudentEditsPreservesAdminFields(t *testing.T) {
 	existing := richProfile()
 	edits := &models.UserProfile{
 		Name:      "João Editado",
-		PhotoURL:  "https://foto.nova/avatar.png",
-		Bio:       "Nova bio",
 		Status:    models.StatusPaused,
 		StartDate: "2026-02-01",
 		EndDate:   "2026-06-30",
@@ -99,8 +97,8 @@ func TestMergeStudentEditsPreservesAdminFields(t *testing.T) {
 		t.Errorf("CreatedAt não preservado")
 	}
 	// Campos editáveis atualizados.
-	if merged.Name != "João Editado" || merged.PhotoURL != "https://foto.nova/avatar.png" ||
-		merged.Bio != "Nova bio" || merged.Status != models.StatusPaused ||
+	if merged.Name != "João Editado" ||
+		merged.Status != models.StatusPaused ||
 		merged.StartDate != "2026-02-01" || merged.EndDate != "2026-06-30" {
 		t.Errorf("campos editáveis = %+v, want editado", merged)
 	}

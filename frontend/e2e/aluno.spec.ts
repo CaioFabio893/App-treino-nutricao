@@ -2,12 +2,12 @@ import { test, expect } from "@playwright/test";
 import { login, USERS } from "./helpers";
 
 test.describe("Área do aluno (gates do plano)", () => {
-  test("aluno do plano completo vê as 3 áreas", async ({ page }) => {
+  test("aluno do plano completo vê treinos e dietas", async ({ page }) => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
     await page.waitForURL("**/dashboard");
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Dietas", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toHaveCount(0);
   });
 
   test("aluno conclui o treino de hoje (registro e histórico no backend)", async ({

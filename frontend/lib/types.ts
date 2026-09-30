@@ -1,4 +1,4 @@
-﻿export type Check = "" | "ok" | "fail";
+export type Check = "" | "ok" | "fail";
 
 // ── Novos tipos: gestão ──
 
@@ -17,8 +17,6 @@ export type Feature = "workouts" | "diet" | "community" | "ranking";
 export const FEATURES: { value: Feature; label: string; desc: string }[] = [
   { value: "workouts", label: "Treinos", desc: "Treinos e histórico (tier gratuito)" },
   { value: "diet", label: "Dietas", desc: "Planos alimentares e dieta diária" },
-  { value: "community", label: "Comunidade", desc: "Feed social com outros alunos" },
-  { value: "ranking", label: "Ranking", desc: "Ranking e perfil público pontuado" },
 ];
 
 /**
@@ -39,8 +37,6 @@ export interface UserProfile {
   id: string;
   name: string;
   email?: string;
-  photoURL?: string;
-  bio?: string;
   role: Role;
   startDate?: string;
   endDate?: string;
@@ -185,7 +181,6 @@ export interface CompleteWorkoutRequest {
   exercisesCompleted: number;
   totalExercises: number;
   exercises?: HistoryExercise[];
-  caption?: string;
 }
 
 // ── Programas de treino (F19) ────────────────────────────────────────────
@@ -242,56 +237,6 @@ export const WEEK_DAYS = [
 
 // ── Rede social / dieta diária / ranking ──
 
-export type PostType = "workout" | "diet" | "manual";
-
-export interface PostComment {
-  id: string;
-  userId: string;
-  userName: string;
-  userPhotoURL?: string;
-  text: string;
-  createdAt?: string;
-  deleted?: boolean;
-  moderatedBy?: string;
-  moderatedAt?: string;
-}
-
-export interface Post {
-  id: string;
-  userId: string;
-  userName: string;
-  userPhotoURL?: string;
-  type: PostType;
-  text: string;
-  workoutId?: string;
-  workoutName?: string;
-  dietId?: string;
-  dietName?: string;
-  date: string;
-  likes?: Record<string, boolean>;
-  likeCount?: number;
-  comments?: PostComment[];
-  deleted?: boolean;
-  moderatedBy?: string;
-  moderatedAt?: string;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
-export interface CreatePostRequest {
-  type: PostType;
-  text: string;
-}
-
-export interface CommentRequest {
-  text: string;
-}
-
-export interface PostsPage {
-  posts: Post[];
-  nextCursor?: string;
-}
-
 export type DietLogStatus = "followed" | "partial" | "not_followed";
 
 export interface MealCheck {
@@ -310,8 +255,6 @@ export interface DietDailyLog {
   status: DietLogStatus;
   mealChecks?: MealCheck[];
   note?: string;
-  caption?: string;
-  postId?: string;
   createdAt?: string;
   updatedAt?: string;
 }
@@ -322,5 +265,4 @@ export interface UpsertDietLogRequest {
   status?: DietLogStatus;
   mealChecks?: MealCheck[];
   note?: string;
-  caption?: string;
 }

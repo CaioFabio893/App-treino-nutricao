@@ -31,9 +31,9 @@ npm run dev                  # abre http://localhost:3000
 app/
   page.tsx            # home: redireciona por papel
   login/              # login (Firebase)
-  (aluno)/            # área do aluno: treinos, dietas, comunidade
+  (aluno)/            # área do aluno: treinos, dietas e programas
   admin/              # área de gestão (admin): painel, alunos, treinos, dietas,
-                      #   exercícios, programas, feed, atividades e
+                      #   exercícios, programas e
                       #   usuarios/ (cadastro e planos)
   base.css            # design system global
   dashboard.css       # estilos da área de gestão

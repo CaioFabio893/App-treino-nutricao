@@ -13,7 +13,7 @@ const SECTIONS: {
   href: string;
   title: string;
   desc: string;
-  icon: "dumbbell" | "leaf" | "feed";
+  icon: "dumbbell" | "leaf";
 }[] = [
   {
     feature: null,
@@ -28,13 +28,6 @@ const SECTIONS: {
     title: "Dietas",
     desc: "Seu plano alimentar e acompanhamento",
     icon: "leaf",
-  },
-  {
-    feature: "community",
-    href: "/comunidade",
-    title: "Comunidade",
-    desc: "Feed com outros alunos, posts e desafios",
-    icon: "feed",
   },
 ];
 

@@ -1,10 +1,11 @@
 "use client";
 
+import Avatar from "@/components/Avatar";
+
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Plan, UserProfile } from "@/lib/types";
-import Avatar from "@/components/Avatar";
 
 interface ApproveTarget {
   id: string;
@@ -106,11 +107,7 @@ export default function PendingApprovals() {
           <div key={u.id} className="nut-card" style={{ cursor: "default" }}>
             <div className="nut-card-head">
               <div className="avatar">
-                {u.photoURL ? (
-                  <Avatar src={u.photoURL} alt={u.name} />
-                ) : (
-                  u.name?.charAt(0)?.toUpperCase() || "?"
-                )}
+                <Avatar alt={u.name} />
               </div>
               <div>
                 <div className="nut-card-title">{u.name || "Sem nome"}</div>

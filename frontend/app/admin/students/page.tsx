@@ -1,12 +1,13 @@
 "use client";
 
+import Avatar from "@/components/Avatar";
+
 import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
 import type { Diet, UserProfile, WorkoutDefine, WorkoutHistoryEntry } from "@/lib/types";
 import { StudentsPageSkeleton } from "@/components/Skeleton";
-import Avatar from "@/components/Avatar";
 
 export default function StudentsPage() {
   return (
@@ -95,11 +96,7 @@ function StudentsInner() {
       >
         <div className="nut-card-head">
           <div className="avatar">
-            {s.photoURL ? (
-              <Avatar src={s.photoURL} alt={s.name} />
-            ) : (
-              s.name?.charAt(0)?.toUpperCase() || "?"
-            )}
+            <Avatar alt={s.name} />
           </div>
           <div>
             <div className="nut-card-title">{s.name || "Sem nome"}</div>
@@ -136,11 +133,7 @@ function StudentsInner() {
         <td>
           <div className="dash-cell-user">
             <span className="avatar avatar-sm">
-              {s.photoURL ? (
-                <Avatar src={s.photoURL} alt={s.name} />
-              ) : (
-                s.name?.charAt(0)?.toUpperCase() || "?"
-              )}
+              <Avatar alt={s.name} />
             </span>
             <span className="b1">
               <span className="dash-cell-title">{s.name || "Sem nome"}</span>

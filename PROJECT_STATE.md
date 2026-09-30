@@ -23,6 +23,12 @@ Programas referenciam workoutId; assign materializa cópias e valida posse.
 
 ## Trabalho desta continuidade
 
+F2 concluída: comunidade/posts/curtidas/comentários, publicação automática,
+foto e bio removidos do código local; Avatar preservado com iniciais.
+API antiga 404 e posts legados negados, aluno/admin. Índice posts removido
+do arquivo local, sem deploy; dados reais preservados. Relatório:
+docs/reports/simplificacao-f2-checkpoint.md.
+
 F1 (gamificação) foi encontrada parcialmente implementada na árvore; Codex
 revisou e completou o checkpoint. Removidos score/ciclo/ranking/perfil público,
 rotas correspondentes, repositório/models e UI de ranking/timeline/adesão.
@@ -34,7 +40,7 @@ Complementos Codex:
 - Adicionou rules negativas para scores/scores_history legados, aluno e admin.
 - Dashboard testado com snapshot legado contendo ranking: card não reaparece.
 - Corrigiu espaços em EOF de types.go/repository.go.
-- Mantém startOfDay em service/dates.go: ainda usado pelo social (F2 pendente).
+- F2 removeu social.go e dates.go: startOfDay ficou sem consumidor.
 - Atualizou AGENT_PLAN.md para autorização de substituição do OpenCode.
 
 Principais arquivos F1: backend/{main.go,main_test.go,models/types.go,
@@ -45,12 +51,12 @@ firestore.rules e firestore-tests/rules.test.js. Arquivos removidos estão no di
 
 ## Validação realizada (30/09/2026)
 
-- Go vet limpo; go test ./... -count=1: 201 testes de nível superior PASS
+- Go vet limpo; go test ./... -count=1: 185 testes de nível superior PASS
   (subtestes não contam como testes de nível superior).
 - Vitest completo: 99/99 em 17 arquivos; dashboard após regressão: 5/5.
-- Rules em emulador: 84/84, incluindo 2 testes negativos novos.
+- Rules em emulador: 88/88, incluindo posts legados e campos foto/bio negados.
 - tsc --noEmit, lint e next build: OK.
-- Playwright: 28/28 em 2,1 minutos; emuladores desligados ao final.
+- Playwright: 28/28 em 1,7 minutos; emuladores desligados ao final.
 
 Go e Firebase CLI precisaram de execução fora do sandbox para cache/instalação
 existente. Nenhuma dependência instalada. Firebase CLI fica em
@@ -60,11 +66,11 @@ Rules/E2E foram executados somente em emuladores locais. Executar E2E isolado.
 ## Estado e próxima tarefa
 
 F4 já commitada; não repetir a indicação antiga de 109 arquivos sem commit.
-F1: checkpoint atual; não repetir remoção de ranking. F2/F3/F5/F6/F7 pendentes.
-Próximo: F2 comunidade, conforme docs/simplificacao/03-plano.md e AGENT_PLAN.md.
+F1 commitada em 8e35ec5; F2 concluída com gates verdes. F3/F5/F6/F7 pendentes.
+Próximo: F3 planos/features, conforme docs/simplificacao/03-plano.md e AGENT_PLAN.md.
 Ler somente social handlers/service/repository, Post/Comment models, rotas de
 posts, Feed/PostCard, páginas comunidade/feed/activities, seed e testes afetados.
-Remover código local de comunidade e adaptar navegação/testes; preservar auth,
+Remover planos/features e datas do perfil; adaptar aprovação/navegação; preservar auth,
 treino, dieta, exercícios e programas. Um checkpoint verde por fase.
 Depois F3 planos/features → F5 participante read-only → F6 modelo/índices → F7.
 Não antecipar deleção de dados; não alterar produção. Não fazer K1 sem D6.
@@ -88,7 +94,7 @@ Não antecipar deleção de dados; não alterar produção. Não fazer K1 sem D6
 
 1. Leia este arquivo e .gates; confira git status/log para checkpoint real.
 2. Confira decisões D1–D9 e use os defaults locais; D6 exige resposta explícita.
-3. Faça F2 com mudanças focadas e testes do contrato preservado; rode gates
+3. Faça F3 com mudanças focadas e testes do contrato preservado; rode gates
    necessários ao checkpoint estrutural, registrando contagens reais.
 4. Atualize este estado e docs/progress.md; commit local conforme governança,
    sem push/deploy. Informe arquivos, testes, limitações e próxima fase.

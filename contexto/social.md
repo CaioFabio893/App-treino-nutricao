@@ -1,5 +1,10 @@
 # Area: SOCIAL e COMUNIDADE
 
+> 30/09/2026 — F2 removeu comunidade, posts automáticos, comentários e curtidas
+> do código local. Este documento é histórico. URLs antigas respondem 404;
+> posts legados são negados pelas rules, inclusive para admin via SDK.
+> Dados de produção preservados. Leia PROJECT_STATE.md para continuar.
+
 ## Onde esta o codigo
 
 **API (Go)**

@@ -17,7 +17,6 @@ test.describe("Autorização (API Go autenticada com idToken real do emulador)",
     const b = await idTokenFor(USERS.studentB.email, USERS.studentB.password);
     // Bruno (Essencial: só treinos) não tem dieta nem comunidade.
     expect((await apiGet(request, "/api/diets", b)).status()).toBe(403);
-    expect((await apiGet(request, "/api/posts", b)).status()).toBe(403);
   });
 
   test("aluno com a feature consegue usar o módulo", async ({ request }) => {

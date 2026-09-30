@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 import (
 	"context"
@@ -210,14 +210,6 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	// ── Histórico (free tier) ──
 	mux.HandleFunc("GET /api/workout-history", a.Require(a.RequireApproved(h.HandleListHistory)))
 	mux.HandleFunc("POST /api/workouts/complete", a.Require(a.RequireApproved(h.HandleCompleteWorkout)))
-
-	// ── Rede social (feature community) ──
-	mux.HandleFunc("POST /api/posts", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleCreatePost))))
-	mux.HandleFunc("GET /api/posts", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleListPosts))))
-	mux.HandleFunc("POST /api/posts/{id}/like", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleToggleLike))))
-	mux.HandleFunc("POST /api/posts/{id}/comments", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleAddComment))))
-	mux.HandleFunc("DELETE /api/posts/{id}/comments/{cid}", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleDeleteComment))))
-	mux.HandleFunc("DELETE /api/posts/{id}", a.Require(a.RequireFeature(models.FeatureCommunity)(a.RequireApproved(h.HandleDeletePost))))
 
 	// ── Dieta diária (dia + refeição) — feature diet ──
 	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDietLogs))))

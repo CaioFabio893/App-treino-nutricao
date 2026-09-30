@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 
 /**
  * Botão flutuante de ADMIN para alternar entre as áreas do app:
- * - Aluno  -> área do aluno (/treinos, /dietas, /comunidade)
+ * - Aluno  -> área do aluno (/treinos, /dietas)
  * - Gestão -> painel operacional (/admin)
  * - Cadastro -> gestão de usuários e planos (/admin/usuarios)
  * Só aparece para role=admin (único papel com acesso a tudo no backend).
@@ -27,8 +27,7 @@ export default function AdminAreaSwitch() {
     pathname === "/" ||
     pathname.startsWith("/dashboard") ||
     pathname.startsWith("/treinos") ||
-    pathname.startsWith("/dietas") ||
-    pathname.startsWith("/comunidade");
+    pathname.startsWith("/dietas");
 
   const isActiveArea = (href: string) => {
     if (href === "/treinos") return isStudentPath;

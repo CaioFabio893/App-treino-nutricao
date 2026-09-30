@@ -43,24 +43,22 @@ type Plan struct {
 	ID          string    `json:"id,omitempty"`
 	Name        string    `json:"name"`                  // ex.: "Completo"
 	Description string    `json:"description,omitempty"` // ex.: "Treino + dieta + comunidade"
-	Features    []Feature `json:"features"`               // ex.: ["workouts","diet","community"]
-	Active      bool      `json:"active"`                 // planos inativos não aparecem pra atribuir a novos alunos
+	Features    []Feature `json:"features"`              // ex.: ["workouts","diet","community"]
+	Active      bool      `json:"active"`                // planos inativos não aparecem pra atribuir a novos alunos
 	CreatedAt   time.Time `json:"createdAt,omitempty"`
 	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
 }
 
 // UserProfile é o documento raiz do usuário no Firestore (users/{uid}).
 type UserProfile struct {
-	ID             string    `json:"id,omitempty"`
-	Name           string    `json:"name"`
-	Email          string    `json:"email"`
-	PhotoURL       string    `json:"photoURL,omitempty"`
-	Bio            string    `json:"bio,omitempty"` // bio curta exibida no perfil público
-	Role           Role      `json:"role"`
-	StartDate      string    `json:"startDate,omitempty"`      // "2026-01-15"
-	EndDate        string    `json:"endDate,omitempty"`        // "2026-04-15"
-	Status         string    `json:"status,omitempty"`         // "active", "pending_approval", "paused", "inactive", "rejected"
-	CreatedAt      time.Time `json:"createdAt,omitempty"`
+	ID        string    `json:"id,omitempty"`
+	Name      string    `json:"name"`
+	Email     string    `json:"email"`
+	Role      Role      `json:"role"`
+	StartDate string    `json:"startDate,omitempty"` // "2026-01-15"
+	EndDate   string    `json:"endDate,omitempty"`   // "2026-04-15"
+	Status    string    `json:"status,omitempty"`    // "active", "pending_approval", "paused", "inactive", "rejected"
+	CreatedAt time.Time `json:"createdAt,omitempty"`
 
 	// ── Gestão: aprovação + planos (spec gestao-cadastro-papeis-planos-google.md) ──
 	PlanID         string    `json:"planID,omitempty"`       // plano atualmente atribuído (vazio = nenhum)
@@ -76,15 +74,15 @@ type UserProfile struct {
 // WorkoutDefine é o treino criado pelo nutricionista.
 // Os exercícios ficam embutidos no documento (array `exercises`).
 type WorkoutDefine struct {
-	ID             string             `json:"id,omitempty"`
-	StudentID      string             `json:"studentId"`
-	Name           string             `json:"name"`
-	Description    string             `json:"description,omitempty"`
-	Objective      string             `json:"objective,omitempty"`
-	DayOfWeek      string             `json:"dayOfWeek,omitempty"` // "monday", "tuesday", etc.
-	Exercises      []*WorkoutExercise `json:"exercises,omitempty"`
-	CreatedAt      time.Time          `json:"createdAt,omitempty"`
-	UpdatedAt      time.Time          `json:"updatedAt,omitempty"`
+	ID          string             `json:"id,omitempty"`
+	StudentID   string             `json:"studentId"`
+	Name        string             `json:"name"`
+	Description string             `json:"description,omitempty"`
+	Objective   string             `json:"objective,omitempty"`
+	DayOfWeek   string             `json:"dayOfWeek,omitempty"` // "monday", "tuesday", etc.
+	Exercises   []*WorkoutExercise `json:"exercises,omitempty"`
+	CreatedAt   time.Time          `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time          `json:"updatedAt,omitempty"`
 }
 
 // WorkoutExercise é um exercício dentro de um treino.
@@ -113,16 +111,16 @@ type WorkoutExercise struct {
 // treinos sem duplicar conteúdo, duplicar um programa e reatribuí-lo a outro aluno
 // materializando cópias dos treinos.
 type TrainingProgram struct {
-	ID             string            `json:"id,omitempty"`
-	StudentID      string            `json:"studentId"`                          // vazio = programa de biblioteca (não atribuído)
-	Name           string            `json:"name"`
-	Description    string            `json:"description,omitempty"`
-	Objective      string            `json:"objective,omitempty"`
-	Workouts       []*ProgramWorkout `json:"workouts,omitempty"`
-	Notes          string            `json:"notes,omitempty"` // trechos da fonte preservados verbatim (PRs, periodização, estrutura semanal)
-	Source         string            `json:"source,omitempty"` // proveniência da importação (ex.: nome do arquivo)
-	CreatedAt      time.Time         `json:"createdAt,omitempty"`
-	UpdatedAt      time.Time         `json:"updatedAt,omitempty"`
+	ID          string            `json:"id,omitempty"`
+	StudentID   string            `json:"studentId"` // vazio = programa de biblioteca (não atribuído)
+	Name        string            `json:"name"`
+	Description string            `json:"description,omitempty"`
+	Objective   string            `json:"objective,omitempty"`
+	Workouts    []*ProgramWorkout `json:"workouts,omitempty"`
+	Notes       string            `json:"notes,omitempty"`  // trechos da fonte preservados verbatim (PRs, periodização, estrutura semanal)
+	Source      string            `json:"source,omitempty"` // proveniência da importação (ex.: nome do arquivo)
+	CreatedAt   time.Time         `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time         `json:"updatedAt,omitempty"`
 }
 
 // ProgramWorkout é a referência a um treino do programa (workouts/{id}).
@@ -163,16 +161,16 @@ type ExerciseItem struct {
 //   - Meals: refeições com alimentos — formato legado, mantido para
 //     compatibilidade com dietas já cadastradas.
 type Diet struct {
-	ID             string    `json:"id,omitempty"`
-	StudentID      string    `json:"studentId"`
-	Name           string    `json:"name"`
-	Description    string    `json:"description,omitempty"`
-	StartDate      string    `json:"startDate,omitempty"`
-	EndDate        string    `json:"endDate,omitempty"`
-	Content        string    `json:"content,omitempty"` // texto livre da dieta (formato simplificado)
-	Meals          []*Meal   `json:"meals,omitempty"`   // legado: refeições estruturadas
-	CreatedAt      time.Time `json:"createdAt,omitempty"`
-	UpdatedAt      time.Time `json:"updatedAt,omitempty"`
+	ID          string    `json:"id,omitempty"`
+	StudentID   string    `json:"studentId"`
+	Name        string    `json:"name"`
+	Description string    `json:"description,omitempty"`
+	StartDate   string    `json:"startDate,omitempty"`
+	EndDate     string    `json:"endDate,omitempty"`
+	Content     string    `json:"content,omitempty"` // texto livre da dieta (formato simplificado)
+	Meals       []*Meal   `json:"meals,omitempty"`   // legado: refeições estruturadas
+	CreatedAt   time.Time `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
 }
 
 // Meal é uma refeição dentro de uma dieta.
@@ -236,8 +234,8 @@ type DuplicateRequest struct {
 // role é obrigatório ("student"); planID é opcional e só
 // tem efeito quando role=student (features do plano são snapshotadas no perfil).
 type ApproveUserRequest struct {
-	Role           Role    `json:"role"`
-	PlanID         string  `json:"planID,omitempty"`
+	Role   Role   `json:"role"`
+	PlanID string `json:"planID,omitempty"`
 }
 
 // RejectUserRequest é o payload para recusar um cadastro pendente.
@@ -257,7 +255,6 @@ type CompleteWorkoutRequest struct {
 	ExercisesCompleted int               `json:"exercisesCompleted"`
 	TotalExercises     int               `json:"totalExercises"`
 	Exercises          []HistoryExercise `json:"exercises,omitempty"`
-	Caption            string            `json:"caption,omitempty"` // legenda opcional do post automático
 }
 
 // ImportProgramRequest é o payload de POST /api/programs/import.
@@ -265,78 +262,14 @@ type CompleteWorkoutRequest struct {
 // (pacote programmd) e cria os treinos + o programa. Só o admin pode importar.
 type ImportProgramRequest struct {
 	Markdown  string `json:"markdown"`
-	Source    string `json:"source,omitempty"`   // ex.: "treino.md"
-	Name      string `json:"name,omitempty"`     // sobrescreve o nome extraído do markdown
+	Source    string `json:"source,omitempty"`    // ex.: "treino.md"
+	Name      string `json:"name,omitempty"`      // sobrescreve o nome extraído do markdown
 	StudentID string `json:"studentId,omitempty"` // opcional: já atribui a um aluno
 }
 
 // AssignProgramRequest é o payload de POST /api/programs/{id}/assign.
 type AssignProgramRequest struct {
 	StudentID string `json:"studentId"`
-}
-
-// ── Rede social ──
-
-// PostType classifica o post do feed.
-type PostType string
-
-const (
-	PostWorkout PostType = "workout"
-	PostDiet    PostType = "diet"
-	PostText    PostType = "text"
-)
-
-// PostComment é um comentário embutido no documento do post.
-// A remoção é soft delete (Deleted=true) quando feita por moderador, para
-// auditoria (ModeratedBy/ModeratedAt registram quem removeu e quando).
-type PostComment struct {
-	ID           string    `json:"id,omitempty"`
-	UserID       string    `json:"userId"`
-	UserName     string    `json:"userName"`
-	UserPhotoURL string    `json:"userPhotoURL,omitempty"`
-	Text         string    `json:"text"`
-	CreatedAt    time.Time `json:"createdAt,omitempty"`
-	Deleted      bool      `json:"deleted,omitempty"`
-	ModeratedBy  string    `json:"moderatedBy,omitempty"`
-	ModeratedAt  time.Time `json:"moderatedAt,omitempty"`
-}
-
-// Post é um documento da coleção posts/{postId}.
-// O autor pode apagar o próprio post; nutricionista/admin podem apagar
-// qualquer post (soft delete para auditoria). Curtidas ficam num map uid→true.
-type Post struct {
-	ID           string          `json:"id,omitempty"`
-	UserID       string          `json:"userId"`
-	UserName     string          `json:"userName"`
-	UserPhotoURL string          `json:"userPhotoURL,omitempty"`
-	Type         PostType        `json:"type"`
-	Text         string          `json:"text,omitempty"` // legenda opcional
-	WorkoutID    string          `json:"workoutId,omitempty"`
-	WorkoutName  string          `json:"workoutName,omitempty"`
-	DietID       string          `json:"dietId,omitempty"`
-	DietName     string          `json:"dietName,omitempty"`
-	Date         string          `json:"date,omitempty"` // data da conclusão (YYYY-MM-DD)
-	Likes        map[string]bool `json:"likes,omitempty"`
-	LikeCount    int             `json:"likeCount"`
-	Comments     []*PostComment  `json:"comments,omitempty"`
-	Deleted      bool            `json:"deleted,omitempty"` // soft delete por moderação
-	ModeratedBy  string          `json:"moderatedBy,omitempty"`
-	ModeratedAt  time.Time       `json:"moderatedAt,omitempty"`
-	CreatedAt    time.Time       `json:"createdAt,omitempty"`
-	UpdatedAt    time.Time       `json:"updatedAt,omitempty"`
-}
-
-// CreatePostRequest é o payload para criar um post no feed.
-type CreatePostRequest struct {
-	Text      string `json:"text"`
-	WorkoutID string `json:"workoutId,omitempty"`
-	DietID    string `json:"dietId,omitempty"`
-	Date      string `json:"date,omitempty"`
-}
-
-// CommentRequest é o payload para adicionar um comentário.
-type CommentRequest struct {
-	Text string `json:"text"`
 }
 
 // ── Dieta diária ──
@@ -365,18 +298,16 @@ type MealCheck struct {
 // DietDailyLog é o log diário de adesão à dieta (uma refeição ou o dia todo).
 // Documento em dietLogs/{studentID}_{date} — um por aluno por dia.
 type DietDailyLog struct {
-	ID             string        `json:"id,omitempty"`
-	StudentID      string        `json:"studentId"`
-	DietID         string        `json:"dietId,omitempty"`
-	DietName       string        `json:"dietName,omitempty"`
-	Date           string        `json:"date"` // YYYY-MM-DD
-	Status         DietLogStatus `json:"status"`
-	MealChecks     []*MealCheck  `json:"mealChecks,omitempty"`
-	Note           string        `json:"note,omitempty"`
-	Caption        string        `json:"caption,omitempty"` // legenda do post automático
-	PostID         string        `json:"postId,omitempty"`  // post automático criado
-	CreatedAt      time.Time     `json:"createdAt,omitempty"`
-	UpdatedAt      time.Time     `json:"updatedAt,omitempty"`
+	ID         string        `json:"id,omitempty"`
+	StudentID  string        `json:"studentId"`
+	DietID     string        `json:"dietId,omitempty"`
+	DietName   string        `json:"dietName,omitempty"`
+	Date       string        `json:"date"` // YYYY-MM-DD
+	Status     DietLogStatus `json:"status"`
+	MealChecks []*MealCheck  `json:"mealChecks,omitempty"`
+	Note       string        `json:"note,omitempty"`
+	CreatedAt  time.Time     `json:"createdAt,omitempty"`
+	UpdatedAt  time.Time     `json:"updatedAt,omitempty"`
 }
 
 // UpsertDietLogRequest é o payload para salvar/atualizar o log de um dia.
@@ -386,5 +317,4 @@ type UpsertDietLogRequest struct {
 	Status     *string      `json:"status,omitempty"` // força o status do dia (opcional)
 	MealChecks []*MealCheck `json:"mealChecks,omitempty"`
 	Note       string       `json:"note,omitempty"`
-	Caption    string       `json:"caption,omitempty"`
 }

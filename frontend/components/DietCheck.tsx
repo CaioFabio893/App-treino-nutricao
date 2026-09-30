@@ -13,7 +13,6 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
   const [log, setLog] = useState<DietDailyLog | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [caption, setCaption] = useState("");
   const [note, setNote] = useState("");
 
   const load = useCallback(async () => {
@@ -23,7 +22,6 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
       const logs = await api.listDietLogs(me, token, todayKey(), todayKey());
       const today = logs.find((l) => l.date === todayKey()) ?? null;
       setLog(today);
-      setCaption(today?.caption ?? "");
       setNote(today?.note ?? "");
     } catch {
       /* offline — mantém a marcação atual */
@@ -68,7 +66,6 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
             : nextChecks.some((c) => c.followed)
               ? "partial"
               : "not_followed",
-          caption: caption || undefined,
           note: note || undefined,
         },
         token
@@ -122,15 +119,6 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
           {error}
         </div>
       )}
-      <div className="frm-row" style={{ marginTop: 8 }}>
-        <label className="frm-label">Legenda (publicada no feed)</label>
-        <input
-          type="text"
-          placeholder="Ex.: Dia seguido à risca! 🥗"
-          value={caption}
-          onChange={(e) => setCaption(e.target.value)}
-        />
-      </div>
       <div className="frm-row" style={{ marginTop: 4 }}>
         <label className="frm-label">Observação (só para você e o nutricionista)</label>
         <textarea
@@ -161,7 +149,6 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
                     followed: true,
                   })),
                   status: "followed",
-                  caption: caption || undefined,
                   note: note || undefined,
                 },
                 token
@@ -192,13 +179,11 @@ export default function DietCheck({ diet }: { diet: Diet | undefined }) {
                     date: todayKey(),
                     mealChecks: [],
                     status: "not_followed",
-                    caption: "",
                     note: "",
                   },
                   token
                 );
                 setLog(updated);
-                setCaption("");
                 setNote("");
               } catch (err) {
                 setError(friendlyError(err));

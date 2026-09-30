@@ -1,4 +1,4 @@
-﻿package repository
+package repository
 
 // Testes do contrato JSON de coleções: endpoints que listam registros devem
 // serializar como `[]` quando vazios — nunca como `null`. O bug original era
@@ -55,14 +55,13 @@ func TestEnsureNonNilSliceSerializesAsArray(t *testing.T) {
 }
 
 // TestEnsureNonNilSliceNilToArrayAllTypes cobre cada tipo de coleção exposto
-// pelos endpoints (planos, usuários/alunos, treinos, dietas, posts, diet-logs).
+// pelos endpoints (planos, usuários/alunos, treinos, dietas, diet-logs).
 func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 	var (
 		plans    []*models.Plan
 		profiles []*models.UserProfile
 		workouts []*models.WorkoutDefine
 		diets    []*models.Diet
-		posts    []*models.Post
 		logs     []*models.DietDailyLog
 	)
 
@@ -74,7 +73,6 @@ func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 		{"profiles", ensureNonNilSlice(profiles)},
 		{"workouts", ensureNonNilSlice(workouts)},
 		{"diets", ensureNonNilSlice(diets)},
-		{"posts", ensureNonNilSlice(posts)},
 		{"dietLogs", ensureNonNilSlice(logs)},
 	}
 
@@ -250,19 +248,17 @@ func TestDietLogDataUsesServerTimestampOnCreate(t *testing.T) {
 }
 
 // TestDietLogDataKeepsOtherFields garante que a extração do mapa não perde
-// campos de negócio do log (status, refeições, postId, donos).
+// campos de negócio do log (status, refeições, donos).
 func TestDietLogDataKeepsOtherFields(t *testing.T) {
 	log := &models.DietDailyLog{
-		StudentID:      "s1",
-		DietID:         "d1",
-		DietName:       "Dieta A",
-		Date:           "2026-07-01",
-		Status:         models.DietPartial,
-		MealChecks:     []*models.MealCheck{{MealID: "m1", Followed: true}},
-		Note:           "nota",
-		Caption:        "legenda",
-		PostID:         "p1",
-		CreatedAt:      time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
+		StudentID:  "s1",
+		DietID:     "d1",
+		DietName:   "Dieta A",
+		Date:       "2026-07-01",
+		Status:     models.DietPartial,
+		MealChecks: []*models.MealCheck{{MealID: "m1", Followed: true}},
+		Note:       "nota",
+		CreatedAt:  time.Date(2026, 7, 1, 12, 0, 0, 0, time.UTC),
 	}
 	m := dietLogData(log)
 	if m["studentId"] != "s1" {
@@ -277,99 +273,10 @@ func TestDietLogDataKeepsOtherFields(t *testing.T) {
 	if m["status"] != string(models.DietPartial) {
 		t.Errorf("status = %v, want %v", m["status"], string(models.DietPartial))
 	}
-	if m["postId"] != "p1" {
-		t.Errorf("postId = %v, want p1", m["postId"])
-	}
 	if _, ok := m["mealChecks"]; !ok {
 		t.Error("mapa sem mealChecks")
 	}
-	if m["note"] != "nota" || m["caption"] != "legenda" {
-		t.Errorf("note/caption errados: %v / %v", m["note"], m["caption"])
-	}
-}
-
-// ── Feed: postData (item 3.5) ──
-//
-// O mapa de escrita do post (extraído para postData) precisa preservar
-// likes/comentários já existentes e o registro de moderação — qualquer perda
-// aqui é perda de dados concorrente (a race que o UpdatePostTx corrige).
-
-func TestPostDataPreservesLikesCommentsAndModeration(t *testing.T) {
-	created := time.Date(2026, 7, 3, 9, 0, 0, 0, time.UTC)
-	updated := time.Date(2026, 7, 3, 9, 30, 0, 0, time.UTC)
-	p := &models.Post{
-		ID:           "p1",
-		UserID:       "u1",
-		UserName:     "Ana",
-		UserPhotoURL: "foto.png",
-		Type:         models.PostWorkout,
-		Text:         "texto",
-		WorkoutID:    "w1",
-		WorkoutName:  "Treino A",
-		Date:         "2026-07-03",
-		Likes:        map[string]bool{"u2": true, "u3": true},
-		LikeCount:    2,
-		Comments:     []*models.PostComment{{ID: "c1", UserID: "u2", Text: "bom!"}},
-		Deleted:      true,
-		ModeratedBy:  "n1",
-		ModeratedAt:  time.Date(2026, 7, 3, 10, 0, 0, 0, time.UTC),
-		CreatedAt:    created,
-		UpdatedAt:    updated,
-	}
-
-	m := postData(p)
-	if m["userId"] != "u1" || m["userName"] != "Ana" {
-		t.Errorf("autor errado: %v / %v", m["userId"], m["userName"])
-	}
-	likes, ok := m["likes"].(map[string]bool)
-	if !ok || !likes["u2"] || !likes["u3"] || len(likes) != 2 {
-		t.Errorf("likes perdidos: %#v", m["likes"])
-	}
-	if likeCount := m["likeCount"]; likeCount != 2 {
-		t.Errorf("likeCount = %v, want 2", likeCount)
-	}
-	comments, ok := m["comments"].([]*models.PostComment)
-	if !ok || len(comments) != 1 || comments[0].ID != "c1" {
-		t.Errorf("comments perdidos: %#v", m["comments"])
-	}
-	if m["deleted"] != true {
-		t.Errorf("deleted = %v, want true", m["deleted"])
-	}
-	if m["moderatedBy"] != "n1" {
-		t.Errorf("moderatedBy = %v, want n1", m["moderatedBy"])
-	}
-	modAt, ok := m["moderatedAt"].(time.Time)
-	if !ok || modAt.IsZero() {
-		t.Errorf("moderatedAt perdido: %#v", m["moderatedAt"])
-	}
-	if createdAt := m["createdAt"]; createdAt != created {
-		t.Errorf("createdAt = %v, want %v", createdAt, created)
-	}
-	// updatedAt vem do struct (definido pelo handler com service.Now()), nunca
-	// de time.Now() cru no repository — regressão do achado "time.Now em dado
-	// de negócio" (pre-f13).
-	if updatedAt := m["updatedAt"]; updatedAt != updated {
-		t.Errorf("updatedAt = %v, want %v", updatedAt, updated)
-	}
-}
-
-// ── Testes pré-existentes (preservados) ──
-
-func TestCursorEncodeParse(t *testing.T) {
-	ts := time.Date(2026, 7, 10, 12, 0, 0, 0, time.Local)
-	p := &models.Post{ID: "abc123", CreatedAt: ts}
-	c := encodeCursor(p)
-	if c != "1752163200000,abc123" && c != "1752163200000" {
-		// verifica estrutura geral (millis variam com fuso)
-	}
-	milli, id, ok := parseCursor(c)
-	if !ok || id != "abc123" || milli != ts.UnixMilli() {
-		t.Errorf("parseCursor(%q) = %d/%s/%v", c, milli, id, ok)
-	}
-	if _, _, ok := parseCursor("sem-virgula"); ok {
-		t.Error("parseCursor should fail without comma")
-	}
-	if _, _, ok := parseCursor("xx,yy"); ok {
-		t.Error("parseCursor should fail with non-numeric milli")
+	if m["note"] != "nota" {
+		t.Errorf("note errada: %v", m["note"])
 	}
 }

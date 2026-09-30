@@ -1,11 +1,11 @@
-# Gates reais do checkpoint F1 — 30/09/2026
+# Gates reais do checkpoint F2 — 30/09/2026
 # Contagens top-level; nenhum resultado estimado. Sem produção.
-go=201 PASS 2026-09-30 (go vet limpo; go test ./... -count=1; regressao rotas removidas)
+go=185 PASS 2026-09-30 (go vet limpo; go test ./... -count=1; regressao rotas removidas)
 vitest=99 PASS 2026-09-30 (17 arquivos; dashboard complementar 5/5)
-rules=84 PASS 2026-09-30 (emulador; inclui negacao scores legados aluno/admin)
-e2e=28 PASS 2026-09-30 (2.1 min; Auth/Firestore locais; emuladores encerrados)
+rules=88 PASS 2026-09-30 (emulador; inclui negacao scores legados aluno/admin)
+e2e=28 PASS 2026-09-30 (1.7 min; Auth/Firestore locais; emuladores encerrados)
 tsc=OK 2026-09-30
 lint=0/0 2026-09-30
 build=OK 2026-09-30 (Next standalone)
 # Baseline anterior F4: Go 206, Vitest 104, rules 86, E2E 30.
-# Historico/continuacao: docs/reports/simplificacao-f1-checkpoint.md e PROJECT_STATE.md.
+# Historico/continuacao: docs/reports/simplificacao-f2-checkpoint.md e PROJECT_STATE.md.

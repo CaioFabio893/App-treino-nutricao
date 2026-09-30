@@ -84,9 +84,6 @@ type chainFakeRepo struct {
 	createdDiet    *models.Diet
 	createdWorkout *models.WorkoutDefine
 
-	// FASE 1 (feed): posts em memória para as rotas sociais.
-	posts map[string]*models.Post
-
 	// FASE 5 (biblioteca de exercícios): exercícios em memória para as rotas.
 	listExercises     []*models.ExerciseItem
 	exercise          *models.ExerciseItem
@@ -106,50 +103,6 @@ type chainFakeRepo struct {
 	createdWorkouts  []*models.WorkoutDefine
 	workoutsByID     map[string]*models.WorkoutDefine
 }
-
-// postsMap inicializa (se preciso) o mapa de posts do fake.
-func (f *chainFakeRepo) postsMap() map[string]*models.Post {
-	if f.posts == nil {
-		f.posts = map[string]*models.Post{}
-	}
-	return f.posts
-}
-
-func (f *chainFakeRepo) CreatePost(_ context.Context, p *models.Post) (*models.Post, error) {
-	f.postsMap()[p.ID] = p
-	return p, nil
-}
-
-func (f *chainFakeRepo) GetPost(_ context.Context, id string) (*models.Post, error) {
-	p, ok := f.postsMap()[id]
-	if !ok {
-		return nil, nil
-	}
-	cp := *p
-	return &cp, nil
-}
-
-func (f *chainFakeRepo) DeletePost(_ context.Context, id string) error {
-	delete(f.postsMap(), id)
-	return nil
-}
-
-// UpdatePostTx aplica a mutação sobre o post em memória — espelha o contrato
-// da implementação Firestore (transação): post inexistente aborta com
-// ErrPostNotFound; o mutate roda sobre o post atual e o resultado é gravado.
-func (f *chainFakeRepo) UpdatePostTx(_ context.Context, id string, mutate func(*models.Post) error) error {
-	p, ok := f.postsMap()[id]
-	if !ok {
-		return repository.ErrPostNotFound
-	}
-	cp := *p
-	if err := mutate(&cp); err != nil {
-		return err
-	}
-	f.posts[id] = &cp
-	return nil
-}
-
 func (f *chainFakeRepo) GetUserProfile(_ context.Context, uid string) (*models.UserProfile, error) {
 	if f.studentsByID != nil {
 		if p, ok := f.studentsByID[uid]; ok {
@@ -355,6 +308,25 @@ func TestRemovedGamificationRoutesReturnNotFound(t *testing.T) {
 			mux.ServeHTTP(res, req)
 			if res.Code != http.StatusNotFound {
 				t.Fatalf("removed route %s: status=%d, want 404", path, res.Code)
+			}
+		})
+	}
+}
+
+func TestRemovedCommunityRoutesReturnNotFound(t *testing.T) {
+	mux := newChainMux(&chainFakeRepo{})
+	for _, route := range []struct{ method, path string }{
+		{"GET", "/api/posts"}, {"POST", "/api/posts"},
+		{"POST", "/api/posts/old/like"}, {"POST", "/api/posts/old/comments"},
+		{"DELETE", "/api/posts/old/comments/comment"}, {"DELETE", "/api/posts/old"},
+	} {
+		t.Run(route.method+route.path, func(t *testing.T) {
+			req := httptest.NewRequest(route.method, route.path, nil)
+			req.Header.Set("Authorization", "Bearer valid-token")
+			res := httptest.NewRecorder()
+			mux.ServeHTTP(res, req)
+			if res.Code != http.StatusNotFound {
+				t.Fatalf("removed route: status=%d, want 404", res.Code)
 			}
 		})
 	}
@@ -855,7 +827,7 @@ func TestChainGetMeCreatesPendingProfile(t *testing.T) {
 // própria nota do ranking. O mesmo furo valia para authProvider/approvedAt/
 // rejectedReason (client-sent, sem preservação). Contrato (rules Firestore
 // allowedSelfProfileUpdate + docs/api): o cliente só edita name/email/
-// photoURL/bio; TODO o resto é definido pela API Go em fluxos dedicados.
+// name/email; todo o resto é definido pela API Go em fluxos dedicados.
 func TestChainPutMeIsAllowlistBlockingMassAssignment(t *testing.T) {
 	existing := &models.UserProfile{
 		ID:             testUID,
@@ -1392,267 +1364,6 @@ func TestChainStudentCannotCreateDietOrWorkout(t *testing.T) {
 	rr = doChainRequest(h, "POST", "/api/workouts", `{"name":"X","exercises":[]}`, "token-valido")
 	if rr.Code != http.StatusForbidden {
 		t.Fatalf("POST /api/workouts (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// -- FEED (item 3.5: transações no feed) --
-//
-// Os handlers de curtir/comentar/remover agora usam UpdatePostTx (leitura +
-// escrita DENTRO da transação). Estes testes provam que os contratos HTTP
-// continuam os mesmos e que a mutação observada no fake é a esperada.
-
-// feedRepo monta um chainFakeRepo com um post + perfil do aluno autor.
-func feedRepo(authorID string) *chainFakeRepo {
-	repo := baseRepo(studentProfile(models.StatusActive, []models.Feature{models.FeatureCommunity}))
-	repo.posts = map[string]*models.Post{
-		"post-1": {
-			ID:       "post-1",
-			UserID:   authorID,
-			UserName: "Autor",
-			Type:     models.PostText,
-			Text:     "Olá",
-			Likes:    map[string]bool{},
-			Comments: []*models.PostComment{},
-		},
-	}
-	return repo
-}
-
-func TestChainToggleLikeOnPost(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	// 1ª curtida: liked=true, likeCount=1.
-	rr := doChainRequest(h, "POST", "/api/posts/post-1/like", "", "token-valido")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("like code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
-	}
-	if !strings.Contains(rr.Body.String(), `"liked":true`) || !strings.Contains(rr.Body.String(), `"likeCount":1`) {
-		t.Fatalf("like body = %s, want liked:true likeCount:1", rr.Body.String())
-	}
-
-	// 2ª curtida: descurte (liked=false, likeCount=0).
-	rr = doChainRequest(h, "POST", "/api/posts/post-1/like", "", "token-valido")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("unlike code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
-	}
-	if !strings.Contains(rr.Body.String(), `"liked":false`) || !strings.Contains(rr.Body.String(), `"likeCount":0`) {
-		t.Fatalf("unlike body = %s, want liked:false likeCount:0", rr.Body.String())
-	}
-}
-
-func TestChainToggleLikePostNotFound(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/posts/nao-existe/like", "", "token-valido")
-	if rr.Code != http.StatusNotFound {
-		t.Fatalf("like em post inexistente code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-func TestChainAddCommentOnPost(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"bom treino"}`, "token-valido")
-	if rr.Code != http.StatusOK {
-		t.Fatalf("comment code = %d, want 200 (body: %s)", rr.Code, rr.Body.String())
-	}
-	if !strings.Contains(rr.Body.String(), `"text":"bom treino"`) {
-		t.Fatalf("comment body = %s, want text salvo", rr.Body.String())
-	}
-	// O post em memória deve ter o comentário.
-	post := repo.posts["post-1"]
-	if len(post.Comments) != 1 {
-		t.Fatalf("comments len = %d, want 1", len(post.Comments))
-	}
-}
-
-func TestChainAddCommentEmptyTextRejected(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"   "}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("comment vazio code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// -- Achado 3 (pre-f13): limite de tamanho de entrada --
-
-func TestChainAddCommentTooLongRejected(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/posts/post-1/comments", `{"text":"`+strings.Repeat("a", service.MaxCommentText+1)+`"}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("comentario longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-func TestChainCreatePostTooLongRejected(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/posts", `{"text":"`+strings.Repeat("a", service.MaxPostText+1)+`"}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("post longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// Duplicar treino com NewName acima do limite não pode burlar a validação de
-// nome (mesma classe do achado 3 — o nome vai para o nome do treino no Firestore).
-func TestChainDuplicateWorkoutTooLongRejected(t *testing.T) {
-	repo := baseRepo(adminProfile(models.StatusActive))
-	repo.workout = &models.WorkoutDefine{
-		ID:        "w-1",
-		StudentID: "student-1",
-		Name:      "Treino A",
-	}
-	repo.studentsByID = map[string]*models.UserProfile{
-		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
-	}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/workouts/w-1/duplicate", `{"newName":"`+strings.Repeat("a", service.MaxNameLength+1)+`"}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("duplicar treino com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-func TestChainDuplicateDietTooLongRejected(t *testing.T) {
-	repo := baseRepo(adminProfile(models.StatusActive))
-	repo.diet = &models.Diet{
-		ID:        "d-1",
-		StudentID: "student-1",
-		Name:      "Dieta A",
-	}
-	repo.studentsByID = map[string]*models.UserProfile{
-		"student-1": {ID: "student-1", Role: models.RoleStudent, Status: models.StatusActive},
-	}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "POST", "/api/diets/d-1/duplicate", `{"newName":"`+strings.Repeat("a", service.MaxNameLength+1)+`"}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("duplicar dieta com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// Nutricionista editando aluno não pode gravar nome/bio acima do limite — mesma
-// regra do PUT /api/me (nome e bio são campos de perfil exibidos na UI).
-func TestChainUpdateStudentTooLongRejected(t *testing.T) {
-	repo := baseRepo(adminProfile(models.StatusActive))
-	repo.studentsByID = map[string]*models.UserProfile{
-		"student-1": {
-			ID:     "student-1",
-			Name:   "Aluno 1",
-			Role:   models.RoleStudent,
-			Status: models.StatusActive,
-		},
-	}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "PUT", "/api/students/student-1", `{"name":"`+strings.Repeat("a", service.MaxNameLength+1)+`","status":"active"}`, "token-valido")
-	if rr.Code != http.StatusBadRequest {
-		t.Fatalf("editar aluno com nome longo code = %d, want 400 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// Autor apaga o próprio comentário: remoção real (sem soft delete).
-func TestChainDeleteOwnComment(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	repo.posts["post-1"].Comments = []*models.PostComment{{ID: "c1", UserID: testUID, Text: "meu comentario"}}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
-	if rr.Code != http.StatusNoContent {
-		t.Fatalf("DELETE comentário próprio code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
-	}
-	if len(repo.posts["post-1"].Comments) != 0 {
-		t.Fatalf("comentário do autor não foi removido de vez: %#v", repo.posts["post-1"].Comments)
-	}
-}
-
-// Aluno NÃO pode apagar comentário alheio (não é moderador).
-func TestChainStudentCannotDeleteOthersComment(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	repo.posts["post-1"].Comments = []*models.PostComment{{ID: "c1", UserID: "outro-aluno", Text: "comentario alheio"}}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("DELETE comentário alheio (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
-	}
-}
-
-// Moderador (admin) apaga comentario alheio: soft delete com auditoria.
-func TestChainAdminSoftDeletesOthersComment(t *testing.T) {
-	repo := baseRepo(adminProfile(models.StatusActive))
-	repo.posts = map[string]*models.Post{
-		"post-1": {
-			ID:     "post-1",
-			UserID: "outro-autor",
-			Type:   models.PostText,
-			Text:   "Olá",
-			Likes:  map[string]bool{},
-			Comments: []*models.PostComment{
-				{ID: "c1", UserID: "aluno-x", Text: "comentario alheio"},
-			},
-		},
-	}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1/comments/c1", "", "token-valido")
-	if rr.Code != http.StatusNoContent {
-		t.Fatalf("DELETE comentário (nutri moderador) code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
-	}
-	c := repo.posts["post-1"].Comments[0]
-	if !c.Deleted || c.ModeratedBy != testUID {
-		t.Fatalf("soft delete não registrado: %+v", c)
-	}
-}
-
-// Autor apaga o próprio post: remoção real do documento.
-func TestChainAuthorDeletesOwnPost(t *testing.T) {
-	repo := feedRepo(testUID)
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
-	if rr.Code != http.StatusNoContent {
-		t.Fatalf("DELETE post próprio code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
-	}
-	if _, ok := repo.posts["post-1"]; ok {
-		t.Fatal("post do autor não foi removido de vez")
-	}
-}
-
-// Moderador apaga post alheio: soft delete com auditoria.
-func TestChainAdminSoftDeletesPost(t *testing.T) {
-	repo := baseRepo(adminProfile(models.StatusActive))
-	repo.posts = map[string]*models.Post{
-		"post-1": {ID: "post-1", UserID: "outro-autor", Type: models.PostText, Text: "Olá", Likes: map[string]bool{}},
-	}
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
-	if rr.Code != http.StatusNoContent {
-		t.Fatalf("DELETE post (nutri moderador) code = %d, want 204 (body: %s)", rr.Code, rr.Body.String())
-	}
-	p := repo.posts["post-1"]
-	if !p.Deleted || p.ModeratedBy != testUID {
-		t.Fatalf("soft delete do post não registrado: %+v", p)
-	}
-}
-
-// Aluno NÃO pode apagar post alheio.
-func TestChainStudentCannotDeleteOthersPost(t *testing.T) {
-	repo := feedRepo("outro-autor")
-	h := newChainMux(repo)
-
-	rr := doChainRequest(h, "DELETE", "/api/posts/post-1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("DELETE post alheio (aluno) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 
