@@ -1,4 +1,8 @@
-> Atualização atual: web treino-web-00019-xak com execução de séries, cargas,
+> Atualização mais recente: web treino-web-00022-huh, área do aluno unificada
+> em Início/Treino/Dieta, sem tela antiga de treinos. Paleta verde compartilhada.
+> /programas redireciona para /treinos; progresso e dados preservados.
+> Instruções em treino-unificado-paleta-2026-09-30.md.
+> Atualização anterior: web treino-web-00019-xak com execução de séries, cargas,
 > repetições, sucesso/falha, cronômetro, PRs, semanas e histórico local por conta.
 > Programa do aluno e biblioteca reparados: 2 programas, 10 treinos; existentes
 > preservados. Ver app-execucao-exemplo-2026-09-30.md para instruções e rollback.

@@ -1,7 +1,5 @@
-"use client";
-
-import StudentProgramsPage from "@/components/student/StudentProgramsPage";
+import { redirect } from "next/navigation";
 
 export default function ProgramasPage() {
-  return <StudentProgramsPage />;
+  redirect("/treinos");
 }

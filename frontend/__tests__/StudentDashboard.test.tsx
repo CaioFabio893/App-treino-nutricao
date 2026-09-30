@@ -24,11 +24,11 @@ describe("StudentDashboard — treinos e dieta sem plano", () => {
       status: "active",
     });
     // Regra documentada (docs/security/plans.md): workouts é sempre liberado.
-    expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Treino/ })).toBeInTheDocument();
     // Com Treinos sempre visível, o empty state ("ainda não tem módulos") é
     // inalcançável — o dashboard nunca renderiza essa mensagem.
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Dieta/ })).toBeInTheDocument();
   });
 
   it("mostra treino e dieta para aluno pausado", () => {
@@ -38,8 +38,8 @@ describe("StudentDashboard — treinos e dieta sem plano", () => {
       role: "student",
       status: "paused",
     });
-    expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Treino/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Dieta/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();
   });
 
@@ -51,8 +51,8 @@ describe("StudentDashboard — treinos e dieta sem plano", () => {
       status: "active",
       features: ["diet", "community", "ranking"],
     } as UserProfile & { features: string[] });
-    expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Treino/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Dieta/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Ranking/ })).not.toBeInTheDocument();
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
@@ -79,6 +79,6 @@ describe("StudentDashboard — treinos e dieta sem plano", () => {
   it("perfil ausente (null) não quebra: mostra o fallback de greeting", () => {
     renderWithProfile(null);
     expect(screen.getByRole("heading", { name: "Olá, Aluno 👋" })).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Treino/ })).toBeInTheDocument();
   });
 });

@@ -10,9 +10,8 @@ import { LoadingScreen } from "@/components/SetupNeeded";
 import LoadError from "@/components/LoadError";
 
 /**
- * Página "Programa" do aluno: o agrupamento de treinos que a nutricionista
- * atribuiu. É read-only de propósito — o aluno executa o treino pelo histórico
- * de execução, mas não edita o plano.
+ * Área única de Treino: programas completos atribuídos e execução pessoal.
+ * O aluno registra seu progresso, mas não edita a prescrição.
  */
 export default function StudentProgramsPage() {
   const { getToken, profile } = useAuth();
@@ -49,11 +48,11 @@ export default function StudentProgramsPage() {
       <div>
         <div className="page-head">
           <div>
-            <h1>Seu programa</h1>
+            <h1>Treino</h1>
             <div className="page-sub">O plano de treinos da sua nutricionista.</div>
           </div>
         </div>
-        <LoadError message="Não foi possível carregar seu programa." onRetry={() => void load()} />
+        <LoadError message="Não foi possível carregar seu treino." onRetry={() => void load()} />
       </div>
     );
   }
@@ -65,19 +64,18 @@ export default function StudentProgramsPage() {
     <div>
       <div className="page-head">
         <div>
-          <h1>Seu programa</h1>
+          <h1>Treino</h1>
           <div className="page-sub">
             {programs.length > 0
               ? "O plano de treinos da sua nutricionista."
-              : "Você ainda não tem um programa atribuído."}
+              : "Você ainda não tem um treino completo atribuído."}
           </div>
         </div>
       </div>
 
       {programs.length === 0 ? (
         <div className="empty-box">
-          Nenhum programa atribuído a você ainda. Enquanto isso, você pode ver seus treinos em{" "}
-          <Link href="/treinos">Treinos</Link>.
+          Nenhum treino completo atribuído a você ainda. Peça ao responsável para associar seu programa de treino.
         </div>
       ) : (
         programs.map((p) => {
@@ -95,8 +93,8 @@ export default function StudentProgramsPage() {
                 {days && <span className="badge">{days}</span>}
               </div>
               <div className="btn-row">
-                <Link href={`/programas/${p.id}`} className="btn-sm acc">
-                  Ver o programa
+                <Link href={`/treinos/${p.id}`} className="btn-sm acc">
+                  Abrir treino
                 </Link>
               </div>
             </div>

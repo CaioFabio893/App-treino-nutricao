@@ -1,7 +1,7 @@
 "use client";
 
-import StudentWorkoutsPage from "@/components/student/StudentWorkoutsPage";
+import StudentProgramsPage from "@/components/student/StudentProgramsPage";
 
 export default function TreinosPage() {
-  return <StudentWorkoutsPage />;
+  return <StudentProgramsPage />;
 }

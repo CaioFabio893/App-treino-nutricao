@@ -65,12 +65,12 @@ test.describe("F7 — isolamento e somente leitura com Auth/Firestore reais do e
     expect(created.status()).toBe(200);
     await login(page, USERS.studentC.email, USERS.studentC.password);
     await page.waitForURL("**/dashboard");
-    await page.getByRole("link",{name:"Treinos",exact:true}).click();
-    await expect(page.getByRole("heading",{name:"Seus treinos"})).toBeVisible();
-    await expect(page.locator(".ex-name").first()).toBeVisible();
+    await page.getByRole("link",{name:"Treino",exact:true}).click();
+    await expect(page.getByRole("heading",{name:"Treino"})).toBeVisible();
+    await expect(page.getByRole("link", {name:"Abrir treino",exact:true}).first()).toBeVisible();
     await expect(page.locator("input, textarea, .chk-btn")).toHaveCount(0);
     await expect(page.getByRole("button",{name:/finalizar|registrar|marcar/i})).toHaveCount(0);
-    await page.getByRole("link",{name:"Dietas",exact:true}).click();
+    await page.getByRole("link",{name:"Dieta",exact:true}).click();
     await expect(page.getByText("Dieta exclusiva UI pausado")).toBeVisible();
     await expect(page.locator("input, textarea, .chk-btn")).toHaveCount(0);
   });

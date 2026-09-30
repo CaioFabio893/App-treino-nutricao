@@ -10,12 +10,11 @@ import DashIcon from "./DashIcon";
 import { navAppIcons } from "./icons/AppIcons";
 
 // Navegação inferior do aluno (rotas reais, não abas em estado local).
-// Treinos, programas e dietas são disponíveis aos alunos aprovados.
+// Área única de Treino (programas completos) e Dieta para alunos aprovados.
 const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed" }[] = [
   { href: "/dashboard", label: "Início", icon: "grid" },
-  { href: "/programas", label: "Programa", icon: "program" },
-  { href: "/treinos", label: "Treinos", icon: "dumbbell" },
-  { href: "/dietas", label: "Dietas", icon: "leaf" },
+  { href: "/treinos", label: "Treino", icon: "dumbbell" },
+  { href: "/dietas", label: "Dieta", icon: "leaf" },
 ];
 
 /**

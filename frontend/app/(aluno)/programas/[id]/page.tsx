@@ -1,21 +1,6 @@
-"use client";
+import { redirect } from "next/navigation";
 
-import { Suspense } from "react";
-import { useParams } from "next/navigation";
-import ProgramDetail from "@/components/programs/ProgramDetail";
-import { LoadingScreen } from "@/components/SetupNeeded";
-
-export default function StudentProgramDetailPage() {
-  return (
-    <Suspense fallback={<LoadingScreen />}>
-      <StudentProgramDetailInner />
-    </Suspense>
-  );
-}
-
-function StudentProgramDetailInner() {
-  const params = useParams<{ id: string }>();
-  const id = Array.isArray(params?.id) ? params.id[0] : params?.id;
-  if (!id) return <LoadingScreen />;
-  return <ProgramDetail programId={id} readOnly backHref="/programas" backLabel="Seu programa" />;
+export default async function LegacyProgramPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  redirect(`/treinos/${encodeURIComponent(id)}`);
 }

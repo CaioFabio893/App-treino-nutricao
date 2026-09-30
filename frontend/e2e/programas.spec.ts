@@ -94,11 +94,11 @@ test.describe("Programa de treino (admin)", () => {
     await page.waitForURL("**/dashboard");
 
     await page.goto("/programas");
-    await expect(page.getByRole("heading", { name: "Seu programa" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Treino" })).toBeVisible();
     await expect(page.getByText("Louise Lima (Ciclo 2)")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Ver o programa" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Abrir treino" }).first()).toBeVisible();
 
-    await page.getByRole("link", { name: "Ver o programa" }).first().click();
+    await page.getByRole("link", { name: "Abrir treino" }).first().click();
     await expect(page.getByRole("heading", { name: /Louise Lima \(Ciclo 2\)/ })).toBeVisible();
     // Exercícios visíveis...
     await expect(page.getByText("Agachamento Livre com Barra").first()).toBeVisible();

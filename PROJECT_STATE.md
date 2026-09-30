@@ -6,7 +6,7 @@ Fonte operacional: docs/reports/production-reset-and-rollout-2026-09-30.md.
 ## Produção atual
 
 Projeto treino-louise, Firestore (default), região southamerica-east1.
-API treino-api-00016-gic e web treino-web-00019-xak, ambas com 100% tráfego.
+API treino-api-00016-gic e web treino-web-00022-huh, ambas com 100% tráfego.
 https://treino-web-834622951375.southamerica-east1.run.app
 Admin preservado: caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
 UID/senha/perfil preservados. Duas contas e nove documentos reais removidos;
@@ -20,6 +20,11 @@ Google não configurado; conta preservada já possuía password, sem migração.
 API aceita somente claim verificada password e verifica revogação/exclusão.
 
 ## Autorização atual
+
+Área do aluno unificada a pedido do dono: Início, Treino e Dieta. Treino usa
+os programas completos em /treinos e /treinos/{id}; /programas redireciona.
+Tela avulsa antiga removida. Painel de execução usa a paleta verde do app.
+Dados e chaves de progresso preservados. Ver treino-unificado-paleta-2026-09-30.md.
 
 Pedido posterior: reproduzir as funções do app de exemplo, incluindo execução.
 Painel com séries/carga/reps/resultados, cronômetro, PRs, oito semanas e histórico

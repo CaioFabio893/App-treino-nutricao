@@ -13,13 +13,13 @@ const SECTIONS: {
 }[] = [
   {
     href: "/treinos",
-    title: "Treinos",
+    title: "Treino",
     desc: "Seus treinos da semana, PRs e histórico",
     icon: "dumbbell",
   },
   {
     href: "/dietas",
-    title: "Dietas",
+    title: "Dieta",
     desc: "Seu plano alimentar e acompanhamento",
     icon: "leaf",
   },
