@@ -11,19 +11,14 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
 
 ## Status
 
-- **Produção rodando 100% V2** (Cloud Run, `southamerica-east1`): API
-  `treino-api` (revisão `00013-867`, `GO_ENV=production`, CORS restrito às 2
-  origens reais, `RATE_LIMIT=120`) + frontend `treino-web` (revisão
-  `00009-mfg`) + regras Firestore V2 com 9 índices compostos `READY`.
-  Migração técnica V1→V2 **encerrada** (24 set 2026) — ver
-  `docs/progress.md` e `docs/reports/phase-15-3-post-migration.md`.
-- **Gates verdes** (medidos em 30 set 2026): Go `ver .gates` ✓ · Firestore rules
-  `ver .gates` ✓ · Vitest `104/104` ✓ · Playwright E2E `30/30` ✓ ·
-  `tsc --noEmit` ✓ · `next build` ✓ · lint `0/0` ✓.
-- **Pendências (decisão de produto, não bloqueiam produção)**: login Google
-  (ADR-002 votado para remover, código ainda expõe o botão — ver F15.3 §7C),
-  F8 alimentos (formato da dieta), validação humana da Louise (login real +
-  PWA em dispositivo).
+- Simplificação F1–F7 concluída localmente. Gates em .gates; nenhuma publicação
+  realizada nesta continuidade.
+- Último registro histórico de produção: 24/09/2026, serviços treino-api e
+  treino-web em southamerica-east1. Revisões reais atuais não foram revalidadas.
+  Consultar phase-15-3-post-migration.md e confirmar antes do rollout.
+- Login local e-mail/senha. Google já saiu da UI; migração das contas e bloqueio
+  do provedor no backend/console continuam pendentes.
+- Validação humana de Louise e PWA em dispositivo continua etapa operacional.
 
 ## Simplificação local
 
@@ -101,7 +96,7 @@ Capturas reais da aplicação:
 - **Backend**: API em **Go** no **Cloud Run** — verifica o token do Firebase e
   acessa o Firestore (o usuário nunca fala direto com o banco).
 - **Banco**: **Firestore** (NoSQL) — dados por usuário em `users/{uid}/...`.
-- **Login**: **Firebase Authentication** (e-mail/senha ou **Google**).
+- **Login**: **Firebase Authentication** (e-mail/senha; provedor Google legado pendente de migração).
 - **Cadastro**: usuário novo precisa da **aprovação do admin** antes de usar o
   app (papel e plano de acesso definidos pelo admin).
 
@@ -158,7 +153,7 @@ Capturas reais da aplicação:
 ### Passo 2 — Ativar Authentication (login)
 
 1. No console, menu **Build → Authentication → Get started**.
-2. Na aba **Sign-in method**, habilite **E-mail/Senha** e **Google** e salve.
+2. Na aba **Sign-in method**, habilite **E-mail/Senha** para instalações novas. Em projeto legado, migre contas Google para senha antes de desligar o provedor.
 3. (Opcional) Crie um usuário de teste em **Users → Add user**.
 
 ### Passo 3 — Criar o Firestore (banco NoSQL)
@@ -505,8 +500,8 @@ Política: docs/security/plans.md. Exemplos V1 foram retirados desta referência
 cd frontend && npm run dev     # desenvolvimento
 cd frontend && npm run build   # build server (standalone)
 cd frontend && npm run lint    # ESLint (0/0)
-cd frontend && npm test        # Vitest (104/104)
-cd frontend && npm run test:e2e # Playwright E2E (30/30 — sobe emuladores + backend + seed)
+cd frontend && npm test        # Vitest (contagem atual em .gates)
+cd frontend && npm run test:e2e # Playwright E2E (contagem em .gates — sobe emuladores + backend + seed)
 
 # Backend (local, com service account)
 cd backend && go run .
@@ -516,7 +511,7 @@ cd backend && go test ./...   # testes (handlers, repository, service) — ver .
 cd firestore-tests && npm test  # ver .gates — sobe/derruba o emulador sozinho
 
 # Deploy (região padrão usada no projeto: southamerica-east1)
-# frontend: gcloud builds submit frontend --tag southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web
+# frontend: usar o cloudbuild.yaml versionado com os NEXT_PUBLIC_* de build (ver seção Deploy).
 #          gcloud run deploy treino-web --image southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web --region southamerica-east1 ...
 # backend:  gcloud run deploy treino-api --region southamerica-east1
 firebase deploy --only firestore

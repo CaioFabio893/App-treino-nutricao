@@ -6,7 +6,7 @@ import * as api from "@/lib/api";
 import type { WorkoutDefine } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 import LoadError from "@/components/LoadError";
-import { WEEK_DAY_KEY, WEEK_DAY_LABEL, todayDateLabel } from "@/lib/days";
+import { APP_TIME_ZONE, WEEK_DAY_KEY, WEEK_DAY_LABEL, todayDateLabel } from "@/lib/days";
 
 /** Consulta dos treinos atribuídos: seleção local, sem registrar execução. */
 export default function StudentWorkoutsPage() {
@@ -28,7 +28,7 @@ export default function StudentWorkoutsPage() {
   }, [getToken, profile?.id]);
   useEffect(() => { void load(); }, [load]);
   if (!ready) return <LoadingScreen />;
-  const dayIndex = new Intl.DateTimeFormat("en-US", { timeZone: "America/Recife", weekday: "short" }).format(new Date());
+  const dayIndex = new Intl.DateTimeFormat("en-US", { timeZone: APP_TIME_ZONE, weekday: "short" }).format(new Date());
   const today = WEEK_DAY_KEY[["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].indexOf(dayIndex)];
   const selected = workouts.find((w) => w.id === selectedId) ?? workouts.find((w) => w.dayOfWeek === today) ?? workouts[0];
   return (

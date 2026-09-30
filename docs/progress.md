@@ -4,6 +4,16 @@
 
 ---
 
+## 30/09/2026 — Correções finais e handoff
+
+Validade da dieta agora usa Recife em aluno/admin; dois casos Red de virada
+UTC/mês/ano corrigidos, teste de tela confirma 23h59 local. recharts órfão
+retirado offline do manifesto/lock. Frontend121/20 arquivos, tsc/lint/build
+OK; E2E31 (1,3 min) novamente verde. Go186/rules106 F7 preservados.
+F1–F7 concluídas localmente; relatórios post-f7-corrections e handoff.
+Uma execução E2E com HMR durante limpeza foi descartada; sem editar fontes,
+a repetição completa passou. Sem produção ou Windows alterados.
+
 ## 30/09/2026 — F7 aceitação/revisão concluída
 
 Corrigidos aprovação de students/{id}, gate de papel, 404 alheio, catálogo de

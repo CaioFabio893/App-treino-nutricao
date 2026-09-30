@@ -1,4 +1,3 @@
-
 // ── Novos tipos: gestão ──
 
 // Modelo de 2 papéis: quem administra a plataforma e quem consome. Aprovação e

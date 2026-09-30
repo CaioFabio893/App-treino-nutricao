@@ -100,4 +100,15 @@ describe("StudentDietPage — dieta do aluno", () => {
     await userEvent.click(screen.getByRole("button", { name: /Tentar novamente/i }));
     await waitFor(() => expect(screen.getByText("Plano Hipercalórico")).toBeInTheDocument());
   });
-});
+  it("mantém dieta válida até meia-noite em Recife, mesmo no próximo dia UTC", async () => {
+    vi.useFakeTimers({ toFake: ["Date"] });
+    vi.setSystemTime(new Date("2026-10-01T02:59:59Z"));
+    try {
+      mocks.getToken.mockResolvedValue("tok");
+      mocks.listDiets.mockResolvedValue([{ ...textDiet, startDate: "2026-09-30", endDate: "2026-09-30" }]);
+      render(<StudentDietPage />);
+      expect(await screen.findByText("Plano Hipercalórico")).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+  });});

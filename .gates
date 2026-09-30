@@ -1,9 +1,11 @@
-# Gates reais F7 — 30/09/2026; somente local, contagem top-level
+# Gates finais F7 + correções adicionais — 30/09/2026; somente local, contagem top-level
 go=186 PASS (go vet limpo)
-vitest=116 PASS (19 arquivos)
+vitest=121 PASS (20 arquivos)
 rules=106 PASS (emulador)
 e2e=31 PASS (1.3 min; Auth/Firestore locais)
 tsc=OK
 lint=0/0
 build=OK (Next standalone)
 # docs/reports/simplificacao-f7-acceptance-review.md
+# Calendário America/Recife + retirada de recharts: frontend revalidado.
+# Go/rules F7 preservados sem mudança de comportamento posterior.

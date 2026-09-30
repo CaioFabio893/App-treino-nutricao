@@ -376,5 +376,3 @@ export function duplicateDiet(id: string, req: DuplicateRequest, token: string):
     body: JSON.stringify(req),
   });
 }
-
-// ── Histórico ──

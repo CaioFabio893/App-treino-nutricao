@@ -6,7 +6,7 @@ import * as api from "@/lib/api";
 import type { Diet } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
 import LoadError from "@/components/LoadError";
-import { todayDateLabel } from "@/lib/days";
+import { todayDateLabel, todayDateKey } from "@/lib/days";
 
 /** Página "Dietas" do aluno: dieta ativa (texto ou refeições legadas). */
 export default function StudentDietPage() {
@@ -51,7 +51,7 @@ export default function StudentDietPage() {
     );
   }
 
-  const today = new Date().toISOString().slice(0, 10);
+  const today = todayDateKey();
   const todayDiet = diets.find(
     (d) =>
       (!d.startDate || d.startDate <= today) &&

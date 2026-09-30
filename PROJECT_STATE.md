@@ -21,12 +21,12 @@ Configs preexistentes opencode.json e .opencode/* fora dos commits.
 - F5 d10402e: aluno somente leitura; prescrição e vídeos, sem conclusão/diário.
   Gestão adaptada; onboarding nome/e-mail preservado.
 - F6 31514ea: cinco coleções vivas, três índices; K2 escrito sem deploy.
-- F7 concluída: autorização papel/status/posse, 404 para alheios/inexistentes,
+- F7 e50eae1 concluída: autorização papel/status/posse, 404 para alheios/inexistentes,
   403 para mutações do aluno. students/{id} exige aprovação; papéis antigos
   negados; criação SDK do perfil tem allowlist estrita; legado sem status válido.
   UI bloqueia inativo/desconhecido, mantém admin e leitura paused.
 
-Gates F7: Go186 top-level + vet limpo; Vitest116/116 (19 arquivos);
+Gates finais: Go186 top-level + vet limpo; Vitest121/121 (20 arquivos);
 rules106/106; E2E31/31 (1,3 min); tsc/lint/build OK. Apenas emuladores.
 Primeiro E2E de conta inativa tinha seletor exato incluindo subtítulo;
 corrigido após captura comprovar comportamento correto. Novo E2E completo verde.
@@ -42,8 +42,12 @@ cópias. Admin SDK ignora rules; autorização da API precisa ser independente.
 Coleções vivas users/workouts/programs/diets/exercises. Índices necessários
 studentId ASC + createdAt DESC em workouts/programs/diets.
 
-Correção adicional em andamento: padronizar data de validade de dieta para
-America/Recife no frontend, hoje ainda usa UTC em aluno/admin. Não reabrir F1–F7.
+Correções adicionais concluídas: aluno/admin usam dia civil America/Recife
+para validade da dieta; testes de virada UTC/mês/ano e de tela passaram.
+recharts sem consumidor retirado do manifesto/lock offline, sem instalar.
+tsc/lint/build e E2E31 novamente verdes. Relatório
+simplificacao-post-f7-corrections.md; handoff em simplificacao-handoff.md.
+Não reabrir F1–F7. Nenhuma fase local da simplificação pendente.
 
 ## Pendências operacionais
 
@@ -64,5 +68,6 @@ se necessário, sem alterar configuração global. Reverter commit de fase local
 é rollback; revisar conflitos/repetir gates. Nenhum efeito remoto a desfazer.
 Go cache/Firebase CLI exigiram permissão fora do sandbox; sem instalação.
 CLI existente C:/Users/caiof/AppData/Roaming/npm; Java .jdks/ms-21.0.11.
-Não executar rules/E2E juntos. Ler frontend/AGENTS.md e guias Next locais.
+Não executar rules/E2E juntos nem editar fontes durante E2E (HMR).
+Ler frontend/AGENTS.md e guias Next locais.
 Não adicionar opencode.json/.opencode ao commit. Usar contagens medidas.

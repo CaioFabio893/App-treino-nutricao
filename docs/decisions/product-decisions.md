@@ -1,6 +1,9 @@
-# Decisões de produto pendentes
+# Decisões de produto — defaults locais e pendências
 
-A refatoração "simplificação" (plano em `docs/simplificacao/`, fases F0 a F7) está parada esperando estas respostas. O app continua funcionando e os testes continuam verdes, mas nenhuma fase seguinte avança sem a sua escolha: são decisões de produto, não de programação, e só você pode tomá-las.
+Continuidade autorizada sem OK entre fases. Defaults D1–D5/D7/D8 aplicados
+localmente; respostas humanas na tabela continuam em branco. F1–F7 concluídas.
+D6 segue NÃO APAGAR; K1 depende de seleção por coleção. Google já saiu da UI,
+mas migração/bloqueio do provedor não foram executados em produção.
 
 ## Como responder
 
@@ -156,7 +159,7 @@ A refatoração "simplificação" (plano em `docs/simplificacao/`, fases F0 a F7
 
 **Pergunta:** Executar o ADR-002 (remover o login com Google) agora ou depois da simplificação?
 
-**Contexto:** a V2 é e-mail/senha por decisão já tomada, mas hoje o backend ainda aceita `password|google.com` (`backend/middleware/auth.go`) e o botão do Google ainda existe no frontend.
+**Contexto:** a V2 é e-mail/senha por decisão já tomada, mas hoje o backend ainda aceita `password|google.com` (`backend/middleware/auth.go`) e a UI já retirou o botão Google (F17).
 
 **Opções:**
 - **A — Agora:** tira o Google já, mas mistura duas mudanças grandes no mesmo período.

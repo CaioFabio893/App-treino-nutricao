@@ -6,6 +6,7 @@ import { Suspense, useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
+import { todayDateKey } from "@/lib/days";
 import type { Diet, UserProfile, WorkoutDefine } from "@/lib/types";
 import { StudentsPageSkeleton } from "@/components/Skeleton";
 
@@ -56,7 +57,7 @@ function StudentsInner() {
   const statsFor = (id: string) => {
     const w = workouts.filter((x) => x.studentId === id);
     const d = diets.filter((x) => x.studentId === id);
-    const today = new Date().toISOString().slice(0, 10);
+    const today = todayDateKey();
     const currentDiet = d.find(
       (x) => (!x.startDate || x.startDate <= today) && (!x.endDate || x.endDate >= today)
     );

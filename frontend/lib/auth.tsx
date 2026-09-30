@@ -33,7 +33,7 @@ interface AuthCtx {
   role: Role;
   /** true quando o usuário logou mas ainda não tem perfil cadastrado. */
   needsProfile: boolean;
-  /** true quando o cadastro está pendente de aprovação ou foi recusado. */
+  /** true quando o perfil ainda não tem acesso de negócio (pendente/recusado/bloqueado). */
   needsApproval: boolean;
   refreshProfile: () => Promise<void>;
   login: (email: string, password: string) => Promise<User>;
