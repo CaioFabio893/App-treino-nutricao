@@ -48,7 +48,7 @@ func main() {
 	db := repository.New(firestoreClient)
 	svc := service.New(db)
 	h := handlers.New(svc, db, authClient)
-	a := middleware.NewAuth(authClient, db)
+	a := middleware.NewAuth(middleware.NewFirebaseVerifier(authClient), db)
 
 	mux := http.NewServeMux()
 	registerRoutes(mux, h, a)

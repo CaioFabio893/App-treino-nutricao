@@ -8,10 +8,11 @@ import PendingApproval from "@/components/PendingApproval";
 import SetupNeeded, { LoadingScreen } from "@/components/SetupNeeded";
 
 export default function Home() {
-  const { user, initializing, configured, role, needsProfile, needsApproval } = useAuth();
+  const { user, initializing, profileLoaded, configured, role, needsProfile, needsApproval } = useAuth();
   const router = useRouter();
 
   useEffect(() => {
+    if (user && !profileLoaded) return;
     if (!initializing && !configured) return;
     if (!initializing && !user) router.replace("/login");
     // Cadastro pendente: a tela de espera cuida do usuário (e do auto-redirect
@@ -23,10 +24,10 @@ export default function Home() {
     if (!initializing && user && !needsProfile && !needsApproval && role === "student") {
       router.replace("/dashboard");
     }
-  }, [initializing, user, configured, role, needsProfile, needsApproval, router]);
+  }, [initializing, profileLoaded, user, configured, role, needsProfile, needsApproval, router]);
 
   if (!configured) return <SetupNeeded />;
-  if (initializing) return <LoadingScreen />;
+  if (initializing || (user && !profileLoaded)) return <LoadingScreen />;
   if (!user) return <LoadingScreen />;
   // Usuário sem perfil configurado → monta o cadastro (nome).
   if (needsProfile) return <ProfileSetup />;

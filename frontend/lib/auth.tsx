@@ -86,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return;
     }
     const unsub = onAuthStateChanged(firebaseAuth, (u) => {
+      setProfile(null);
+      setProfileLoaded(!u);
       setUser(u);
       setInitializing(false);
     });
