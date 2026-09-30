@@ -46,7 +46,7 @@ export default function StudentWorkoutsPage() {
           </div>
           {selected && <section className="stu-card" aria-label="Detalhes do treino">
             <h2 className="stu-card-title">{selected.name}</h2>
-            {selected.description && <p>{selected.description}</p>}
+            {selected.description && <p style={{ whiteSpace: "pre-wrap" }}>{selected.description}</p>}
             {selected.objective && <p>Objetivo: {selected.objective}</p>}
             <div className="section-label">Exercícios</div>
             {selected.exercises?.length ? selected.exercises.map((ex, i) => (

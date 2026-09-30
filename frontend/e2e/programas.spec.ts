@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { login, USERS } from "./helpers";
+import { LOUISE_PROGRAM_EXAMPLE } from "../lib/program-example";
 
 // F19 — Programa de Treino (coleção que agrupa TREINOS por referência).
 //
@@ -14,39 +15,8 @@ import { login, USERS } from "./helpers";
 // admin aparece como TABELA (.table-view) e as ações são localizadas
 // pelas linhas. O detalhe fica em ?id=<id> (rota /admin/programs).
 
-// Mesmo formato do material de referência (treino.md), em versão reduzida
-// para o teste: 2 treinos. O volume real (5/30) é validado no parser Go.
-const MARKDOWN = `# Programa de Treino — Louise Lima (Ciclo 2)
-
-**Foco: Hipertrofia de Inferiores — sem WOD**
-
----
-
-## TREINO A — Pernas (Quadríceps)
-
-| # | Exercício | Séries | Reps | Observação |
-|---|---|---:|---:|---|
-| 1 | Agachamento Livre com Barra | 4 | 6-8 | Foco em força/carga |
-| 2 | Hack Squat | 4 | 10 | Amplitude total |
-
----
-
-## TREINO B — Costas/Bíceps
-
-| # | Exercício | Séries | Reps | Observação |
-|---|---|---:|---:|---|
-| 1 | Puxada Alta Pronada | 4 | 8-10 | |
-
-**🔥 Cardio Final (circuito — 3 opções):**
-
-- Subida de escada — 2 min
-
----
-
-## Periodização
-
-Sem 1-2: 70% · Sem 7: Deload 70%
-`;
+// Material integral fornecido pelo dono: cinco treinos A–E e 30 exercícios.
+const MARKDOWN = LOUISE_PROGRAM_EXAMPLE;
 
 test.describe("Programa de treino (admin)", () => {
   test("importa markdown, duplica, atribui a aluno e o aluno visualiza em leitura", async ({
@@ -58,11 +28,11 @@ test.describe("Programa de treino (admin)", () => {
     // ── 1. Importação a partir do markdown ─────────────────────────────────
     await page.goto("/admin/programs");
     await expect(page.getByRole("heading", { name: "Programas" })).toBeVisible();
-    await page.getByRole("button", { name: "Importar de .md" }).click();
+    await page.getByRole("button", { name: "+ Novo programa completo" }).click();
 
-    await expect(page.getByRole("heading", { name: "Importar programa" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cadastrar programa completo" })).toBeVisible();
     await page.locator("textarea").first().fill(MARKDOWN);
-    await page.getByRole("button", { name: "Importar programa" }).click();
+    await page.getByRole("button", { name: "Cadastrar programa completo" }).click();
 
     // Vai para o detalhe do programa recém-criado.
     await expect(page.getByRole("heading", { name: /Louise Lima \(Ciclo 2\)/ })).toBeVisible({
@@ -70,19 +40,19 @@ test.describe("Programa de treino (admin)", () => {
     });
 
     // ── 2. Os treinos e exercícios foram criados pelo parse, não digitados ──
-    // 2 treinos · 3 exercícios · 12 séries (4+4 no treino A, 4 no treino B)
+    // Os cinco treinos e as 103 séries do exemplo integral.
     await expect(page.locator(".page-sub").first()).toContainText(
-      "2 treino(s) · 3 exercícios · 12 séries"
+      "5 treino(s) · 30 exercícios · 103 séries"
     );
-    await expect(page.getByText("Agachamento Livre com Barra")).toBeVisible();
-    await expect(page.getByText("Hack Squat")).toBeVisible();
+    await expect(page.getByText("Agachamento Livre com Barra").first()).toBeVisible();
+    await expect(page.getByText("Hack Squat").first()).toBeVisible();
     await expect(page.getByText("Puxada Alta Pronada")).toBeVisible();
     // Séries/reps da tabela foram convertidas.
-    await expect(page.getByText("6-8")).toBeVisible();
+    await expect(page.getByText("6-8").first()).toBeVisible();
     // O cardio foi para a DESCRIÇÃO do treino, não virou exercício fictício.
-    await expect(page.getByText(/Cardio Final/)).toBeVisible();
+    await expect(page.getByText(/Cardio Final/).first()).toBeVisible();
     // A periodização foi preservada nas notas.
-    await expect(page.getByText(/Sem 1-2: 70%/)).toBeVisible();
+    await expect(page.getByText(/Sem 1–2: 70%/)).toBeVisible();
     // Origem registrada.
     await expect(page.getByRole("link", { name: "Editar" })).toHaveAttribute(
       "href",
@@ -110,11 +80,11 @@ test.describe("Programa de treino (admin)", () => {
 
     // ── 4. Atribuir materializa cópias dos treinos para o aluno ────────────
     // "Ana Aluna" = USERS.studentA do seed (backend/cmd/e2eseed).
-    await rowOriginal.getByRole("button", { name: "Atribuir" }).click();
+    await rowOriginal.getByRole("button", { name: "Associar programa inteiro" }).click();
     await page.locator(".modal-box").getByText("Ana Aluna").click();
 
     await expect(rowOriginal).toContainText("atribuído", { timeout: 20_000 });
-    await expect(rowOriginal.getByRole("button", { name: "Atribuir" })).toHaveCount(0);
+    await expect(rowOriginal.getByRole("button", { name: "Associar programa inteiro" })).toHaveCount(0);
 
     // ── 5. O aluno enxerga o programa, somente leitura ────────────────────
     await page.getByRole("button", { name: "Sair", exact: true }).first().click();
@@ -131,7 +101,7 @@ test.describe("Programa de treino (admin)", () => {
     await page.getByRole("link", { name: "Ver o programa" }).first().click();
     await expect(page.getByRole("heading", { name: /Louise Lima \(Ciclo 2\)/ })).toBeVisible();
     // Exercícios visíveis...
-    await expect(page.getByText("Agachamento Livre com Barra")).toBeVisible();
+    await expect(page.getByText("Agachamento Livre com Barra").first()).toBeVisible();
     // ... mas sem ações de escrita.
     await expect(page.getByRole("link", { name: "Editar" })).toHaveCount(0);
     await expect(page.getByRole("link", { name: "Imprimir" })).toHaveCount(0);

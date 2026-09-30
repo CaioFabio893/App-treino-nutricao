@@ -239,6 +239,14 @@ function WorkoutsInner() {
         </button>
       </div>
 
+      <div className="frm-card">
+        <h3>Quer cadastrar uma programação inteira?</h3>
+        <p>Cadastre todos os treinos A, B, C, D… juntos e associe o programa completo a um aluno.</p>
+        <button type="button" className="btn-sm acc" onClick={() => router.push("/admin/programs?import=1")}>
+          Cadastrar programa completo
+        </button>
+      </div>
+
       {error && <div className="err-text">{error}</div>}
 
       {workouts.length > 0 && (

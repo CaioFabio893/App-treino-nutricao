@@ -335,7 +335,7 @@ function ProgramsInner() {
           className="btn-sm acc"
           onClick={() => router.push("/admin/programs?import=1")}
         >
-          Importar de .md
+          + Novo programa completo
         </button>
       </div>
 
@@ -345,7 +345,7 @@ function ProgramsInner() {
         <WorkoutsPageSkeleton />
       ) : programs.length === 0 ? (
         <div className="empty-box">
-          Nenhum programa ainda. Importe um arquivo markdown para criar todos os treinos de uma vez.
+          Cadastre um programa completo com todos os treinos A, B, C, D… e associe o conjunto inteiro a um aluno.
         </div>
       ) : (
         <>
@@ -420,16 +420,16 @@ function AssignPicker({
   return (
     <>
       <button type="button" className="btn-sm" disabled={busy} onClick={() => setOpen(true)}>
-        Atribuir
+        Associar programa inteiro
       </button>
       {open && (
         <div className="modal-bg open" onClick={() => setOpen(false)}>
           <div className="modal-box" onClick={(e) => e.stopPropagation()}>
             <div className="modal-handle" />
-            <div className="modal-title">Atribuir programa</div>
+            <div className="modal-title">Associar programa inteiro a um aluno</div>
             <p style={{ fontSize: 12, color: "var(--muted)" }}>
-              Os treinos do programa serão copiados para o aluno. O modelo original continua na
-              biblioteca.
+              Todos os treinos serão associados ao aluno escolhido de uma só vez.
+              Para manter também um modelo na biblioteca, duplique o programa antes de associar.
             </p>
             {students.length === 0 ? (
               <p style={{ fontSize: 12, color: "var(--muted)" }}>Nenhum aluno disponível.</p>

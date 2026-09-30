@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import * as api from "@/lib/api";
+import { LOUISE_PROGRAM_EXAMPLE } from "@/lib/program-example";
 import type { TrainingProgram, UserProfile } from "@/lib/types";
 
 interface Props {
@@ -11,19 +12,7 @@ interface Props {
   onCancel: () => void;
 }
 
-const EXEMPLO = `# Programa de Treino — Louise Lima (Ciclo 2)
-
-**Foco: Hipertrofia de Inferiores — sem WOD**
-
----
-
-## TREINO A — Pernas (Quadríceps)
-
-| # | Exercício | Séries | Reps | Observação |
-|---|---|---:|---:|---|
-| 1 | Agachamento Livre com Barra | 4 | 6-8 | Foco em força/carga |
-| 2 | Hack Squat | 4 | 10 | Amplitude total |
-`;
+const EXEMPLO = LOUISE_PROGRAM_EXAMPLE;
 
 /**
  * Importação de programa em markdown.
@@ -85,10 +74,10 @@ export default function ProgramImport({ getToken, students, onImported, onCancel
 
       <div className="page-head">
         <div>
-          <h1>Importar programa</h1>
+          <h1>Cadastrar programa completo</h1>
           <div className="page-sub">
-            Cole o treino em markdown (ou envie o .md). Os treinos e exercícios são criados
-            automaticamente — nada de digitar um por um.
+            Crie todos os treinos A, B, C, D… de uma só vez. Use o programa exemplo completo,
+            cole seu programa ou envie um arquivo. Escolha um aluno para associar o conjunto inteiro.
           </div>
         </div>
       </div>
@@ -96,7 +85,7 @@ export default function ProgramImport({ getToken, students, onImported, onCancel
       {error && <div className="err-text">{error}</div>}
 
       <div className="frm-card">
-        <h3>Arquivo markdown</h3>
+        <h3>Programa completo</h3>
         <div className="frm-row-inline">
           <div className="frm-row">
             <label>Nome do programa (opcional)</label>
@@ -117,7 +106,7 @@ export default function ProgramImport({ getToken, students, onImported, onCancel
         </div>
 
         <div className="frm-row">
-          <label>Atribuir a um aluno (opcional)</label>
+          <label>Associar todos os treinos a um aluno (opcional)</label>
           <select value={studentId} onChange={(e) => setStudentId(e.target.value)}>
             <option value="">Manter na biblioteca (atribuir depois)</option>
             {students.map((s) => (
@@ -153,8 +142,8 @@ export default function ProgramImport({ getToken, students, onImported, onCancel
           <button type="button" className="btn-sm" onClick={() => fileRef.current?.click()}>
             Enviar arquivo .md
           </button>
-          <button type="button" className="btn-sm" onClick={() => setMarkdown(EXEMPLO)}>
-            Usar exemplo
+          <button type="button" className="btn-sm" onClick={() => { setMarkdown(EXEMPLO); setSource("exemplo/treino.md"); }}>
+            Usar programa exemplo completo (A–E)
           </button>
           <button
             type="button"
@@ -162,7 +151,7 @@ export default function ProgramImport({ getToken, students, onImported, onCancel
             disabled={!markdown.trim() || busy}
             onClick={() => void importProgram()}
           >
-            {busy ? "Importando…" : "Importar programa"}
+            {busy ? "Cadastrando…" : "Cadastrar programa completo"}
           </button>
         </div>
       </div>
