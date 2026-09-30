@@ -4,6 +4,13 @@
 
 ---
 
+## 30/09/2026 — F6 modelo/índices locais concluídos
+
+Cinco coleções vivas; três compostos necessários por studentId/createdAt.
+Índices nutritionistId órfãos retirados. K2 inclui ordem aditiva, prontidão,
+rollback e retirada tardia; nada executado remotamente. Relatório
+simplificacao-f6-reindex-plan.md. Próximo F7 aceitação/segurança.
+
 ## 30/09/2026 — F5 somente leitura concluída (Codex)
 
 Treinos consultáveis com séries/carga/descanso/vídeos; removida execução,

@@ -45,7 +45,8 @@ F5 participante somente leitura concluída: retirados endpoints/DTOs/coleções
 ativas de conclusão e diário; UI exibe prescrição e vídeos. Gestão preservada.
 Go 181 + vet, Vitest 104 (18 arquivos), rules 92, E2E 28 (1,3 min),
 tsc/lint/build OK. Relatório docs/reports/simplificacao-f5-checkpoint.md.
-Próximo F6: cinco coleções, três índices necessários, K2/reindex; depois
+F6 concluída localmente: cinco coleções, três índices; K2 escrito em
+ docs/reports/simplificacao-f6-reindex-plan.md. Próximo
 F7: matriz de status/papel/posse, 404 para recurso alheio, E2E dois alunos.
 Usuário confirmou continuar sem OK entre fases.
 
@@ -54,7 +55,7 @@ Usuário confirmou continuar sem OK entre fases.
 - D6: seleções de deleção de dados ainda pendentes; K1 depende delas.
 - Google removido da UI; backend ainda aceita google.com. Revisar ADR-002 e
   migração de contas antes de bloquear provedor/desligar console.
-- Quatro índices nutritionistId órfãos para F6, sem deploy automático.
+- Índices órfãos retirados localmente na F5/F6; reindex remoto não executado.
 - GET /api/students/{id} sem RequireApproved: investigar intenção/posse na F7.
 - Confirmar revisão realmente publicada antes de qualquer rollout V1/V2.
 - K6 contenção/restrição/rotação depende de execução posterior da dona.

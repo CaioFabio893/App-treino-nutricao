@@ -1,3 +1,9 @@
+> Estado local F6 (30/09/2026): cinco coleções vivas e três índices compostos.
+> Gamificação, comunidade, planos, histórico e diário retirados do código.
+> Aluno consulta treinos/dietas; gestão usa admin. Trechos V1 abaixo são
+> históricos; contrato atual em docs/reports/simplificacao-f6-reindex-plan.md.
+> Nada publicado nem apagado em produção.
+
 # Modelo de dados — Firestore
 
 Status: Mapeamento do modelo V1 + direção V2 (Fase 0).
