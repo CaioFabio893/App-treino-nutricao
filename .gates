@@ -3,13 +3,17 @@
 go=188 PASS (go vet limpo)
 vitest=124 PASS (21 arquivos)
 rules=106 PASS (gate anterior; rules sem mudança, compilação/deploy PASS)
-e2e=31 PASS (1.8 min; Auth/Firestore emuladores, main com revocation verifier)
+e2e=31 PASS (1.6 min; programa exemplo integral A-E)
 tsc=OK
 lint=0/0
 build=OK (Cloud Build final: Go e Next standalone)
 production_api=61 PASS
 production_browser=8 PASS (viewport mobile simulada e desktop)
 key_rotation=old400 expired / new200 / forbidden-origin403
-reset=1 conta + 1 perfil admin / zero dados de negócio
+reset_anterior=1 conta + 1 perfil admin / zero dados (histórico antes do exemplo)
+program_example=1 programa + 5 treinos / 30 exercícios / 103 séries
+program_assignment=PASS em produção (A-E completos)
+program_ui=6 PASS em produção
+current_auth=2 contas reais / zero fixtures
 # docs/reports/production-reset-and-rollout-2026-09-30.md
 # Dispositivos físicos e aceite humano continuam pendentes.

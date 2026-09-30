@@ -2,7 +2,8 @@
 > Gamificação, comunidade, planos, histórico e diário retirados do código.
 > Aluno consulta treinos/dietas; gestão usa admin. Trechos V1 abaixo são
 > históricos; contrato atual em docs/reports/simplificacao-f6-reindex-plan.md.
-> Publicação/rotação/reset concluídos. Só conta/perfil do dono admin preservados.
+> Publicação/rotação/reset concluídos. Programa exemplo completo A–E cadastrado
+> depois do reset; contas reais posteriores preservadas.
 > Relatório: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 # Treino Louise — App profissional (Go + Next.js + Firestore)
@@ -13,9 +14,10 @@ com login e dados na nuvem, usando infraestrutura Google Cloud.
 ## Status
 
 - Simplificação F1–F7 publicada. API treino-api-00016-gic e web
-  treino-web-00013-ven, 100% tráfego; testes em .gates.
+  treino-web-00016-juj, 100% tráfego; testes em .gates.
 - Chave Firebase Web rotacionada e antiga comprovadamente inválida.
-- Reset autorizado: só caiofabio893@gmail.com como admin, negócio vazio.
+- Reset anterior concluído. Depois cadastrado o programa exemplo A–E completo;
+  associar todos os treinos em Programas → Associar programa inteiro.
 - Login por senha; backend verifica revogação/exclusão e provedor verificado.
 - Validação humana de Louise e PWA em dispositivo continua etapa operacional.
 

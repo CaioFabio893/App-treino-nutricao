@@ -1,3 +1,8 @@
+> Atualização posterior: programa completo do exemplo cadastrado na biblioteca,
+> A–E/30 exercícios/103 séries. Programas → Associar programa inteiro → aluno.
+> Web atual treino-web-00016-juj. Há 2 contas/perfis reais, zero fixtures.
+> Relatório programa-completo-exemplo-2026-09-30.md. Reset abaixo é histórico;
+> não apagar novamente os dados acrescentados depois dele.
 # Entrega e próximos passos — 30/09/2026
 
 Publicação, rotação e reset de produção concluídos após autorização do dono.

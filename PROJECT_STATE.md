@@ -6,11 +6,12 @@ Fonte operacional: docs/reports/production-reset-and-rollout-2026-09-30.md.
 ## Produção atual
 
 Projeto treino-louise, Firestore (default), região southamerica-east1.
-API treino-api-00016-gic e web treino-web-00013-ven, ambas com 100% tráfego.
+API treino-api-00016-gic e web treino-web-00016-juj, ambas com 100% tráfego.
 https://treino-web-834622951375.southamerica-east1.run.app
-Somente caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
+Admin preservado: caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
 UID/senha/perfil preservados. Duas contas e nove documentos reais removidos;
-zero documentos de negócio. Fixtures temporárias totalmente removidas.
+Reset anterior concluído. Depois, exemplo A–E cadastrado: 1 programa e 5 treinos.
+Inventário atual: 2 contas/perfis reais; zero fixtures. Não repetir reset.
 Regras publicadas; três índices necessários READY, antigos mantidos.
 Chave Web antiga excluída: teste mesma origem antiga400/expired, nova200.
 Substituta restrita a identitytoolkit/securetoken e domínios confirmados.
@@ -64,3 +65,14 @@ Git -c safe.directory=C:/Users/caiof/OneDrive/Desktop/treino-louise-main.
 Preservar configs OpenCode. Ler frontend/AGENTS.md/guias Next antes de editar.
 Não rodar rules/E2E juntos; não editar fontes enquanto E2E roda.
 Verificar .gates, git status e relatório antes de qualquer nova operação.
+## Programa completo — pedido posterior ao reset
+
+94a132b: interface deixa claro cadastro/associação do programa inteiro.
+Exemplo do dono cadastrado na biblioteca, ID louise-ciclo-2, A–E/30 exercícios/
+103 séries, cardio e periodização preservados; nenhum aluno específico escolhido.
+Programas → Associar programa inteiro → escolher aluno. Duplicar antes se quiser
+manter também um modelo. Relatório programa-completo-exemplo-2026-09-30.md.
+Template integral frontend/lib/program-example.ts. Vitest124/tsc/lint/E2E31 PASS;
+E2E1,6 min agora usa exemplo completo. Produção: associação integral de fixture
+validada (5/30/103) e seis checks UI; fixtures completamente removidas.
+Web00016-juj 100%, backend intacto. Cloud Build8c3fd8d0 SUCCESS.
