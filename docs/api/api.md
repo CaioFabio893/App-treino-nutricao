@@ -1,3 +1,7 @@
+> Contrato atual simplificado em README.md (API e modelo atuais), backend/main.go
+> e docs/security/plans.md. Propostas e endpoints abaixo referentes a planos,
+> histórico, diário e comunidade são históricos e não estão disponíveis.
+
 # API — Proposta profissional (V2)
 
 Status: Proposta implementada (F19 — Programa de Treino). Base = rotas reais da V1

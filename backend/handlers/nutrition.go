@@ -291,7 +291,7 @@ func (h *Handlers) HandleListMyStudents(w http.ResponseWriter, r *http.Request) 
 func (h *Handlers) HandleGetStudent(w http.ResponseWriter, r *http.Request) {
 	id := r.PathValue("id")
 	if !canAccessResource(r, id) {
-		http.Error(w, "sem permissao", http.StatusForbidden)
+		http.Error(w, "aluno nao encontrado", http.StatusNotFound)
 		return
 	}
 	prof, err := h.repo.GetUserProfile(r.Context(), id)
@@ -338,7 +338,7 @@ func (h *Handlers) HandleGetWorkout(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !canAccessResource(r, workout.StudentID) {
-		http.Error(w, "sem permissao", http.StatusForbidden)
+		http.Error(w, "treino nao encontrado", http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, workout)
@@ -531,7 +531,7 @@ func (h *Handlers) HandleGetDiet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if !canAccessResource(r, d.StudentID) {
-		http.Error(w, "sem permissao", http.StatusForbidden)
+		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
 	writeJSON(w, http.StatusOK, d)

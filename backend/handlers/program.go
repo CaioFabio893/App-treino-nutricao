@@ -1,4 +1,4 @@
-﻿package handlers
+package handlers
 
 import (
 	"encoding/json"
@@ -282,7 +282,7 @@ func (h *Handlers) loadProgram(w http.ResponseWriter, r *http.Request) (*models.
 		return nil, false
 	}
 	if !canAccessResource(r, program.StudentID) {
-		http.Error(w, "sem permissao", http.StatusForbidden)
+		http.Error(w, "programa nao encontrado", http.StatusNotFound)
 		return nil, false
 	}
 	return program, true

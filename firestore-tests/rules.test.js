@@ -767,4 +767,33 @@ describe('Regras do Firestore', () => {
       });
     }
   });
+  describe('F7 — papéis e status do catálogo', () => {
+    for (const role of ['nutritionist', 'unknown']) {
+      for (const status of ['active', 'paused']) {
+        it(`papel aposentado/desconhecido ${role}/${status} não acessa catálogo`, async () => {
+          await seedUser('invalid-role', { role, status });
+          await seed({ exercises: { safe: { name: 'Exercício' } } });
+          await assertFails(authed('invalid-role').firestore().doc('exercises/safe').get());
+        });
+      }
+    }
+    for (const status of ['inactive', 'rejected']) {
+      it(`aluno ${status} não acessa catálogo`, async () => {
+        await seedUser('blocked', { status });
+        await seed({ exercises: { safe: { name: 'Exercício' } } });
+        await assertFails(authed('blocked').firestore().doc('exercises/safe').get());
+      });
+    }
+  });
+  describe('F7 — allowlist de criação e compatibilidade de perfil', () => {
+    for (const field of ['photoURL', 'bio', 'startDate', 'endDate', 'authProvider', 'createdAt', 'unexpected']) {
+      it(`perfil pendente não aceita campo extra ${field}`, async () => {
+        await assertFails(authed('new-user').firestore().doc('users/new-user').set({ name: 'Novo', email: 'n@example.com', status: 'pending_approval', [field]: 'extra' }));
+      });
+    }
+    it('aluno legado sem campo status consulta catálogo', async () => {
+      await seed({ users: { legacy: { role: 'student', name: 'Legado' } }, exercises: { safe: { name: 'Exercício' } } });
+      await assertSucceeds(authed('legacy').firestore().doc('exercises/safe').get());
+    });
+  });
 });

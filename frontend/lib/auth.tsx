@@ -19,6 +19,7 @@ import {
 import { firebaseAuth, firebaseConfigured } from "./firebase";
 import { ApiError, getMe as apiGetMe } from "./api";
 import type { Role, UserProfile } from "./types";
+import { canReadBusiness } from "./profileAccess";
 
 interface AuthCtx {
   user: User | null;
@@ -131,15 +132,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const needsProfile = !!user && profile !== null && profile.needsProfile === true;
 
-  // Cadastro pendente ou recusado → tela de espera/recusa em vez do app.
+  // Cadastro sem acesso de negócio → tela de espera, recusa ou suspensão.
   // ADMIN nunca é enviado para a tela de aprovação: mesmo com status legado
   // ou incorreto (pending_approval/rejected), ele precisa chegar ao painel
   // para gerenciar a fila de aprovação.
   const needsApproval =
     !!user &&
     !!profile &&
-    role !== "admin" &&
-    (profile.status === "pending_approval" || profile.status === "rejected");
+    !canReadBusiness(profile);
 
   const value = useMemo<AuthCtx>(
     () => ({

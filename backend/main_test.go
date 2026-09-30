@@ -1258,8 +1258,8 @@ func TestChainStudentCannotReadUnassignedDiet(t *testing.T) {
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/diets/d-1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("GET /api/diets/d-1 (aluno, biblioteca) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/diets/d-1 (aluno, biblioteca) code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 
@@ -1274,8 +1274,8 @@ func TestChainStudentCannotReadUnassignedWorkout(t *testing.T) {
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/workouts/w-1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("GET /api/workouts/w-1 (aluno, biblioteca) code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("GET /api/workouts/w-1 (aluno, biblioteca) code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 

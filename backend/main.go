@@ -153,7 +153,7 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 
 	// ── Alunos ──
 	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleAdmin)(h.HandleListMyStudents)))
-	mux.HandleFunc("GET /api/students/{id}", a.Require(h.HandleGetStudent))
+	mux.HandleFunc("GET /api/students/{id}", a.Require(a.RequireApproved(h.HandleGetStudent)))
 	mux.HandleFunc("PUT /api/students/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdateStudent)))
 
 	// ── Treinos (free tier — só exige cadastro aprovado) ──

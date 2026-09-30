@@ -1,34 +1,7 @@
-// Regras do Firestore.
-//
-// IMPORTANTE: o app acessa o banco SOMENTE através da API Go (que usa o
-// Admin SDK e ignora estas regras). Estas regras bloqueiam qualquer tentativa
-// de contornar a API Go conectando o Firestore direto pelo cliente
-// (config pública do Firebase Web permite acesso via SDK cliente).
-//
-// Política de acesso refletida nas regras (espelha o backend):
-//   - Papéis: somente 'admin' e 'student'. O modelo é de 2 papéis e não
-//     possui nenhum terceiro papel de gestão.
-//   - Aprovação e pausa são eixos SEPARADOS e nunca conflatedos:
-//       · isApprovedUser() decide APROVAÇÃO (legado "" ou "active") e nunca
-//         menciona 'paused' como critério de aprovação.
-//       · isPausedUser() expõe a pausa de forma explícita, para que qualquer
-//         funcionalidade que queira RESTRINGIR o usuário pausado possa
-//         consultar esse helper explicitamente em vez de sequestrar o
-//         conceito de "aprovado".
-//     Um aluno pausado continua sendo um cadastro aprovado: pausar a
-//     assinatura não o transforma em pendente/rejeitado.
-//   - "pending_approval", "rejected" e "inactive" (bloqueado) NÃO acessam
-//     recursos de negócio. Admin sempre passa (bypass de status).
-//   - Perfil do usuário: o próprio dono lê/cria/edita SOMENTE os campos da
-//     allowlist (name, email); tudo o mais — role, status,
-//     planID, features, approvedBy, approvedAt,
-//     rejectedReason, createdAt, authProvider, startDate... — muda SOMENTE
-//     pela API Go, nunca por SDK de cliente, nem admin (hasOnly nega até
-//     combinações "campo legítimo + campo sensível" no mesmo update).
-//   - Escrita de dados de negócio (dietLogs, workouts, diets,
-//     workoutHistory, plans): SOMENTE pela API Go.
-//     O cliente (SDK) tem acesso de LEITURA quando autorizado (aprovado +
-//     relação dono/admin no caso de dados de aluno).
+// Modelo final: admin/student; negócio pela API Go, com autorização própria.
+// Cliente direto: perfil próprio nome/e-mail; catálogo para aprovados/pausados.
+// Coleções aposentadas são negadas por ausência de regra permissiva.
+// Admin SDK ignora rules; não substituem validação da API.
 rules_version = '2';
 
 service cloud.firestore {
@@ -62,8 +35,8 @@ service cloud.firestore {
     function isApprovedUser() {
       return meExists() && (
         me().data.role == 'admin' ||
-        me().data.status == '' ||
-        me().data.status == 'active'
+        me().data.get('status', '') == '' ||
+        me().data.get('status', '') == 'active'
       );
     }
 
@@ -72,7 +45,7 @@ service cloud.firestore {
     // escreve `&& !isPausedUser()` na SUA regra, sem precisar reescrever (nem
     // corromper) a noção de aprovação.
     function isPausedUser() {
-      return meExists() && me().data.status == 'paused';
+      return meExists() && me().data.get('status', '') == 'paused';
     }
 
     // Recurso de negócio exige cadastro aprovado OU pausado — as duas condições
@@ -80,7 +53,8 @@ service cloud.firestore {
     // sinônimo. Espelha middleware.IsApproved (que aceita "", active e paused),
     // então nenhuma regra aqui diverge da API Go.
     function canUseBusinessResources() {
-      return isApprovedUser() || isPausedUser();
+      return isAdmin() || (meExists() && me().data.role == 'student' &&
+        (isApprovedUser() || isPausedUser()));
     }
 
     // Dados de um aluno: o próprio dono ou o admin. Como o modelo é de 2 papéis,
@@ -109,8 +83,7 @@ service cloud.firestore {
     function isPendingSelfProfile() {
       let keys = request.resource.data.keys();
       return request.resource.data.status == 'pending_approval' &&
-             !keys.hasAny(['role', 'planID', 'features',
-                           'approvedBy', 'approvedAt', 'rejectedReason']);
+             keys.hasOnly(['name', 'email', 'status']);
     }
 
     // ── Perfis de usuário ──

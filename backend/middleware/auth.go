@@ -123,7 +123,7 @@ func (a *Auth) RequireApproved(next http.HandlerFunc) http.HandlerFunc {
 			next(w, r)
 			return
 		}
-		if !IsApproved(r.Context()) {
+		if RoleFrom(r.Context()) != models.RoleStudent || !IsApproved(r.Context()) {
 			http.Error(w, `{"error":"cadastro pendente de aprovacao"}`, http.StatusForbidden)
 			return
 		}

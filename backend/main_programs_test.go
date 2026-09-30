@@ -161,8 +161,8 @@ func TestChainStudentCannotReadOtherStudentProgram(t *testing.T) {
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/programs/p-1", "", "token-valido")
-	if rr.Code != http.StatusForbidden {
-		t.Fatalf("code = %d, want 403 (body: %s)", rr.Code, rr.Body.String())
+	if rr.Code != http.StatusNotFound {
+		t.Fatalf("code = %d, want 404 (body: %s)", rr.Code, rr.Body.String())
 	}
 }
 

@@ -1,69 +1,68 @@
 # PROJECT_STATE — Treino Louise
 
-Memória de retomada atualizada em 30/09/2026. Ler com .gates e git status.
+Retomada atualizada 30/09/2026. Ler este arquivo, .gates e git status.
 
 ## Autorização e limites
 
-Usuário autorizou Codex a assumir também OpenCode e continuar tarefas locais,
-sempre documentando trabalho e instruções. Preservar configurações do Windows.
-Sem push, deploy, console, rotação ou deleção de produção nesta continuidade.
-D6 não teve seleção concreta de dados: não interpretar defaults como resposta
-humana. Configurações preexistentes opencode.json e .opencode/* devem ficar
-fora dos commits de implementação.
+Usuário autorizou Codex a assumir OpenCode e implementar/revisar sem OK entre
+fases, registrando trabalho e instruções. Configurações Windows preservadas.
+Sem push/deploy/console/rotação/deleção de produção nesta continuidade.
+D6 default não apagar; nenhuma seleção específica de coleções foi respondida.
+Configs preexistentes opencode.json e .opencode/* fora dos commits.
 
-## Projeto e invariantes
+## Estado local concluído
 
-Go + Next 16/React 19 + Firestore/Firebase Auth; Cloud Run southamerica-east1.
-Handlers → service → repository. Admin/student (F4 commit 061514b).
-Preservar America/Recife, createdAt, allowlist nome/e-mail, aprovação/status,
-CORS, rate limit, ownership e cópias de workouts na atribuição de programas.
-Admin SDK ignora rules; a API deve validar autorização independentemente.
+- K6 5ddfb52: caso (a), Web API key pública no histórico, sem service account
+  privada detectada localmente. Plano phase-16-key-rotation-plan.md; não executado.
+- F4 061514b: dois papéis admin/student.
+- F1 8e35ec5: gamificação/ciclos/ranking retirados; scores legados negados.
+- F2 440d144: comunidade/posts/foto/bio retirados; Avatar iniciais mantido.
+- F3 94e738e + d8dd649: planos/features/gates retirados; aprovação sem plano.
+- F5 d10402e: aluno somente leitura; prescrição e vídeos, sem conclusão/diário.
+  Gestão adaptada; onboarding nome/e-mail preservado.
+- F6 31514ea: cinco coleções vivas, três índices; K2 escrito sem deploy.
+- F7 concluída: autorização papel/status/posse, 404 para alheios/inexistentes,
+  403 para mutações do aluno. students/{id} exige aprovação; papéis antigos
+  negados; criação SDK do perfil tem allowlist estrita; legado sem status válido.
+  UI bloqueia inativo/desconhecido, mantém admin e leitura paused.
 
-## Checkpoints concluídos
+Gates F7: Go186 top-level + vet limpo; Vitest116/116 (19 arquivos);
+rules106/106; E2E31/31 (1,3 min); tsc/lint/build OK. Apenas emuladores.
+Primeiro E2E de conta inativa tinha seletor exato incluindo subtítulo;
+corrigido após captura comprovar comportamento correto. Novo E2E completo verde.
+Relatórios simplificacao-f{1,2,3,5}-checkpoint.md,
+simplificacao-f6-reindex-plan.md e simplificacao-f7-acceptance-review.md (K3/K4/K5).
 
-- K6: caso (a), chave pública Web Firebase somente no histórico; sem chave
-  privada detectada nos commits localmente alcançáveis. Plano completo em
-  docs/reports/phase-16-key-rotation-plan.md, commit 5ddfb52. Não executado.
-- F1: 8e35ec5, gamificação/ciclos/ranking retirados; scores legados negados.
-- F2: 440d144, comunidade/posts/publicação automática/foto/bio retirados;
-  Avatar por iniciais preservado. Dados reais intactos.
-- F3: checkpoint 94e738e, implementação concluída, planos/features/gates/atribuição retirados,
-  aprovação sem plano, treinos/dietas acessíveis aos aprovados ativo/pausado.
-  Datas do perfil retiradas, datas das dietas preservadas. Plans legados
-  negados, rotas retiradas 404. Relatório simplificacao-f3-checkpoint.md.
+## Invariantes e próximo trabalho
 
-Gates F3: Go 184 testes top-level + vet; Vitest 99/99 (17 arquivos),
-dashboard complementar 5/5; rules 90/90; E2E 28/28 (1,6 min); tsc/lint/build OK.
-Primeiro E2E 27/28 por expectativa antiga de 403 em /api/plans; ajustada a 404.
-Rules/E2E somente emuladores; não rodar juntos. Nenhuma dependência instalada.
-Go cache/Firebase CLI precisaram execução fora do sandbox. CLI existente:
-C:/Users/caiof/AppData/Roaming/npm; Java em .jdks/ms-21.0.11.
+Go handlers → service → repository; Next16/React19; Firestore/Auth, Cloud Run.
+Preservar America/Recife, createdAt, self-update nome/e-mail, CORS/rate limit,
+aprovação/ownership, programa referenciando treinos e assign materializando
+cópias. Admin SDK ignora rules; autorização da API precisa ser independente.
+Coleções vivas users/workouts/programs/diets/exercises. Índices necessários
+studentId ASC + createdAt DESC em workouts/programs/diets.
 
-## F5 concluída e próximo passo
+Correção adicional em andamento: padronizar data de validade de dieta para
+America/Recife no frontend, hoje ainda usa UTC em aluno/admin. Não reabrir F1–F7.
 
-F5 participante somente leitura concluída: retirados endpoints/DTOs/coleções
-ativas de conclusão e diário; UI exibe prescrição e vídeos. Gestão preservada.
-Go 181 + vet, Vitest 104 (18 arquivos), rules 92, E2E 28 (1,3 min),
-tsc/lint/build OK. Relatório docs/reports/simplificacao-f5-checkpoint.md.
-F6 concluída localmente: cinco coleções, três índices; K2 escrito em
- docs/reports/simplificacao-f6-reindex-plan.md. Próximo
-F7: matriz de status/papel/posse, 404 para recurso alheio, E2E dois alunos.
-Usuário confirmou continuar sem OK entre fases.
+## Pendências operacionais
 
-## Pendências de produção e decisões
+1. Google fora da UI; backend aceita provedor legado. Migrar contas para senha
+   mantendo UID antes de bloquear tokens/desligar console. Não executar sem
+   comprovar a migração; ADR-002 deve refletir essa sequência.
+2. K6 restrição/rotação pendentes; seguir plano documentado.
+3. K2 rollout remoto: confirmar revisão publicada e consumidores V1/V2,
+   adicionar/manter índices e esperar prontidão, migrar aplicação/regras,
+   verificar queries reais, só depois encerrar janela e retirar índices antigos.
+4. D6 não apagar: K1 depende da seleção por coleção, backups e plano revisado.
+5. Verificar clientes PWA antigos/abas abertas no rollout. Produção não atualizada.
 
-- D6: seleções de deleção de dados ainda pendentes; K1 depende delas.
-- Google removido da UI; backend ainda aceita google.com. Revisar ADR-002 e
-  migração de contas antes de bloquear provedor/desligar console.
-- Índices órfãos retirados localmente na F5/F6; reindex remoto não executado.
-- GET /api/students/{id} sem RequireApproved: investigar intenção/posse na F7.
-- Confirmar revisão realmente publicada antes de qualquer rollout V1/V2.
-- K6 contenção/restrição/rotação depende de execução posterior da dona.
+## Retomada operacional e rollback
 
-## Retomada operacional
-
-Usar git com -c safe.directory=C:/Users/caiof/OneDrive/Desktop/treino-louise-main
-se necessário, sem configurar Git globalmente. Conferir diff antes de editar.
-Ler frontend/AGENTS.md antes de mudanças Next; consultar guias locais relevantes.
-Não incluir opencode.json/.opencode no commit. Reverter commit de fase é rollback
-local; não houve efeito remoto a desfazer. Relatórios registram testes/limites.
+Git com -c safe.directory=C:/Users/caiof/OneDrive/Desktop/treino-louise-main
+se necessário, sem alterar configuração global. Reverter commit de fase local
+é rollback; revisar conflitos/repetir gates. Nenhum efeito remoto a desfazer.
+Go cache/Firebase CLI exigiram permissão fora do sandbox; sem instalação.
+CLI existente C:/Users/caiof/AppData/Roaming/npm; Java .jdks/ms-21.0.11.
+Não executar rules/E2E juntos. Ler frontend/AGENTS.md e guias Next locais.
+Não adicionar opencode.json/.opencode ao commit. Usar contagens medidas.

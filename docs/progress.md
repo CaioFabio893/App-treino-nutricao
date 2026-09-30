@@ -4,6 +4,13 @@
 
 ---
 
+## 30/09/2026 — F7 aceitação/revisão concluída
+
+Corrigidos aprovação de students/{id}, gate de papel, 404 alheio, catálogo de
+papéis antigos, allowlist de criação de perfil, legado sem status e UI inativa.
+Go186/Vitest116/rules106/E2E31; vet/tsc/lint/build OK. Relatório
+simplificacao-f7-acceptance-review.md inclui K3/K4/K5. Sem produção.
+
 ## 30/09/2026 — F6 modelo/índices locais concluídos
 
 Cinco coleções vivas; três compostos necessários por studentId/createdAt.

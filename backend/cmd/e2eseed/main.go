@@ -34,7 +34,7 @@ const (
 	adminEmail    = "e2e.admin@teste.local"
 	studentAEmail = "e2e.aluno@teste.local"  // plano Completo
 	studentBEmail = "e2e.aluno2@teste.local" // plano Essencial (sem dieta/comunidade)
-	studentCEmail = "e2e.aluno3@teste.local" // plano só Treinos (sem ranking)
+	studentCEmail = "e2e.aluno3@teste.local" // aluno pausado
 	pendingEmail  = "e2e.pendente@teste.local"
 	rejectedEmail = "e2e.recusado@teste.local"
 	password      = "e2e-senha-123"
@@ -126,7 +126,7 @@ func run() error {
 		{"admin", models.RoleAdmin, models.StatusActive},
 		{"studentA", models.RoleStudent, models.StatusActive},
 		{"studentB", models.RoleStudent, models.StatusActive},
-		{"studentC", models.RoleStudent, models.StatusActive},
+		{"studentC", models.RoleStudent, models.StatusPaused},
 		{"pending", "", models.StatusPendingApproval},
 		{"rejected", "", models.StatusRejected},
 	}

@@ -1,3 +1,7 @@
+> Atualização de continuidade: F1–F7 concluídas localmente, com gates verdes.
+> Codex autorizado a implementar e revisar sem OK entre fases. Divisão e
+> contagens antigas abaixo são histórico. Usar PROJECT_STATE.md e .gates.
+
 # Estratégia OpenCode + Codex
 
 ## Continuidade autorizada em 30/09/2026

@@ -17,25 +17,20 @@ com login e dados na nuvem — tudo dentro da **camada gratuita** do Google Clou
   `00009-mfg`) + regras Firestore V2 com 9 índices compostos `READY`.
   Migração técnica V1→V2 **encerrada** (24 set 2026) — ver
   `docs/progress.md` e `docs/reports/phase-15-3-post-migration.md`.
-- **Gates verdes** (medidos em 30 set 2026): Go `206/206` ✓ · Firestore rules
-  `86/86` ✓ · Vitest `104/104` ✓ · Playwright E2E `30/30` ✓ ·
+- **Gates verdes** (medidos em 30 set 2026): Go `ver .gates` ✓ · Firestore rules
+  `ver .gates` ✓ · Vitest `104/104` ✓ · Playwright E2E `30/30` ✓ ·
   `tsc --noEmit` ✓ · `next build` ✓ · lint `0/0` ✓.
 - **Pendências (decisão de produto, não bloqueiam produção)**: login Google
   (ADR-002 votado para remover, código ainda expõe o botão — ver F15.3 §7C),
   F8 alimentos (formato da dieta), validação humana da Louise (login real +
   PWA em dispositivo).
 
-## Refatoração em andamento — "simplificação"
+## Simplificação local
 
-Plano com fases F0–F7 em `docs/simplificacao/` (`00-comandos.md` …
-`03-plano.md`, `04-perguntas.md`). **Já executado:** F4 — remoção do papel
-`nutritionist` (código **ainda sem commit**); hoje existem só 2 papéis,
-`admin` (gestão) e `student` (aluno). **Planejado, não executado:** F1
-gamificação, F2 comunidade, F3 planos/features, F5 escrita do participante,
-F6 modelo final + reindex, F7 provar a regra de acesso — gamificação,
-comunidade e planos/features **ainda existem** no código. As 8 decisões de
-produto P1–P8 estão **todas em aberto** (`docs/simplificacao/04-perguntas.md`),
-com **P1 ("modo original") e P2 ("modo demo") bloqueantes**.
+F1–F7 concluídas localmente. Dois papéis admin/student.
+Aluno consulta treinos, programas e dietas; administração gerencia os dados.
+Planos, comunidade, gamificação, histórico e diário alimentar retirados.
+Estado e testes em PROJECT_STATE.md, .gates e docs/progress.md. Sem deploy.
 
 ## Como este repositório é desenvolvido (agentes)
 
@@ -148,22 +143,6 @@ Capturas reais da aplicação:
 - **Firebase CLI**: `npm install -g firebase-tools`
 - **Google Cloud CLI (gcloud)**: https://cloud.google.com/sdk/docs/install
 - **Docker** (para build local do backend, opcional — dá pra usar `gcloud builds submit` sem Docker local)
-
----
-
-## Modo demo — removido
-
-O modo demo (`NEXT_PUBLIC_DEMO`) foi **removido do código do frontend** em
-30/09/2026 — o app hoje só roda conectado ao Firebase. A decisão sobre a
-remoção definitiva (ou eventual retorno) está em aberto na pergunta **P2** de
-`docs/simplificacao/04-perguntas.md`.
-
-> ⚠️ **Windows Defender**: o `go build` local às vezes é bloqueado com
-> "contém um vírus ou software potencialmente indesejado" — é falso positivo
-> em binários Go. Não afeta o deploy (o `gcloud builds submit` compila na
-> nuvem do Google). Se quiser compilar local, adicione exceção no Windows
-> Security para a pasta do projeto e para `%TEMP%`. O `go vet` não é bloqueado
-> (valida o código sem gerar executável).
 
 ---
 
@@ -499,112 +478,25 @@ Esperado: `script-src 'self' 'unsafe-inline'` — **sem** `'unsafe-eval'`
 - **Next.js**: React, componentes, SSR/SSG, variáveis de ambiente.
 - **JWT no backend**: como um servidor confirma que uma requisição é de um usuário real.
 
-## API (referência rápida)
+## API e modelo atuais
 
-Todas as rotas exigem `Authorization: Bearer <idToken>` (menos `/health`).
+Rotas reais: backend/main.go. Autenticação: Bearer Firebase ID token.
 
-### Fluxo do aluno (original)
+| Área | Endpoints principais | Acesso |
+|---|---|---|
+| Perfil | GET/PUT /api/me | próprio; escrita nome/e-mail |
+| Treinos | GET /api/workouts e /api/workouts/{id} | aluno aprovado próprio/admin |
+| Dietas | GET /api/diets e /api/diets/{id} | aluno aprovado próprio/admin |
+| Programas | GET /api/programs e /api/programs/{id} | aluno aprovado próprio/admin |
+| Catálogo | GET /api/exercises | aprovado/admin |
+| Gestão | CRUD de usuários/exercícios/treinos/dietas/programas, import/assign/duplicate | admin |
 
-| Método | Rota                          | Descrição                                  |
-|--------|-------------------------------|--------------------------------------------|
-| GET    | `/health`                     | Health check                               |
-| GET    | `/api/sessions/{week}/{day}`  | Lê o treino (ex. `/api/sessions/3/tb`)     |
-| PUT    | `/api/sessions/{week}/{day}`  | Salva o treino                             |
-| GET    | `/api/prs`                    | Lê os recordes pessoais                    |
-| PUT    | `/api/prs`                    | Salva os recordes pessoais                 |
-| GET    | `/api/state`                  | Lê a última posição (semana/dia)           |
-| PUT    | `/api/state`                  | Salva a última posição                     |
-
-### Gestão (admin/aluno)
-
-| Método | Rota                          | Descrição                                  |
-|--------|-------------------------------|--------------------------------------------|
-| GET    | `/api/me`                     | Perfil do usuário + role                    |
-| PUT    | `/api/me`                     | Cria/atualiza o perfil (setup inicial)      |
-| GET/POST | `/api/users`                | Lista/cria usuários (admin)                 |
-| GET/PUT/DELETE | `/api/users/{id}`    | Edita/exclui usuário (admin)                |
-| GET    | `/api/users/pending`          | Usuários aguardando aprovação (admin)       |
-| POST   | `/api/users/{id}/approve`     | Aprova cadastro (define papel, opcionalmente plano) |
-| POST   | `/api/users/{id}/reject`      | Recusa cadastro (motivo; exclui a conta Firebase) |
-| POST   | `/api/users/{id}/assign-plan` | Atribui plano (snapshot das features no perfil) |
-| GET/POST | `/api/plans`               | Lista/cria planos (admin)                   |
-| GET/PUT/DELETE | `/api/plans/{id}`    | Edita/exclui plano (admin; exclusão bloqueada se em uso) |
-| GET    | `/api/students`               | Alunos (admin: todos)                                 |
-| GET    | `/api/students/{id}`          | Detalhe de um aluno                         |
-| PUT    | `/api/students/{id}`          | Edita dados do aluno (admin)                          |
-| GET/POST | `/api/workouts`             | Lista/cria treinos                          |
-| GET/PUT/DELETE | `/api/workouts/{id}`  | Edita/exclui treino                         |
-| POST   | `/api/workouts/{id}/duplicate`| Duplica treino (para outro aluno)           |
-| GET/POST | `/api/diets`               | Lista/cria dietas                           |
-| GET/PUT/DELETE | `/api/diets/{id}`    | Edita/exclui dieta                          |
-| POST   | `/api/diets/{id}/duplicate`   | Duplica dieta                               |
-| GET    | `/api/workout-history`        | Histórico de treinos concluídos             |
-| POST   | `/api/workouts/complete`      | Finaliza um treino (gera registro)          |
-| GET/POST | `/api/posts`               | Feed social: lista/cria publicações         |
-| POST   | `/api/posts/{id}/like`         | Curtir/descurtir uma publicação             |
-| POST   | `/api/posts/{id}/comments`     | Comentar uma publicação                     |
-| DELETE | `/api/posts/{id}/comments/{cid}` | Remove um comentário                      |
-| DELETE | `/api/posts/{id}`              | Exclui uma publicação                       |
-| GET/PUT | `/api/diet-logs`             | Cheque de dieta: lê/atualiza o dia (GET exige o índice composto da coleção `dietLogs` — ver Passo 5) |
-| GET    | `/api/ranking`                 | Ranking de adesão                           |
-| GET    | `/api/scores/history`          | Histórico de pontuação                      |
-| GET    | `/api/public/profile/{id}`     | Perfil público (feed/ranking)               |
-
-### Exemplo de payload (PUT /api/sessions/1/ta)
-
-```json
-{
-  "week": 1,
-  "day": "ta",
-  "exercise": [
-    { "sets": [{ "w": 55, "r": 8, "c": "ok" }], "note": "bom rendimento" },
-    { "sets": [] }
-  ]
-}
-```
-
-### Modelo de dados (gestão)
-
-Existe um coleção de **perfis** em `users/{uid}` (nome, email, role, status…)
-e três coleções raiz gerenciadas **somente pela API Go** (o
-cliente não as acessa direto — as regras em `firestore.rules` negam):
-
-- `workouts/{id}` — treino com `exercises: [...]` embutido (nome, séries,
-  reps, carga, descanso, notas, dia da semana).
-- `diets/{id}` — dieta com `meals: [...]` embutido e cada refeição com
-  `foods: [...]` (nome, quantidade, unidade, notas).
-- `workoutHistory/{id}` — registro de treino concluído (percentual, duração,
-  data, exercícios). O aluno marca **séries executadas** (peso/reps) no modal de
-  conclusão — elas ficam no campo `exercises` do registro e aparecem no
-  histórico da área de gestão/admin (aluno, timeline e exportação CSV em Atividades).
-
-**Papéis** (`role`): apenas dois — `admin` (gestão completo: alunos, treinos,
-dietas, programas, biblioteca de exercícios, planos, aprovação de cadastros;
-vê tudo) e `student` (só o próprio recurso). **Status** (`status`): `pending_approval` (aguardando
-admin; fica bloqueado no app atrás da tela PendingApproval), `active`
-(aprovado), `rejected` (recusado — a conta Firebase é excluída, o documento
-fica para auditoria), `inactive`/`paused` (desligado manualmente). O
-admin gerencia **treinos por dia da semana** e dietas com
-**refeições/alimentos**, além de duplicar treinos e dietas para outros alunos.
-
-**Planos e features**: o admin cria **planos** (`plans/{id}`) com um pacote de
-**features** (`diet`, `community`, `ranking`, além do treino que é sempre
-liberado). Ao aprovar/atribuir um plano a um aluno, as features são
-**snapshotadas no perfil** (`features` + `planID`) — alterar o plano depois não
-muda quem já está vinculado (re-atribua quando quiser atualizar). O menu do
-aluno é filtrado pelas features do snapshot e o backend valida cada rota
-(`RequireFeature`).
-
-**Fluxo de aprovação**: usuário se cadastra (e-mail ou Google) → informa o
-nome → entra na tela de espera → o admin vê a fila em **“Pendentes”** no
-painel `/admin` → aprova definindo papel/plano (ou recusa com motivo) → o
-aluno passa a acessar o app com as features do plano.
-
-> **Primeiro acesso (definir papéis):** todo usuário novo nasce como
-> `pending_approval`. Para liberar, um **admin** aprova pelo painel `/admin`.
-> Sugestão: crie o primeiro admin direto no console do Firebase
-> (Firestore → `users/{uid}` → campo `role = "admin"`) logo após o primeiro
-> deploy, ou use o botão “Aprovar” em Pendentes com papel `admin`.
+Alunos pausados continuam lendo; pendentes/recusados/inativos são bloqueados.
+Alheio e inexistente retornam 404. Não existem sessions/prs/state, planos,
+feed/ranking, conclusão de treino ou diário alimentar. Cadastro nome/e-mail
+permanece permitido. Modelo vivo: users/workouts/programs/diets/exercises.
+Índices e plano de rollout: docs/reports/simplificacao-f6-reindex-plan.md.
+Política: docs/security/plans.md. Exemplos V1 foram retirados desta referência.
 
 ## Comandos úteis
 
@@ -618,10 +510,10 @@ cd frontend && npm run test:e2e # Playwright E2E (30/30 — sobe emuladores + ba
 
 # Backend (local, com service account)
 cd backend && go run .
-cd backend && go test ./...   # testes (handlers, repository, service) — 206/206
+cd backend && go test ./...   # testes (handlers, repository, service) — ver .gates
 
 # Firestore rules (emulador; exige Java)
-cd firestore-tests && npm test  # 86/86 — sobe/derruba o emulador sozinho
+cd firestore-tests && npm test  # ver .gates — sobe/derruba o emulador sozinho
 
 # Deploy (região padrão usada no projeto: southamerica-east1)
 # frontend: gcloud builds submit frontend --tag southamerica-east1-docker.pkg.dev/SEU_PROJETO/treino-web/treino-web

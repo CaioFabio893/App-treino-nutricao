@@ -14,6 +14,7 @@ import { useAuth } from "@/lib/auth";
 export default function PendingApproval() {
   const { profile, refreshProfile, logout } = useAuth();
   const rejected = profile?.status === "rejected";
+  const suspended = !rejected && profile?.status !== "pending_approval";
   const reason = profile?.rejectedReason;
 
   useEffect(() => {
@@ -25,11 +26,11 @@ export default function PendingApproval() {
     <div className="login-wrap">
       <div className="login-card">
         <div className="logo-text" style={{ marginBottom: 4 }}>
-          {rejected ? "Cadastro recusado" : "Cadastro em análise"}
-          <span>{rejected ? "Informe sua equipe" : "Aguarde a liberação do acesso"}</span>
+          {suspended ? "Acesso suspenso" : rejected ? "Cadastro recusado" : "Cadastro em análise"}
+          <span>{suspended || rejected ? "Informe sua equipe" : "Aguarde a liberação do acesso"}</span>
         </div>
         <p className="login-sub">
-          {rejected ? (
+          {suspended ? "Seu acesso está suspenso. Procure a equipe para regularizar seu cadastro." : rejected ? (
             reason ? (
               <>Motivo: <strong>{reason}</strong>. Se achar que foi um engano,
                 procure sua equipe de nutrição.</>
@@ -46,7 +47,7 @@ export default function PendingApproval() {
         </p>
         <div className="modal-acts">
           <button type="button" className="btn-p" disabled>
-            {rejected ? "Sem acesso" : "Aguardando aprovação…"}
+            {suspended || rejected ? "Sem acesso" : "Aguardando aprovação…"}
           </button>
         </div>
         <div className="mode-switch">
