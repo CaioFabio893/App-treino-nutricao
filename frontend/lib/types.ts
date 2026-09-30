@@ -10,40 +10,13 @@ export type Role = "admin" | "student";
 /** Situação do cadastro: pendente de aprovação, ativo, pausado, inativo ou recusado. */
 export type Status = "pending_approval" | "active" | "paused" | "inactive" | "rejected";
 
-/** Funcionalidades que um plano pode liberar para o aluno. */
-export type Feature = "workouts" | "diet" | "community" | "ranking";
-
-/** Catálogo de features para o CRUD de planos do admin (checkboxes). */
-export const FEATURES: { value: Feature; label: string; desc: string }[] = [
-  { value: "workouts", label: "Treinos", desc: "Treinos e histórico (tier gratuito)" },
-  { value: "diet", label: "Dietas", desc: "Planos alimentares e dieta diária" },
-];
-
-/**
- * Plano = pacote de features snapshotado no perfil no momento da atribuição.
- * O backend aplica o gate pelas features; a UI só esconde por UX.
- */
-export interface Plan {
-  id?: string;
-  name: string;
-  description?: string;
-  features: Feature[];
-  active: boolean;
-  createdAt?: string;
-  updatedAt?: string;
-}
-
 export interface UserProfile {
   id: string;
   name: string;
   email?: string;
   role: Role;
-  startDate?: string;
-  endDate?: string;
   status?: Status;
   /** Snapshot das features do plano atribuído pelo admin. */
-  features?: Feature[];
-  planID?: string;
   /** "password" | "google.com" — preenchido no cadastro. */
   authProvider?: string;
   approvedBy?: string;
@@ -58,16 +31,12 @@ export interface UserProfile {
 
 export interface ApproveUserRequest {
   role: Role;
-  planID?: string;
 }
 
 export interface RejectUserRequest {
   reason?: string;
 }
 
-export interface AssignPlanRequest {
-  planID: string;
-}
 
 export interface WorkoutExercise {
   id?: string;

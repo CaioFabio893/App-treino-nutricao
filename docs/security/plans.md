@@ -1,3 +1,5 @@
+<!-- Estado atual F3 (30/09/2026): planos/features removidos do código local. Acesso usa autenticação, papel, aprovação e posse. Conteúdo abaixo sobre planos é histórico; consultar simplificacao-f3-checkpoint.md. Sem deploy ou deleção de dados. -->
+
 # Planos, papéis e permissões — Treino & Nutrição V2
 
 Status: Proposta Fase 0 (aprovação pendente). Base = modelo real da V1

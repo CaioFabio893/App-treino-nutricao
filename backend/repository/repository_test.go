@@ -37,7 +37,7 @@ func mustJSON(t *testing.T, v any) string {
 // slice nil → `null`; slice normalizado → `[]`.
 func TestEnsureNonNilSliceSerializesAsArray(t *testing.T) {
 	// Pré-condição do bug: nil serializa como null.
-	var nilSlice []*models.Plan
+	var nilSlice []*models.WorkoutDefine
 	if got := mustJSON(t, nilSlice); got != "null" {
 		t.Fatalf("pré-condição: slice nil serializou %q, want \"null\"", got)
 	}
@@ -58,7 +58,7 @@ func TestEnsureNonNilSliceSerializesAsArray(t *testing.T) {
 // pelos endpoints (planos, usuários/alunos, treinos, dietas, diet-logs).
 func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 	var (
-		plans    []*models.Plan
+		plans    []*models.WorkoutDefine
 		profiles []*models.UserProfile
 		workouts []*models.WorkoutDefine
 		diets    []*models.Diet
@@ -88,7 +88,7 @@ func TestEnsureNonNilSliceNilToArrayAllTypes(t *testing.T) {
 // TestEnsureNonNilSliceKeepsRecords garante que a normalização não descarta
 // registros: coleções com conteúdo continuam arrays normais.
 func TestEnsureNonNilSliceKeepsRecords(t *testing.T) {
-	in := []*models.Plan{{ID: "p1", Name: "Plano A"}}
+	in := []*models.WorkoutDefine{{ID: "p1", Name: "Plano A"}}
 	out := ensureNonNilSlice(in)
 	if len(out) != 1 || out[0].ID != "p1" {
 		t.Fatalf("ensureNonNilSlice preservou %d registros (want 1 com ID p1)", len(out))
@@ -191,6 +191,15 @@ func TestUserProfileDataPreservesCreatedAt(t *testing.T) {
 	}
 	if !tv.Equal(past) {
 		t.Errorf("createdAt = %v, want %v (data de criação preservada)", tv, past)
+	}
+}
+
+func TestUserProfileDataDoesNotWriteRetiredFields(t *testing.T) {
+	m := userProfileData(&models.UserProfile{ID: "u1", Name: "Ana", Role: models.RoleStudent, Status: models.StatusActive})
+	for _, field := range []string{"planID", "features", "startDate", "endDate", "photoURL", "bio"} {
+		if _, exists := m[field]; exists {
+			t.Errorf("retired field %s must not be written", field)
+		}
 	}
 }
 

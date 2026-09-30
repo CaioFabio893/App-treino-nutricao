@@ -3,27 +3,21 @@
 import Link from "next/link";
 import { useAuth } from "@/lib/auth";
 import DashIcon from "@/components/DashIcon";
-import type { Feature } from "@/lib/types";
 
-// Cards do dashboard do aluno. Treinos é sempre liberado (tier gratuito);
-// os demais aparecem somente se a feature estiver no plano snapshotado no
-// perfil — gate de UI apenas, o backend também valida por rota.
+// Treinos e dietas do aluno aprovado, sem plano de funcionalidades.
 const SECTIONS: {
-  feature: Feature | null; // null = sempre visível
   href: string;
   title: string;
   desc: string;
   icon: "dumbbell" | "leaf";
 }[] = [
   {
-    feature: null,
     href: "/treinos",
     title: "Treinos",
     desc: "Seus treinos da semana, PRs e histórico",
     icon: "dumbbell",
   },
   {
-    feature: "diet",
     href: "/dietas",
     title: "Dietas",
     desc: "Seu plano alimentar e acompanhamento",
@@ -31,14 +25,11 @@ const SECTIONS: {
   },
 ];
 
-/** Página inicial do aluno: boas-vindas + cards dos módulos liberados no plano. */
+/** Página inicial do aluno: boas-vindas + cards de treino e dieta. */
 export default function StudentDashboard() {
   const { profile } = useAuth();
-  const features = profile?.features ?? [];
 
-  const visible = SECTIONS.filter(
-    (s) => s.feature === null || features.includes(s.feature)
-  );
+  const visible = SECTIONS;
 
   const firstName = profile?.name?.trim().split(/\s+/)[0] || "Aluno";
   const hoje = new Date().toLocaleDateString("pt-BR", {

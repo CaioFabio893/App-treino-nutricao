@@ -117,9 +117,9 @@ func main() {
 //	      ↓
 //	Require                 ← SEMPRE o middleware mais externo (roda primeiro)
 //	      ↓
-//	carrega users/{uid}     ← role/status/features são injetados no contexto
+//	carrega users/{uid}     ← role/status são injetados no contexto
 //	      ↓
-//	Allow / RequireApproved / RequireFeature   ← gates leem o contexto populado
+//	Allow / RequireApproved   ← gates leem o contexto populado
 //	      ↓
 //	handler
 //
@@ -146,17 +146,11 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("PUT /api/users/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdateUser)))
 	mux.HandleFunc("DELETE /api/users/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleDeleteUser)))
 
-	// ── Aprovação de cadastro + atribuição de plano (admin) ──
+	// ── Aprovação de cadastro (admin) ──
 	mux.HandleFunc("GET /api/users/pending", a.Require(a.Allow(models.RoleAdmin)(h.HandleListPendingUsers)))
 	mux.HandleFunc("POST /api/users/{id}/approve", a.Require(a.Allow(models.RoleAdmin)(h.HandleApproveUser)))
 	mux.HandleFunc("POST /api/users/{id}/reject", a.Require(a.Allow(models.RoleAdmin)(h.HandleRejectUser)))
-	mux.HandleFunc("POST /api/users/{id}/assign-plan", a.Require(a.Allow(models.RoleAdmin)(h.HandleAssignPlan)))
 
-	// ── Planos (features) — CRUD admin ──
-	mux.HandleFunc("GET /api/plans", a.Require(a.Allow(models.RoleAdmin)(h.HandleListPlans)))
-	mux.HandleFunc("POST /api/plans", a.Require(a.Allow(models.RoleAdmin)(h.HandleCreatePlan)))
-	mux.HandleFunc("PUT /api/plans/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleUpdatePlan)))
-	mux.HandleFunc("DELETE /api/plans/{id}", a.Require(a.Allow(models.RoleAdmin)(h.HandleDeletePlan)))
 
 	// ── Alunos ──
 	mux.HandleFunc("GET /api/students", a.Require(a.Allow(models.RoleAdmin)(h.HandleListMyStudents)))
@@ -200,9 +194,9 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("DELETE /api/exercises/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteExercise))))
 
 	// ── Dietas (feature diet) ──
-	mux.HandleFunc("GET /api/diets", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDiets))))
+	mux.HandleFunc("GET /api/diets", a.Require(a.RequireApproved(h.HandleListDiets)))
 	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))
-	mux.HandleFunc("GET /api/diets/{id}", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleGetDiet))))
+	mux.HandleFunc("GET /api/diets/{id}", a.Require(a.RequireApproved(h.HandleGetDiet)))
 	mux.HandleFunc("PUT /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateDiet))))
 	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
 	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))
@@ -212,6 +206,6 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("POST /api/workouts/complete", a.Require(a.RequireApproved(h.HandleCompleteWorkout)))
 
 	// ── Dieta diária (dia + refeição) — feature diet ──
-	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleListDietLogs))))
-	mux.HandleFunc("PUT /api/diet-logs", a.Require(a.RequireFeature(models.FeatureDiet)(a.RequireApproved(h.HandleUpsertDietLog))))
+	mux.HandleFunc("GET /api/diet-logs", a.Require(a.RequireApproved(h.HandleListDietLogs)))
+	mux.HandleFunc("PUT /api/diet-logs", a.Require(a.RequireApproved(h.HandleUpsertDietLog)))
 }

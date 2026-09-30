@@ -10,16 +10,16 @@ test.describe("Autorização (API Go autenticada com idToken real do emulador)",
   test("aluno não acessa rotas de admin", async ({ request }) => {
     const a = await idTokenFor(USERS.studentA.email, USERS.studentA.password);
     expect((await apiGet(request, "/api/users", a)).status()).toBe(403);
-    expect((await apiGet(request, "/api/plans", a)).status()).toBe(403);
+    expect((await apiGet(request, "/api/plans", a)).status()).toBe(404);
   });
 
-  test("features do plano bloqueiam módulos fora dele", async ({ request }) => {
+  test("aluno aprovado acessa dieta sem plano", async ({ request }) => {
     const b = await idTokenFor(USERS.studentB.email, USERS.studentB.password);
-    // Bruno (Essencial: só treinos) não tem dieta nem comunidade.
-    expect((await apiGet(request, "/api/diets", b)).status()).toBe(403);
+    // A aprovação libera os módulos sem consultar planos legados.
+    expect((await apiGet(request, "/api/diets", b)).status()).toBe(200);
   });
 
-  test("aluno com a feature consegue usar o módulo", async ({ request }) => {
+  test("aluno aprovado acessa treinos e dietas", async ({ request }) => {
     const a = await idTokenFor(USERS.studentA.email, USERS.studentA.password);
 
     expect((await apiGet(request, "/api/diets", a)).status()).toBe(200);

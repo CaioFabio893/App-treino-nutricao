@@ -43,15 +43,15 @@ test.describe("Área do aluno (gates do plano)", () => {
     await expect(page.locator(".tl-item")).toHaveCount(before + 1);
   });
 
-  test("aluno sem dieta é bloqueado na rota e não vê o card", async ({
+  test("aluno aprovado vê dieta sem depender de plano", async ({
     page,
   }) => {
     await login(page, USERS.studentB.email, USERS.studentB.password);
     await page.waitForURL("**/dashboard");
     await expect(page.getByRole("link", { name: "Treinos", exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Dietas", exact: true })).toHaveCount(0);
+    await expect(page.getByRole("link", { name: "Dietas", exact: true })).toBeVisible();
     await expect(page.getByRole("link", { name: "Comunidade", exact: true })).toHaveCount(0);
     await page.goto("/dietas");
-    await page.waitForURL("**/dashboard");
+    await page.waitForURL("**/dietas");
   });
 });

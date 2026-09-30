@@ -7,13 +7,12 @@ import (
 )
 
 // ApproveUser aprova um cadastro pendente: confirma o papel de aluno, ativa o
-// perfil (status=active), grava quem/quando aprovou e, para aluno com plano,
-// snapshota as features do plano no perfil.
+// perfil (status=active) e grava quem/quando aprovou.
 //
 // Aprovação só concede RoleStudent. O papel de admin não é concedido por esta
 // via (evita escalada de privilégio a partir de um cadastro pendente); admin é
 // definido na criação/edição do usuário pelo admin.
-func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, role models.Role, planID string) error {
+func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, role models.Role) error {
 	if role != models.RoleStudent {
 		return ErrInvalidRole
 	}
@@ -32,25 +31,6 @@ func (s *Service) ApproveUser(ctx context.Context, adminUID, targetID string, ro
 	prof.ApprovedAt = Now()
 	prof.RejectedReason = ""
 
-	if planID != "" {
-		plan, err := s.repo.GetPlan(ctx, planID)
-		if err != nil {
-			return err
-		}
-		if plan == nil {
-			return ErrPlanNotFound
-		}
-		if !plan.Active {
-			return ErrPlanInactive
-		}
-		prof.PlanID = plan.ID
-		prof.Features = plan.Features
-	} else {
-		// Aluno aprovado sem plano: sem entitlements além do free tier (workouts).
-		prof.PlanID = ""
-		prof.Features = nil
-	}
-
 	return s.repo.PutUserProfile(ctx, targetID, prof)
 }
 
@@ -67,34 +47,5 @@ func (s *Service) RejectUser(ctx context.Context, targetID, reason string) error
 	}
 	prof.Status = models.StatusRejected
 	prof.RejectedReason = reason
-	return s.repo.PutUserProfile(ctx, targetID, prof)
-}
-
-// AssignPlan atribui/reatribui um plano a um aluno já existente, snapshotando
-// as features do plano no perfil (o admin reatribui sempre que quiser).
-func (s *Service) AssignPlan(ctx context.Context, targetID, planID string) error {
-	if planID == "" {
-		return ErrInvalidPlanID
-	}
-	plan, err := s.repo.GetPlan(ctx, planID)
-	if err != nil {
-		return err
-	}
-	if plan == nil {
-		return ErrPlanNotFound
-	}
-	if !plan.Active {
-		return ErrPlanInactive
-	}
-
-	prof, err := s.repo.GetUserProfile(ctx, targetID)
-	if err != nil {
-		return err
-	}
-	if prof == nil {
-		return ErrUserNotFound
-	}
-	prof.PlanID = plan.ID
-	prof.Features = plan.Features
 	return s.repo.PutUserProfile(ctx, targetID, prof)
 }

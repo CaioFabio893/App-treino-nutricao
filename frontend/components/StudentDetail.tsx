@@ -56,8 +56,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
   const [editForm, setEditForm] = useState({
     name: student.name || "",
     status: student.status || "active",
-    startDate: student.startDate || "",
-    endDate: student.endDate || "",
   });
   const [editMsg, setEditMsg] = useState<string | null>(null);
 
@@ -147,8 +145,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
         {
           name: editForm.name.trim() || student.name,
           status: editForm.status,
-          startDate: editForm.startDate,
-          endDate: editForm.endDate,
         },
         token
       );
@@ -279,39 +275,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
                 <option value="paused">Pausado</option>
               </select>
             </div>
-            <div className="frm-row">
-              <label className="frm-label">Plano (dias)</label>
-              <input
-                type="number"
-                min={1}
-                placeholder="ex.: 30"
-                value={editForm.endDate ? String(Math.round((new Date(editForm.endDate).getTime() - new Date(editForm.startDate || new Date()).getTime()) / 86400000)) : ""}
-                onChange={(e) => {
-                  const days = Number(e.target.value);
-                  const start = editForm.startDate || new Date().toISOString().slice(0, 10);
-                  const end = days > 0
-                    ? new Date(new Date(start).getTime() + days * 86400000).toISOString().slice(0, 10)
-                    : "";
-                  setEditForm({ ...editForm, startDate: start, endDate: end });
-                }}
-              />
-            </div>
-            <div className="frm-row">
-              <label className="frm-label">Início</label>
-              <input
-                type="date"
-                value={editForm.startDate}
-                onChange={(e) => setEditForm({ ...editForm, startDate: e.target.value })}
-              />
-            </div>
-            <div className="frm-row">
-              <label className="frm-label">Término</label>
-              <input
-                type="date"
-                value={editForm.endDate}
-                onChange={(e) => setEditForm({ ...editForm, endDate: e.target.value })}
-              />
-            </div>
           </div>
           {editMsg && <div className={editMsg.startsWith("✓") ? "" : "err-text"} style={editMsg.startsWith("✓") ? { color: "var(--ok, #2e7d32)", fontSize: 12, marginTop: 6 } : {}}>{editMsg}</div>}
           <div className="btn-row">
@@ -343,14 +306,6 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
             <div className="v">
               <span className={`badge ${student.status || ""}`}>{student.status || "active"}</span>
             </div>
-          </div>
-          <div className="detail-cell">
-            <div className="k">Início</div>
-            <div className="v">{student.startDate || "—"}</div>
-          </div>
-          <div className="detail-cell">
-            <div className="k">Término do acesso</div>
-            <div className="v">{student.endDate || "—"}</div>
           </div>
           <div className="detail-cell">
             <div className="k">Treinos</div>

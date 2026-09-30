@@ -20,7 +20,6 @@ const (
 	uidKey      contextKey = "uid"
 	roleKey     contextKey = "role"
 	statusKey   contextKey = "status"
-	featuresKey contextKey = "features"
 	providerKey contextKey = "authProvider"
 )
 
@@ -75,12 +74,10 @@ func (a *Auth) Require(next http.HandlerFunc) http.HandlerFunc {
 
 		status := models.StatusPendingApproval
 		var role models.Role
-		var features []models.Feature
 		provider := ""
 		if profile != nil {
 			status = profile.Status
 			role = profile.Role
-			features = profile.Features
 			provider = profile.AuthProvider
 		}
 		// O provider também pode vir da claim do token Firebase (cadastro novo
@@ -91,7 +88,6 @@ func (a *Auth) Require(next http.HandlerFunc) http.HandlerFunc {
 
 		ctx = context.WithValue(ctx, roleKey, role)
 		ctx = context.WithValue(ctx, statusKey, status)
-		ctx = context.WithValue(ctx, featuresKey, features)
 		ctx = context.WithValue(ctx, providerKey, provider)
 
 		next(w, r.WithContext(ctx))
@@ -135,28 +131,6 @@ func (a *Auth) RequireApproved(next http.HandlerFunc) http.HandlerFunc {
 	}
 }
 
-// RequireFeature bloqueia alunos cujo plano não inclui a feature dada. Admin
-// sempre passa (gerencia o conteúdo, não é limitado por plano).
-func (a *Auth) RequireFeature(f models.Feature) func(http.HandlerFunc) http.HandlerFunc {
-	return func(next http.HandlerFunc) http.HandlerFunc {
-		return func(w http.ResponseWriter, r *http.Request) {
-			role := RoleFrom(r.Context())
-			if role == models.RoleAdmin {
-				next(w, r)
-				return
-			}
-			features, _ := r.Context().Value(featuresKey).([]models.Feature)
-			for _, ft := range features {
-				if ft == f {
-					next(w, r)
-					return
-				}
-			}
-			http.Error(w, `{"error":"recurso nao incluido no seu plano"}`, http.StatusForbidden)
-		}
-	}
-}
-
 // IsApproved devolve true quando o usuário pode acessar rotas de negócio.
 // "" cobre perfis antigos (migrados sem status explícito) — não quebra
 // usuários já ativos hoje.
@@ -178,12 +152,6 @@ func RoleFrom(ctx context.Context) models.Role {
 		return models.RoleStudent
 	}
 	return role
-}
-
-// FeaturesFrom devolve as features snapshotadas no perfil do usuário.
-func FeaturesFrom(ctx context.Context) []models.Feature {
-	features, _ := ctx.Value(featuresKey).([]models.Feature)
-	return features
 }
 
 // AuthProviderFrom devolve o provedor de login ("password" | "google.com").

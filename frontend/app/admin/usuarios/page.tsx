@@ -5,10 +5,9 @@ import Avatar from "@/components/Avatar";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { Plan, UserProfile } from "@/lib/types";
+import type { UserProfile } from "@/lib/types";
 import { AdminSkeleton } from "@/components/Skeleton";
 import PendingApprovals from "@/components/admin/PendingApprovals";
-import PlansManager from "@/components/admin/PlansManager";
 
 const emptyUser = (): UserProfile => ({
   id: "",
@@ -16,13 +15,11 @@ const emptyUser = (): UserProfile => ({
   email: "",
   role: "student",
   status: "active",
-  planID: "",
 });
 
 export default function AdminPage() {
   const { getToken } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [ready, setReady] = useState(false);
   const [form, setForm] = useState<UserProfile>(emptyUser());
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -42,7 +39,6 @@ export default function AdminPage() {
       const token = await getToken();
       const all = await api.listUsers(token);
       setUsers(all);
-      setPlans(await api.listPlans(token));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar usuários");
@@ -61,12 +57,7 @@ export default function AdminPage() {
     setError(null);
     try {
       const token = await getToken();
-      // planID/features são definidos via assignPlan (snapshot validado no
-      // backend) — não podem ir no corpo do create/update, que sobrescreveria
-      // ou limparia o snapshot atual.
       const payload: UserProfile = { ...form };
-      delete payload.planID;
-      delete payload.features;
       const targetId = editingId ?? payload.id;
       if (editingId) {
         await api.updateUser(editingId, { ...payload, id: editingId }, token);
@@ -79,10 +70,6 @@ export default function AdminPage() {
         }
         await api.createUser(payload, token);
         showToast("✓ Usuário criado");
-      }
-      // Atribui plano (e snapshot das features) quando o admin escolheu um.
-      if (form.role === "student" && form.planID) {
-        await api.assignPlan(targetId, form.planID, token);
       }
       setForm(emptyUser());
       setEditingId(null);
@@ -125,7 +112,7 @@ export default function AdminPage() {
         <div>
           <h1>Usuários</h1>
           <div className="page-sub">
-            Crie e defina os papéis (admin, aluno) e vincule alunos aos planos.
+            Gerencie cadastros, papéis e status de acesso.
           </div>
         </div>
       </div>
@@ -133,9 +120,8 @@ export default function AdminPage() {
       {error && <div className="err-text">{error}</div>}
       {toast && <div id="toast" className="show">{toast}</div>}
 
-      {/* Fila de aprovação + planos (novos blocos admin) */}
+      {/* Fila de aprovação */}
       <PendingApprovals />
-      <PlansManager />
 
       {/* Formulário criar/editar */}
       <div className="frm-card">
@@ -181,28 +167,6 @@ export default function AdminPage() {
             </select>
           </div>
         </div>
-        {form.role === "student" && (
-          <div className="frm-row" style={{ marginTop: 10 }}>
-            <label>Plano (features liberadas)</label>
-            <select
-              value={form.planID ?? ""}
-              onChange={(e) => setForm({ ...form, planID: e.target.value })}
-            >
-              <option value="">— Sem plano —</option>
-              {plans
-                .filter((p) => p.active)
-                .map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}
-                    {p.features?.length ? ` (${p.features.join(", ")})` : ""}
-                  </option>
-                ))}
-            </select>
-            <div className="page-sub">
-              O plano é aplicado via atribuição e fixa as features no perfil do aluno.
-            </div>
-          </div>
-        )}
         <div className="frm-row-inline">
           <div className="frm-row">
             <label>Status</label>
@@ -214,14 +178,6 @@ export default function AdminPage() {
               <option value="paused">Pausado</option>
               <option value="inactive">Inativo</option>
             </select>
-          </div>
-          <div className="frm-row">
-            <label>Término do acesso</label>
-            <input
-              type="date"
-              value={form.endDate ?? ""}
-              onChange={(e) => setForm({ ...form, endDate: e.target.value })}
-            />
           </div>
         </div>
         <div className="btn-row">
@@ -264,7 +220,6 @@ export default function AdminPage() {
             <div className="nut-meta">
               <span className="badge">{u.role}</span>
               <span className={`badge ${u.status || ""}`}>{u.status || "active"}</span>
-              {u.endDate && <span className="badge">Até: {u.endDate}</span>}
             </div>
             <div className="btn-row">
               <button type="button" className="btn-sm acc" onClick={() => startEdit(u)}>

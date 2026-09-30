@@ -40,16 +40,6 @@ type Repository interface {
 	// (ex.: pending_approval para a fila de aprovação do admin).
 	ListUsersByStatus(ctx context.Context, status string) ([]*models.UserProfile, error)
 
-	// Planos (pacotes de funcionalidades)
-	CreatePlan(ctx context.Context, p *models.Plan) (*models.Plan, error)
-	GetPlan(ctx context.Context, id string) (*models.Plan, error)
-	ListPlans(ctx context.Context) ([]*models.Plan, error)
-	UpdatePlan(ctx context.Context, id string, p *models.Plan) error
-	DeletePlan(ctx context.Context, id string) error
-	// CountStudentsWithPlan conta quantos alunos ativos/atribuídos usam o plano
-	// (usado para bloquear exclusão de plano em uso com 409).
-	CountStudentsWithPlan(ctx context.Context, planID string) (int, error)
-
 	// Treinos
 	CreateWorkout(ctx context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error)
 	GetWorkout(ctx context.Context, id string) (*models.WorkoutDefine, error)
@@ -163,11 +153,7 @@ func userProfileData(p *models.UserProfile) map[string]any {
 		"name":           p.Name,
 		"email":          p.Email,
 		"role":           string(p.Role),
-		"startDate":      p.StartDate,
-		"endDate":        p.EndDate,
 		"status":         p.Status,
-		"planID":         p.PlanID,
-		"features":       p.Features,
 		"authProvider":   p.AuthProvider,
 		"approvedBy":     p.ApprovedBy,
 		"approvedAt":     p.ApprovedAt,
@@ -213,120 +199,6 @@ func (r *firestoreRepo) ListUsersByStatus(ctx context.Context, status string) ([
 		Where("status", "==", status).
 		Documents(ctx)
 	return profilesFromIter(iter)
-}
-
-// ── Planos (pacotes de funcionalidades) ──
-
-func (r *firestoreRepo) CreatePlan(ctx context.Context, p *models.Plan) (*models.Plan, error) {
-	ref, _, err := r.fs.Collection("plans").Add(ctx, map[string]any{
-		"name":        p.Name,
-		"description": p.Description,
-		"features":    p.Features,
-		"active":      p.Active,
-		"createdAt":   firestore.ServerTimestamp,
-		"updatedAt":   firestore.ServerTimestamp,
-	})
-	if err != nil {
-		return nil, err
-	}
-	p.ID = ref.ID
-	return p, nil
-}
-
-func (r *firestoreRepo) GetPlan(ctx context.Context, id string) (*models.Plan, error) {
-	doc, err := r.fs.Collection("plans").Doc(id).Get(ctx)
-	if err != nil {
-		if isNotFound(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-	out := &models.Plan{}
-	if err := doc.DataTo(out); err != nil {
-		return nil, err
-	}
-	out.ID = doc.Ref.ID
-	return out, nil
-}
-
-func (r *firestoreRepo) ListPlans(ctx context.Context) ([]*models.Plan, error) {
-	iter := r.fs.Collection("plans").OrderBy("createdAt", firestore.Asc).Documents(ctx)
-	defer iter.Stop()
-	var out []*models.Plan
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		p := &models.Plan{}
-		if err := doc.DataTo(p); err != nil {
-			continue
-		}
-		p.ID = doc.Ref.ID
-		out = append(out, p)
-	}
-	return ensureNonNilSlice(out), nil
-}
-
-func (r *firestoreRepo) UpdatePlan(ctx context.Context, id string, p *models.Plan) error {
-	_, err := r.fs.Collection("plans").Doc(id).Set(ctx, map[string]any{
-		"name":        p.Name,
-		"description": p.Description,
-		"features":    p.Features,
-		"active":      p.Active,
-		"updatedAt":   firestore.ServerTimestamp,
-	}, firestore.MergeAll)
-	return err
-}
-
-func (r *firestoreRepo) DeletePlan(ctx context.Context, id string) error {
-	_, err := r.fs.Collection("plans").Doc(id).Delete(ctx)
-	return err
-}
-
-// CountStudentsWithPlan conta quantos perfis têm planID preenchido com o plano
-// dado (bloqueia exclusão de plano em uso). Alunos sem perfil/planID não contam.
-func (r *firestoreRepo) CountStudentsWithPlan(ctx context.Context, planID string) (int, error) {
-	iter := r.fs.Collection("users").
-		Where("planID", "==", planID).
-		Documents(ctx)
-	defer iter.Stop()
-	n := 0
-	for {
-		_, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return 0, err
-		}
-		n++
-	}
-	return n, nil
-}
-
-func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {
-	defer iter.Stop()
-	var out []*models.UserProfile
-	for {
-		doc, err := iter.Next()
-		if err != nil {
-			if err == iterator.Done {
-				break
-			}
-			return nil, err
-		}
-		p := &models.UserProfile{}
-		if err := doc.DataTo(p); err != nil {
-			continue
-		}
-		p.ID = doc.Ref.ID
-		out = append(out, p)
-	}
-	return ensureNonNilSlice(out), nil
 }
 
 // ── Treinos (exercícios embutidos no documento) ──
@@ -834,6 +706,27 @@ func (r *firestoreRepo) ListDietLogsForStudent(ctx context.Context, studentID, f
 		}
 		d.ID = doc.Ref.ID
 		out = append(out, d)
+	}
+	return ensureNonNilSlice(out), nil
+}
+
+func profilesFromIter(iter docIterator) ([]*models.UserProfile, error) {
+	defer iter.Stop()
+	var out []*models.UserProfile
+	for {
+		doc, err := iter.Next()
+		if err != nil {
+			if err == iterator.Done {
+				break
+			}
+			return nil, err
+		}
+		p := &models.UserProfile{}
+		if err := doc.DataTo(p); err != nil {
+			continue
+		}
+		p.ID = doc.Ref.ID
+		out = append(out, p)
 	}
 	return ensureNonNilSlice(out), nil
 }

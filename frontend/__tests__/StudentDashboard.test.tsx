@@ -14,46 +14,43 @@ function renderWithProfile(profile: UserProfile | null) {
   return render(<StudentDashboard />);
 }
 
-describe("StudentDashboard — cards de módulo por feature do plano", () => {
-  it("mostra Treinos sempre, mesmo sem features (tier gratuito)", () => {
+describe("StudentDashboard — treinos e dieta sem plano", () => {
+  it("mostra treino e dieta para aluno ativo sem plano", () => {
     renderWithProfile({
       id: "s1",
       name: "João Silva",
       email: "joao@email.com",
       role: "student",
       status: "active",
-      features: [],
     });
     // Regra documentada (docs/security/plans.md): workouts é sempre liberado.
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     // Com Treinos sempre visível, o empty state ("ainda não tem módulos") é
     // inalcançável — o dashboard nunca renderiza essa mensagem.
     expect(screen.queryByText(/ainda não tem módulos/)).not.toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /Dietas/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
   });
 
-  it("mostra apenas os módulos liberados no plano", () => {
+  it("mostra treino e dieta para aluno pausado", () => {
     renderWithProfile({
       id: "s1",
       name: "João Silva",
       role: "student",
-      status: "active",
-      features: ["diet"],
+      status: "paused",
     });
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();
   });
 
-  it("mostra todos os módulos com o plano completo", () => {
+  it("ignora features legadas de comunidade e ranking", () => {
     renderWithProfile({
       id: "s1",
       name: "Maria Souza",
       role: "student",
       status: "active",
-      // Perfis legados podem manter ranking no snapshot; ele não volta à UI.
-      features: ["workouts", "diet", "community", "ranking"],
-    });
+      features: ["diet", "community", "ranking"],
+    } as UserProfile & { features: string[] });
     expect(screen.getByRole("link", { name: /Treinos/ })).toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Dietas/ })).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /Comunidade/ })).not.toBeInTheDocument();

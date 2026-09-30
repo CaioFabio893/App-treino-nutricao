@@ -10,7 +10,6 @@ import type {
   DuplicateRequest,
   Exercise,
   ImportProgramRequest,
-  Plan,
   RejectUserRequest,
   TrainingProgram,
   UpsertDietLogRequest,
@@ -224,37 +223,6 @@ export function rejectUser(
     method: "POST",
     body: JSON.stringify(req),
   });
-}
-
-// Troca o plano (e o snapshot de features) de um aluno já aprovado.
-export function assignPlan(id: string, planID: string, token: string): Promise<void> {
-  return request<void>(`/api/users/${id}/assign-plan`, token, {
-    method: "POST",
-    body: JSON.stringify({ planID }),
-  });
-}
-
-// Planos (pacotes de features).
-export function listPlans(token: string): Promise<Plan[]> {
-  return request<Plan[]>("/api/plans", token);
-}
-
-export function createPlan(p: Plan, token: string): Promise<Plan> {
-  return request<Plan>("/api/plans", token, {
-    method: "POST",
-    body: JSON.stringify(p),
-  });
-}
-
-export function updatePlan(id: string, p: Plan, token: string): Promise<void> {
-  return request<void>(`/api/plans/${id}`, token, {
-    method: "PUT",
-    body: JSON.stringify(p),
-  });
-}
-
-export function deletePlan(id: string, token: string): Promise<void> {
-  return request<void>(`/api/plans/${id}`, token, { method: "DELETE" });
 }
 
 // ── Treinos ──

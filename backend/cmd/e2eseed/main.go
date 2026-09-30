@@ -1,4 +1,4 @@
-﻿// Command e2eseed popula os Emuladores locais (Firestore + Auth) com dados
+// Command e2eseed popula os Emuladores locais (Firestore + Auth) com dados
 // determinísticos para os testes E2E de Playwright (Fase 3).
 //
 // Segurança: este programa se recusa a rodar sem as variáveis de ambiente dos
@@ -108,30 +108,6 @@ func run() error {
 		log.Printf("  auth %-14s %-28s %s", u.key, u.email, id)
 	}
 
-	// ── Planos (features determinísticas) ──
-	plans := map[string]*models.Plan{}
-	planDefs := []struct {
-		key, name, desc string
-		features        []models.Feature
-	}{
-		{"completo", "Completo E2E", "Treino + dieta + comunidade + ranking",
-			[]models.Feature{models.FeatureWorkouts, models.FeatureDiet, models.FeatureCommunity, models.FeatureRanking}},
-		{"essencial", "Essencial E2E", "Treino + ranking",
-			[]models.Feature{models.FeatureWorkouts, models.FeatureRanking}},
-		{"treinos", "Só Treinos E2E", "Somente treinos (tier gratuito)",
-			[]models.Feature{models.FeatureWorkouts}},
-	}
-	for _, p := range planDefs {
-		plan, err := repo.CreatePlan(ctx, &models.Plan{
-			Name: p.name, Description: p.desc, Features: p.features, Active: true,
-		})
-		if err != nil {
-			return fmt.Errorf("plano %s: %w", p.key, err)
-		}
-		plans[p.key] = plan
-		log.Printf("  plan %-10s %-20s %s", p.key, p.name, plan.ID)
-	}
-
 	// ── Perfis (users/{uid}) — escrita equivalente à Admin SDK ──
 	now := service.Now()
 	// Trimestre civil corrente (mesma referência do ciclo removido na F1):
@@ -142,41 +118,31 @@ func run() error {
 	startDate := cycleStart.Format("2006-01-02")
 	endDate := cycleEnd.AddDate(0, 0, -1).Format("2006-01-02")
 	type profileSeed struct {
-		key        string
-		role       models.Role
-		status     string
-		planKey    string
-		start, end string
+		key    string
+		role   models.Role
+		status string
 	}
 	profiles := []profileSeed{
-		{"admin", models.RoleAdmin, models.StatusActive, "", "", ""},
-		{"studentA", models.RoleStudent, models.StatusActive, "completo", startDate, endDate},
-		{"studentB", models.RoleStudent, models.StatusActive, "essencial", startDate, endDate},
-		{"studentC", models.RoleStudent, models.StatusActive, "treinos", startDate, endDate},
-		{"pending", "", models.StatusPendingApproval, "", "", ""},
-		{"rejected", "", models.StatusRejected, "", "", ""},
+		{"admin", models.RoleAdmin, models.StatusActive},
+		{"studentA", models.RoleStudent, models.StatusActive},
+		{"studentB", models.RoleStudent, models.StatusActive},
+		{"studentC", models.RoleStudent, models.StatusActive},
+		{"pending", "", models.StatusPendingApproval},
+		{"rejected", "", models.StatusRejected},
 	}
 	emailOf := map[string]string{
-		"admin": adminEmail,
+		"admin":    adminEmail,
 		"studentA": studentAEmail, "studentB": studentBEmail, "studentC": studentCEmail,
 		"pending": pendingEmail, "rejected": rejectedEmail,
 	}
 	for _, p := range profiles {
 		prof := &models.UserProfile{
-			Name:            userNames[p.key],
-			Email:           emailOf[p.key],
-			Role:            p.role,
-			Status:          p.status,
-			AuthProvider:    "password",
-			StartDate:       p.start,
-			EndDate:         p.end,
-			CreatedAt:       now,
-		}
-		if p.planKey != "" {
-			prof.PlanID = plans[p.planKey].ID
-			prof.Features = plans[p.planKey].Features
-			prof.ApprovedBy = uid["admin"]
-			prof.ApprovedAt = now
+			Name:         userNames[p.key],
+			Email:        emailOf[p.key],
+			Role:         p.role,
+			Status:       p.status,
+			AuthProvider: "password",
+			CreatedAt:    now,
 		}
 		if p.key == "rejected" {
 			prof.RejectedReason = "Documento divergente (verificação E2E)"
@@ -184,7 +150,7 @@ func run() error {
 		if err := repo.PutUserProfile(ctx, uid[p.key], prof); err != nil {
 			return fmt.Errorf("perfil %s: %w", p.key, err)
 		}
-		log.Printf("  prof %-12s %-16s %s plan=%s", p.key, p.status, uid[p.key], prof.PlanID)
+		log.Printf("  prof %-12s %-16s %s", p.key, p.status, uid[p.key])
 	}
 
 	// ── Treinos dos alunos ──
@@ -193,7 +159,7 @@ func run() error {
 
 	workoutA, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
 		StudentID: uid["studentA"],
-		Name: "Treino de Hoje E2E", DayOfWeek: todayKey, Objective: "Hipertrofia",
+		Name:      "Treino de Hoje E2E", DayOfWeek: todayKey, Objective: "Hipertrofia",
 		Description: "Treino principal do cenário E2E",
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Agachamento", Sets: 2, Repetitions: "10", Weight: "40 kg", RestSeconds: 60, Order: 1},
@@ -205,7 +171,7 @@ func run() error {
 	}
 	workoutA2, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
 		StudentID: uid["studentA"],
-		Name: "Treino Secundário E2E", DayOfWeek: yesterdayKey, Objective: "Condicionamento",
+		Name:      "Treino Secundário E2E", DayOfWeek: yesterdayKey, Objective: "Condicionamento",
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Remada curvada", Sets: 2, Repetitions: "12", Weight: "20 kg", RestSeconds: 45, Order: 1},
 		},
@@ -215,7 +181,7 @@ func run() error {
 	}
 	workoutB, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
 		StudentID: uid["studentB"],
-		Name: "Treino Básico E2E", DayOfWeek: todayKey,
+		Name:      "Treino Básico E2E", DayOfWeek: todayKey,
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Puxada alta", Sets: 2, Repetitions: "10", Weight: "25 kg", RestSeconds: 60, Order: 1},
 		},
@@ -225,7 +191,7 @@ func run() error {
 	}
 	if _, err := repo.CreateWorkout(ctx, &models.WorkoutDefine{
 		StudentID: uid["studentC"],
-		Name: "Treino Livre E2E", DayOfWeek: todayKey,
+		Name:      "Treino Livre E2E", DayOfWeek: todayKey,
 		Exercises: []*models.WorkoutExercise{
 			{Name: "Esteira", Sets: 1, Repetitions: "20 min", RestSeconds: 0, Order: 1},
 		},
@@ -237,7 +203,7 @@ func run() error {
 	// ── Dieta do aluno A ──
 	if _, err := repo.CreateDiet(ctx, &models.Diet{
 		StudentID: uid["studentA"],
-		Name: "Plano Alimentar E2E", Description: "Plano de teste (background)",
+		Name:      "Plano Alimentar E2E", Description: "Plano de teste (background)",
 		StartDate: startDate, EndDate: endDate,
 		Content: "CAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n\nALMOÇO (12:30)\n• 150g de arroz integral\n• 200g de frango grelhado",
 	}); err != nil {
@@ -250,7 +216,7 @@ func run() error {
 	mkLog := func(studentKey, date string, status models.DietLogStatus) {
 		if err := repo.PutDietLog(ctx, &models.DietDailyLog{
 			StudentID: uid[studentKey],
-			DietName: "Plano Alimentar E2E", Date: date, Status: status,
+			DietName:  "Plano Alimentar E2E", Date: date, Status: status,
 		}); err != nil {
 			log.Fatalf("dietLog %s %s: %v", studentKey, date, err)
 		}
@@ -295,7 +261,7 @@ e2eseed: seed concluído
 }
 
 var userNames = map[string]string{
-	"admin": "Admin E2E",
+	"admin":    "Admin E2E",
 	"studentA": "Ana Aluna", "studentB": "Bruno Aluno", "studentC": "Carla Aluna",
 	"pending": "Pendente E2E", "rejected": "Recusado E2E",
 }

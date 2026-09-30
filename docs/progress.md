@@ -4,6 +4,15 @@
 
 ---
 
+## 30/09/2026 — F3 planos/features removidos (Codex)
+
+Aprovação e acesso a treinos/dietas não dependem mais de plano. CRUD/atribuição
+retirados, URLs antigas 404, plans legados negados nas rules. Datas do perfil
+removidas; datas das dietas preservadas. Go 184, Vitest 99, rules 90, E2E 28;
+tsc/lint/build OK. Primeiro E2E tinha expectativa antiga de 403 em rota removida;
+corrigida para 404, nova execução completa verde. Sem produção.
+Relatório: docs/reports/simplificacao-f3-checkpoint.md. Próximo F5 read-only,
+depois F6/F7. Configurações preexistentes do OpenCode preservadas.
 ## 30/09/2026 — F2 comunidade removida (Codex)
 
 - Removidos posts, comentários, likes, feed, publicação automática e perfil

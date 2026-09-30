@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -33,12 +32,6 @@ func (f *approvalFakeRepo) GetUserProfile(ctx context.Context, uid string) (*mod
 func (f *approvalFakeRepo) PutUserProfile(ctx context.Context, uid string, p *models.UserProfile) error {
 	return f.putUserProfile(ctx, uid, p)
 }
-func (f *approvalFakeRepo) CountStudentsWithPlan(ctx context.Context, planID string) (int, error) {
-	return f.countWithPlan(ctx, planID)
-}
-func (f *approvalFakeRepo) DeletePlan(ctx context.Context, id string) error {
-	return f.deletePlan(ctx, id)
-}
 
 func newApprovalHandler(repo repository.Repository) *Handlers {
 	return &Handlers{svc: service.New(repo), repo: repo, auth: nil}
@@ -60,48 +53,6 @@ func TestHandleListPendingUsers(t *testing.T) {
 	}
 	if body := rr.Body.String(); !strings.Contains(body, "Maria") {
 		t.Errorf("body = %q, want Maria", body)
-	}
-}
-
-func TestHandleDeletePlanInUse(t *testing.T) {
-	deleted := false
-	repo := &approvalFakeRepo{
-		countWithPlan: func(_ context.Context, _ string) (int, error) { return 3, nil },
-		deletePlan:    func(_ context.Context, _ string) error { deleted = true; return nil },
-	}
-	h := newApprovalHandler(repo)
-	rr := httptest.NewRecorder()
-	r := httptest.NewRequest("DELETE", "/api/plans/plano-x", nil)
-	r.SetPathValue("id", "plano-x")
-	h.HandleDeletePlan(rr, r)
-	if rr.Code != http.StatusConflict {
-		t.Fatalf("code = %d, want 409", rr.Code)
-	}
-	if deleted {
-		t.Error("plano em uso não deveria ser deletado")
-	}
-	var resp map[string]any
-	if err := json.Unmarshal(rr.Body.Bytes(), &resp); err != nil {
-		t.Fatalf("invalid json: %v", err)
-	}
-	if resp["count"] != float64(3) {
-		t.Errorf("count = %v, want 3", resp["count"])
-	}
-}
-
-func TestHandleDeletePlanOK(t *testing.T) {
-	deleted := false
-	repo := &approvalFakeRepo{
-		countWithPlan: func(_ context.Context, _ string) (int, error) { return 0, nil },
-		deletePlan:    func(_ context.Context, _ string) error { deleted = true; return nil },
-	}
-	h := newApprovalHandler(repo)
-	rr := httptest.NewRecorder()
-	r := httptest.NewRequest("DELETE", "/api/plans/plano-livre", nil)
-	r.SetPathValue("id", "plano-livre")
-	h.HandleDeletePlan(rr, r)
-	if rr.Code != http.StatusOK || !deleted {
-		t.Errorf("code = %d, deleted = %v; want 200/true", rr.Code, deleted)
 	}
 }
 

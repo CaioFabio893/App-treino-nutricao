@@ -1,3 +1,8 @@
+> Estado local 30/09/2026: F1/F2/F3/F4 concluídas; próxima F5 read-only,
+> depois F6/F7. Planos/features/comunidade/gamificação foram retirados.
+> Acesso usa papel/status/posse. Seções históricas abaixo podem descrever
+> contratos aposentados; usar PROJECT_STATE.md, .gates e docs/progress.md.
+> Sem deploy, console, rotação ou deleção de dados de produção.
 # CLAUDE.md — Treino & Nutrição V2
 
 Contexto obrigatório para agentes trabalhando neste repositório.

@@ -105,8 +105,6 @@ function StudentsInner() {
         </div>
         <div className="nut-meta">
           <span className={`badge ${s.status || ""}`}>{s.status || "active"}</span>
-          {s.startDate && <span className="badge">Início: {s.startDate}</span>}
-          {s.endDate && <span className="badge">Término: {s.endDate}</span>}
           <span className="badge">{stats.workoutCount} treinos</span>
         </div>
         <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 8, lineHeight: 1.6 }}>
@@ -145,11 +143,6 @@ function StudentsInner() {
           <span className={`badge ${s.status || ""}`}>{s.status || "active"}</span>
         </td>
         <td>{stats.workoutCount} treino(s)</td>
-        <td>
-          {s.startDate || s.endDate
-            ? `${s.startDate ?? "—"} → ${s.endDate ?? "—"}`
-            : "—"}
-        </td>
         <td>{stats.currentDiet ?? "—"}</td>
         <td>
           <div className="btn-row" onClick={(e) => e.stopPropagation()}>
@@ -225,7 +218,6 @@ function StudentsInner() {
                   <th>Aluno</th>
                   <th>Status</th>
                   <th>Treinos</th>
-                  <th>Período</th>
                   <th>Dieta atual</th>
                   <th>Ações</th>
                 </tr>

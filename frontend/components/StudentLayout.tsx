@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/lib/auth";
@@ -8,23 +8,14 @@ import { LoadingScreen } from "@/components/SetupNeeded";
 import Logo from "./Logo";
 import DashIcon from "./DashIcon";
 import { navAppIcons } from "./icons/AppIcons";
-import type { Feature } from "@/lib/types";
 
 // Navegação inferior do aluno (rotas reais, não abas em estado local).
-// Programa é o tier gratuito (agrupa os treinos atribuídos, sem feature de
-// plano); Treinos mostra o dia a dia; Dietas e Comunidade dependem das features
-// snapshotadas no perfil. O backend também valida.
-const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed"; feature?: Feature }[] = [
+// Treinos, programas e dietas são disponíveis aos alunos aprovados.
+const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "program" | "leaf" | "feed" }[] = [
   { href: "/dashboard", label: "Início", icon: "grid" },
   { href: "/programas", label: "Programa", icon: "program" },
   { href: "/treinos", label: "Treinos", icon: "dumbbell" },
-  { href: "/dietas", label: "Dietas", icon: "leaf", feature: "diet" },
-];
-
-// Guarda de rota: prefixo → feature exigida para o aluno acessar aquela página.
-// Sem a feature no plano, redireciona para o dashboard. Admin/preview ignora.
-const PATH_FEATURES: { prefix: string; feature: Feature }[] = [
-  { prefix: "/dietas", feature: "diet" },
+  { href: "/dietas", label: "Dietas", icon: "leaf" },
 ];
 
 /**
@@ -37,18 +28,11 @@ const PATH_FEATURES: { prefix: string; feature: Feature }[] = [
  * de áreas do admin permite voltar ao painel quando quiser).
  */
 export default function StudentLayout({ children }: { children: React.ReactNode }) {
-  const { user, initializing, role, profile, needsApproval, logout } = useAuth();
+  const { user, initializing, profile, needsApproval, logout } = useAuth();
   const router = useRouter();
   const pathname = usePathname();
 
-  // No modelo de 2 papeis nao existe staff "nao-admin" a ser expulso daqui: o
-  // admin navega pela area do aluno (seletor de areas) e pula a guarda de
-  // feature, enquanto o aluno e governado pelo plano dele.
-  const staffView = role === "admin";
-  const features = useMemo(() => profile?.features ?? [], [profile]);
-  const items = staffView
-    ? NAV_ITEMS
-    : NAV_ITEMS.filter((i) => (i.feature ? features.includes(i.feature) : true));
+  const items = NAV_ITEMS;
 
   useEffect(() => {
     if (initializing) return;
@@ -56,17 +40,6 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
     else if (needsApproval) router.replace("/");
   }, [initializing, user, needsApproval, router]);
 
-  // Guarda de feature no cliente: aluno tentando abrir rota cujo módulo não
-  // está no plano dele volta para o dashboard (o backend também devolve 403).
-  // Staff (admin/admin) pula a guarda: admin pode navegar pela área do
-  // aluno mesmo sem features no perfil (seletor de áreas do admin).
-  useEffect(() => {
-    if (initializing || !user || staffView || needsApproval) return;
-    const required = PATH_FEATURES.find((p) => pathname.startsWith(p.prefix))?.feature;
-    if (required && !features.includes(required)) {
-      router.replace("/dashboard");
-    }
-  }, [initializing, user, staffView, needsApproval, pathname, features, router]);
 
   if (initializing || !user || needsApproval) {
     return <LoadingScreen />;

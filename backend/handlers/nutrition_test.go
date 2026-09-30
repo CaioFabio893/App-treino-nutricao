@@ -41,13 +41,9 @@ func richProfile() *models.UserProfile {
 		Email:        "joao@email.com",
 		Role:         models.RoleStudent,
 		Status:       models.StatusActive,
-		PlanID:       "plano-completo",
-		Features:     []models.Feature{models.FeatureWorkouts, models.FeatureDiet, models.FeatureCommunity, models.FeatureRanking},
 		AuthProvider: "password",
 		ApprovedBy:   "admin-1",
 		ApprovedAt:   time.Date(2026, 1, 15, 10, 0, 0, 0, time.UTC),
-		StartDate:    "2026-01-15",
-		EndDate:      "2026-12-31",
 		CreatedAt:    time.Date(2025, 12, 1, 9, 0, 0, 0, time.UTC),
 	}
 }
@@ -59,21 +55,13 @@ func richProfile() *models.UserProfile {
 func TestMergeStudentEditsPreservesAdminFields(t *testing.T) {
 	existing := richProfile()
 	edits := &models.UserProfile{
-		Name:      "João Editado",
-		Status:    models.StatusPaused,
-		StartDate: "2026-02-01",
-		EndDate:   "2026-06-30",
+		Name:   "João Editado",
+		Status: models.StatusPaused,
 	}
 
 	merged := mergeStudentEdits(existing, edits)
 
 	// Campos administrativos preservados.
-	if merged.PlanID != "plano-completo" {
-		t.Errorf("PlanID = %q, want plano-completo", merged.PlanID)
-	}
-	if len(merged.Features) != 4 || merged.Features[1] != models.FeatureDiet {
-		t.Errorf("Features = %v, want as 4 preservadas", merged.Features)
-	}
 	if merged.AuthProvider != "password" {
 		t.Errorf("AuthProvider = %q, want password", merged.AuthProvider)
 	}
@@ -98,8 +86,7 @@ func TestMergeStudentEditsPreservesAdminFields(t *testing.T) {
 	}
 	// Campos editáveis atualizados.
 	if merged.Name != "João Editado" ||
-		merged.Status != models.StatusPaused ||
-		merged.StartDate != "2026-02-01" || merged.EndDate != "2026-06-30" {
+		merged.Status != models.StatusPaused {
 		t.Errorf("campos editáveis = %+v, want editado", merged)
 	}
 }
@@ -112,12 +99,6 @@ func TestPreserveAdminFields(t *testing.T) {
 
 	preserveAdminFields(existing, p)
 
-	if p.PlanID != "plano-completo" {
-		t.Errorf("PlanID = %q, want plano-completo", p.PlanID)
-	}
-	if len(p.Features) != 4 {
-		t.Errorf("Features = %v, want preservadas", p.Features)
-	}
 	if p.AuthProvider != "password" || p.ApprovedBy != "admin-1" ||
 		p.ApprovedAt.IsZero() || p.RejectedReason != "" {
 		t.Errorf("dados de aprovação não preservados: %+v", p)
@@ -145,12 +126,6 @@ func TestHandleUpdateUserPreservesAdminFields(t *testing.T) {
 		t.Fatal("PutUserProfile não foi chamado")
 	}
 	w := repo.written
-	if w.PlanID != "plano-completo" {
-		t.Errorf("PlanID = %q, want plano-completo preservado", w.PlanID)
-	}
-	if len(w.Features) != 4 {
-		t.Errorf("Features = %v, want preservadas", w.Features)
-	}
 	if w.AuthProvider != "password" || w.ApprovedBy != "admin-1" || w.ApprovedAt.IsZero() {
 		t.Errorf("dados de aprovação não preservados: %+v", w)
 	}

@@ -112,41 +112,6 @@ func TestRequireApprovedAdminBypass(t *testing.T) {
 	}
 }
 
-func TestRequireFeature(t *testing.T) {
-	a := &Auth{}
-	hit := func(w http.ResponseWriter, r *http.Request) { w.WriteHeader(http.StatusOK) }
-	h := a.RequireFeature(models.FeatureDiet)(hit)
-
-	// Aluno sem diet acessando dietas → 403.
-	r := httptest.NewRequest("GET", "/api/diets", nil)
-	ctx := context.WithValue(r.Context(), roleKey, models.RoleStudent)
-	ctx = context.WithValue(ctx, featuresKey, []models.Feature{models.FeatureWorkouts})
-	rr := httptest.NewRecorder()
-	h(rr, r.WithContext(ctx))
-	if rr.Code != http.StatusForbidden {
-		t.Errorf("sem diet code = %d, want 403", rr.Code)
-	}
-
-	// Aluno com diet → 200.
-	r = httptest.NewRequest("GET", "/api/diets", nil)
-	ctx = context.WithValue(r.Context(), roleKey, models.RoleStudent)
-	ctx = context.WithValue(ctx, featuresKey, []models.Feature{models.FeatureWorkouts, models.FeatureDiet})
-	rr = httptest.NewRecorder()
-	h(rr, r.WithContext(ctx))
-	if rr.Code != http.StatusOK {
-		t.Errorf("com diet code = %d, want 200", rr.Code)
-	}
-
-	// Admin (mesmo sem features) → 200: admin não passa pelo gate de feature.
-	r = httptest.NewRequest("GET", "/api/diets", nil)
-	ctx = context.WithValue(r.Context(), roleKey, models.RoleAdmin)
-	rr = httptest.NewRecorder()
-	h(rr, r.WithContext(ctx))
-	if rr.Code != http.StatusOK {
-		t.Errorf("admin code = %d, want 200", rr.Code)
-	}
-}
-
 func TestRoleFrom(t *testing.T) {
 	if got := RoleFrom(context.Background()); got != models.RoleStudent {
 		t.Errorf("RoleFrom(default) = %q, want student", got)

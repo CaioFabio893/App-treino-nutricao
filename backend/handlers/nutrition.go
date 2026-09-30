@@ -92,10 +92,6 @@ func (h *Handlers) HandlePutMe(w http.ResponseWriter, r *http.Request) {
 	// tenha efeito algum sobre eles.
 	p.Role = ""
 	p.Status = ""
-	p.PlanID = ""
-	p.Features = nil
-	p.StartDate = ""
-	p.EndDate = ""
 	p.ApprovedBy = ""
 	p.ApprovedAt = time.Time{}
 	p.RejectedReason = ""
@@ -200,8 +196,6 @@ func (h *Handlers) HandleUpdateUser(w http.ResponseWriter, r *http.Request) {
 // comum de usuário NUNCA pode alterar silenciosamente: plano (planID),
 // features, provedor de login e o histórico de aprovação/rejeição.
 func preserveAdminFields(existing, p *models.UserProfile) {
-	p.PlanID = existing.PlanID
-	p.Features = existing.Features
 	p.AuthProvider = existing.AuthProvider
 	p.ApprovedBy = existing.ApprovedBy
 	p.ApprovedAt = existing.ApprovedAt
@@ -260,8 +254,6 @@ func mergeStudentEdits(existing, p *models.UserProfile) *models.UserProfile {
 	out.ID = existing.ID
 	out.Name = p.Name
 	out.Status = p.Status
-	out.StartDate = p.StartDate
-	out.EndDate = p.EndDate
 	return &out
 }
 

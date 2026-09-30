@@ -158,14 +158,6 @@ service cloud.firestore {
       allow read, write: if false;
     }
 
-    // ── Planos ──
-    // Leitura: aprovados. Escrita: só API Go (create/update/delete via admin
-    // pelo SDK de cliente é negado - contornaria a API).
-    match /plans/{planId} {
-      allow read: if canUseBusinessResources();
-      allow write: if false;
-    }
-
     // ── Biblioteca de exercícios (catálogo global — F5) ──
     // Leitura: aprovados (aluno consulta, mas nunca escreve). Escrita: somente
     // pela API Go — create/update/delete via SDK de cliente é negado para TODOS

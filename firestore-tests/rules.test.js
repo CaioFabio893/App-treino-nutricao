@@ -76,6 +76,19 @@ async function seedUser(uid, overrides = {}) {
   });
 }
 
+describe('Planos removidos — dados legados continuam protegidos', () => {
+  for (const role of ['student', 'admin']) {
+    it(`${role} não lê nem escreve plans legados`, async () => {
+      await seedUser('legacy-reader', { role });
+      await seedAt(['plans', 'old-plan'], { name: 'legado' });
+      const ref = db(authed('legacy-reader')).doc('plans/old-plan');
+      await assertFails(ref.get());
+      await assertFails(ref.set({ name: 'novo' }));
+      await assertFails(ref.delete());
+    });
+  }
+});
+
 describe('Comunidade removida — dados legados continuam protegidos', () => {
   for (const role of ['student', 'admin']) {
     it(`${role} não lê nem escreve posts legados`, async () => {
@@ -338,7 +351,7 @@ describe('Regras do Firestore', () => {
       await seedUser('pendente', { status: 'pending_approval' });
       await seed({ plans: { p1: { name: 'Completo', features: ['diet'] } } });
       const pendente = authed('pendente').firestore();
-      await assertFails(pendente.doc('plans/p1').get());
+      await assertFails(pendente.doc('exercises/supino').get());
     });
   });
 
@@ -679,7 +692,7 @@ describe('Regras do Firestore', () => {
     it('Caso 1 — aluno ativo lê recurso de negócio → PERMITIDO', async () => {
       const a = authed('aluno-ativo').firestore();
       await assertFails(a.doc('posts/p1').get());
-      await assertSucceeds(a.doc('plans/p1').get());
+      await assertFails(a.doc('plans/p1').get());
       await assertSucceeds(a.doc('exercises/supino').get());
     });
 
@@ -688,7 +701,7 @@ describe('Regras do Firestore', () => {
     it('Caso 2 — aluno pausado NÃO é tratado como não aprovado → PERMITIDO', async () => {
       const a = authed('aluno-pausado').firestore();
       await assertFails(a.doc('posts/p1').get());
-      await assertSucceeds(a.doc('plans/p1').get());
+      await assertFails(a.doc('plans/p1').get());
       await assertSucceeds(a.doc('exercises/supino').get());
     });
 
@@ -697,8 +710,8 @@ describe('Regras do Firestore', () => {
       // dentro de isApprovedUser como "bloqueado", este par seria idêntico.
       const pausado = authed('aluno-pausado').firestore();
       const pendente = authed('aluno-pendente').firestore();
-      await assertSucceeds(pausado.doc('plans/p1').get());
-      await assertFails(pendente.doc('plans/p1').get());
+      await assertSucceeds(pausado.doc('exercises/supino').get());
+      await assertFails(pendente.doc('exercises/supino').get());
     });
 
     it('pausado lê o próprio perfil → PERMITIDO', async () => {

@@ -5,23 +5,21 @@ import Avatar from "@/components/Avatar";
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import * as api from "@/lib/api";
-import type { Plan, UserProfile } from "@/lib/types";
+import type { UserProfile } from "@/lib/types";
 
 interface ApproveTarget {
   id: string;
   name: string;
-  planID: string;
 }
 
 /**
  * Fila de cadastros aguardando aprovação (admin).
- * Aprovar = define papel (e plano, para aluno) e libera o acesso;
+ * Aprovar = concede papel de aluno e libera o acesso;
  * Recusar = marca rejected e exclui a conta do Firebase Auth (decisão SB-001).
  */
 export default function PendingApprovals() {
   const { getToken } = useAuth();
   const [pending, setPending] = useState<UserProfile[]>([]);
-  const [plans, setPlans] = useState<Plan[]>([]);
   const [ready, setReady] = useState(false);
   const [approving, setApproving] = useState<ApproveTarget | null>(null);
   const [rejecting, setRejecting] = useState<UserProfile | null>(null);
@@ -32,9 +30,8 @@ export default function PendingApprovals() {
   const load = useCallback(async () => {
     try {
       const token = await getToken();
-      const [p, pl] = await Promise.all([api.listPendingUsers(token), api.listPlans(token)]);
+      const p = await api.listPendingUsers(token);
       setPending(p);
-      setPlans(pl);
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar cadastros pendentes");
@@ -60,7 +57,6 @@ export default function PendingApprovals() {
           // promoção para admin por esta rota. O admin cria outro admin
           // explicitamente em /admin/usuarios.
           role: "student",
-          planID: approving.planID || undefined,
         },
         token
       );
@@ -89,10 +85,6 @@ export default function PendingApprovals() {
       setBusy(false);
     }
   };
-
-  const activePlans = plans.filter((p) => p.active);
-  const featuresLabel = (planID: string) =>
-    plans.find((p) => p.id === planID)?.features.join(", ") ?? "";
 
   return (
     <div style={{ marginBottom: 24 }}>
@@ -126,7 +118,6 @@ export default function PendingApprovals() {
                   setApproving({
                     id: u.id,
                     name: u.name || u.id,
-                    planID: activePlans[0]?.id ?? "",
                   })
                 }
               >
@@ -140,7 +131,7 @@ export default function PendingApprovals() {
         ))
       )}
 
-      {/* Modal de aprovação: papel + plano (aluno) */}
+      {/* Modal de aprovação de aluno */}
       <div
         className={`modal-bg${approving ? " open" : ""}`}
         onClick={(e) => e.target === e.currentTarget && !busy && setApproving(null)}
@@ -161,27 +152,6 @@ export default function PendingApprovals() {
               <option value="student">Aluno</option>
             </select>
           </div>
-          {approving && (
-            <div className="frm-row" style={{ marginTop: 10 }}>
-              <label>Plano (define as features liberadas)</label>
-              <select
-                value={approving.planID}
-                onChange={(e) =>
-                  setApproving((a) => (a ? { ...a, planID: e.target.value } : a))
-                }
-              >
-                <option value="">— Sem plano —</option>
-                {activePlans.map((p) => (
-                  <option key={p.id} value={p.id}>
-                    {p.name}{p.description ? ` — ${p.description}` : ""}
-                  </option>
-                ))}
-              </select>
-              {approving.planID && (
-                <div className="page-sub">Features: {featuresLabel(approving.planID)}</div>
-              )}
-            </div>
-          )}
           <div className="btn-row" style={{ marginTop: 14 }}>
             {busy ? (
               <button type="button" className="btn-sm acc" disabled>

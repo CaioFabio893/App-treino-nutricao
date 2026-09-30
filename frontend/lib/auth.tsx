@@ -18,20 +18,18 @@ import {
 } from "firebase/auth";
 import { firebaseAuth, firebaseConfigured } from "./firebase";
 import { ApiError, getMe as apiGetMe } from "./api";
-import type { Feature, Role, UserProfile } from "./types";
+import type { Role, UserProfile } from "./types";
 
 interface AuthCtx {
   user: User | null;
   initializing: boolean;
-  /** true quando o perfil (role/status/features) já foi carregado (ou falhou)
+  /** true quando o perfil (role/status) já foi carregado (ou falhou)
    *  para o usuário atual. Evita que guards decidam redirect com o role
    *  default "student" antes de o GET /api/me responder (deep-link). */
   profileLoaded: boolean;
   configured: boolean;
   profile: UserProfile | null;
   role: Role;
-  /** Feature do plano snapshotado no perfil (gate de UI; o backend valida). */
-  features: Feature[];
   /** true quando o usuário logou mas ainda não tem perfil cadastrado. */
   needsProfile: boolean;
   /** true quando o cadastro está pendente de aprovação ou foi recusado. */
@@ -131,9 +129,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   // O role vem do perfil.
   const role: Role = profile?.role ?? "student";
 
-  // Feature snapshotada no perfil (plano atribuído pelo admin).
-  const features: Feature[] = useMemo(() => profile?.features ?? [], [profile]);
-
   const needsProfile = !!user && profile !== null && profile.needsProfile === true;
 
   // Cadastro pendente ou recusado → tela de espera/recusa em vez do app.
@@ -154,7 +149,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       configured: firebaseConfigured,
       profile,
       role,
-      features,
       needsProfile,
       needsApproval,
       refreshProfile,
@@ -164,7 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logout,
       getToken,
     }),
-    [user, initializing, profileLoaded, profile, role, features, needsProfile, needsApproval, refreshProfile, login, signup, resetPassword, logout, getToken]
+    [user, initializing, profileLoaded, profile, role, needsProfile, needsApproval, refreshProfile, login, signup, resetPassword, logout, getToken]
   );
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;

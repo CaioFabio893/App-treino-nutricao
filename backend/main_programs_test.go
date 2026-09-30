@@ -1,4 +1,4 @@
-﻿package main
+package main
 
 // Testes de INTEGRAÇÃO da cadeia real de rotas (F19 — Programa de Treinamento).
 //
@@ -80,7 +80,7 @@ func TestChainNutritionistCreatesProgramLibrary(t *testing.T) {
 }
 
 func TestChainStudentCannotCreateProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "POST", "/api/programs", `{"name":"Plano"}`, "token-valido")
@@ -95,7 +95,7 @@ func TestChainStudentCannotCreateProgram(t *testing.T) {
 // Pending = aluno aprovado ainda não. O caso realista de "pendente" é o aluno
 // esperando aprovação do admin: ele não passa pelo RequireApproved.
 func TestChainPendingUserCannotAccessPrograms(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusPendingApproval, nil))
+	repo := baseRepo(studentProfile(models.StatusPendingApproval))
 	h := newChainMux(repo)
 
 	rr := doChainRequest(h, "GET", "/api/programs", "", "token-valido")
@@ -154,7 +154,7 @@ func TestChainListProgramsEmptySerializesAsArray(t *testing.T) {
 
 // Aluno não lê o programa de OUTRO aluno (canAccessResource: uid != studentID).
 func TestChainStudentCannotReadOtherStudentProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	repo.program = &models.TrainingProgram{
 		ID: "p-1", Name: "Ciclo 2", StudentID: "outro-aluno",
 	}
@@ -168,7 +168,7 @@ func TestChainStudentCannotReadOtherStudentProgram(t *testing.T) {
 
 // Aluno lê o próprio programa (canAccessResource: uid == studentID).
 func TestChainStudentReadsOwnProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", StudentID: testUID}
 	h := newChainMux(repo)
 
@@ -216,7 +216,7 @@ func TestChainProgramStudentIdIsImmutableOnPut(t *testing.T) {
 
 // Aluno não escreve programa: PUT é admin-only.
 func TestChainStudentCannotUpdateProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	repo.program = &models.TrainingProgram{ID: "p-1", Name: "Ciclo 2", StudentID: testUID}
 	h := newChainMux(repo)
 
@@ -317,7 +317,7 @@ func TestChainImportProgramWithoutWorkoutSectionFails(t *testing.T) {
 }
 
 func TestChainStudentCannotImportProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	h := newChainMux(repo)
 
 	body := `{"markdown":` + mustJSON(mdExemplo) + `}`
@@ -388,7 +388,7 @@ func TestChainAssignProgramRequiresStudent(t *testing.T) {
 // outro). Sem essa trava, um aluno poderia disparar a criação de cópias dos
 // treinos do programa.
 func TestChainStudentCannotAssignProgram(t *testing.T) {
-	repo := baseRepo(studentProfile(models.StatusActive, nil))
+	repo := baseRepo(studentProfile(models.StatusActive))
 	repo.studentsByID = map[string]*models.UserProfile{
 		"aluno-outro": {ID: "aluno-outro", Role: models.RoleStudent, Status: models.StatusActive},
 	}
@@ -623,4 +623,3 @@ func mustJSON(s string) string {
 	}
 	return string(b)
 }
-
