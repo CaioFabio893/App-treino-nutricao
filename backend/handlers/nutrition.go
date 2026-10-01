@@ -543,6 +543,10 @@ func (h *Handlers) HandleCreateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
 	}
+	if d.Kind != "" && d.Kind != "diet" && d.Kind != "recipe" {
+		http.Error(w, "tipo de conteudo invalido", http.StatusBadRequest)
+		return
+	}
 	if d.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
@@ -590,6 +594,13 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	if err := json.NewDecoder(r.Body).Decode(&d); err != nil {
 		http.Error(w, "JSON invalido", http.StatusBadRequest)
 		return
+	}
+	if d.Kind != "" && d.Kind != "diet" && d.Kind != "recipe" {
+		http.Error(w, "tipo de conteudo invalido", http.StatusBadRequest)
+		return
+	}
+	if d.Kind == "" {
+		d.Kind = existing.Kind
 	}
 	if d.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)

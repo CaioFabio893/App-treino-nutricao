@@ -1,12 +1,12 @@
 # PROJECT_STATE — Treino Louise
 
-Atualizado 30/09/2026 após publicação, rotação e reset autorizados pelo dono.
+Atualizado 01/10/2026 após publicação de Receitas, formatação e revisão visual.
 Fonte operacional: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 ## Produção atual
 
 Projeto treino-louise, Firestore (default), região southamerica-east1.
-API treino-api-00016-gic e web treino-web-00022-huh, ambas com 100% tráfego.
+API treino-api-00019-yac e web treino-web-00026-net, ambas com 100% tráfego.
 https://treino-web-834622951375.southamerica-east1.run.app
 Admin preservado: caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
 UID/senha/perfil preservados. Duas contas e nove documentos reais removidos;
@@ -21,7 +21,13 @@ API aceita somente claim verificada password e verifica revogação/exclusão.
 
 ## Autorização atual
 
-Área do aluno unificada a pedido do dono: Início, Treino e Dieta. Treino usa
+Nova área Receitas, associada por aluno, com cadastro/edição/duplicação pelo admin.
+Dieta e Receitas: texto com negrito/títulos/listas e prévia, leitura formatada.
+Receitas usam diets.kind=recipe; dietas antigas sem kind continuam compatíveis.
+Navegação atual: Início/Treino/Dieta/Receitas. Layout suavizado, verde preservado.
+Relatório: docs/reports/receitas-formatacao-layout-2026-10-01.md.
+
+Unificação anterior: Início, Treino e Dieta. Treino usa
 os programas completos em /treinos e /treinos/{id}; /programas redireciona.
 Tela avulsa antiga removida. Painel de execução usa a paleta verde do app.
 Dados e chaves de progresso preservados. Ver treino-unificado-paleta-2026-09-30.md.

@@ -23,6 +23,7 @@ const SECTIONS: {
     desc: "Seu plano alimentar e acompanhamento",
     icon: "leaf",
   },
+  { href: "/receitas", title: "Receitas", desc: "Ideias e preparos para sua alimentação", icon: "leaf" },
 ];
 
 /** Página inicial do aluno: boas-vindas + cards de treino e dieta. */

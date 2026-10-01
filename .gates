@@ -1,9 +1,11 @@
 # Gates pós-rollout/reset — 30/09/2026
 
+# Atualizado 01/10/2026: receitas, formatação e layout publicados.
+
 go=188 PASS (go vet limpo)
-vitest=124 PASS (21 arquivos; execução preservada, tela avulsa aposentada)
+vitest=126 PASS (22 arquivos; editor, leitura formatada e execução)
 rules=106 PASS (gate anterior; rules sem mudança, compilação/deploy PASS)
-e2e=31 PASS (1.6 min; navegação unificada, programa integral e recuperação após reload)
+e2e=32 PASS (2.5 min; receitas, formatação, isolamento e treino integral)
 tsc=OK
 lint=0/0
 build=OK (Cloud Build final: Go e Next standalone)
@@ -15,5 +17,7 @@ program_example=2 programas + 10 treinos / biblioteca e aluno independentes
 program_assignment=PASS em produção (A-E completos)
 program_ui=17 PASS em produção (execução, 3 abas, paleta compartilhada e redirects)
 current_auth=2 contas reais / zero fixtures
+nutrition_ui=6 PASS em produção (editor/prévia, leitura, separação e 4 abas)
+nutrition_api=roundtrip diet/recipe PASS / tipo inválido400 / alunoPUT403
 # docs/reports/production-reset-and-rollout-2026-09-30.md
 # Dispositivos físicos e aceite humano continuam pendentes.

@@ -1,4 +1,5 @@
 "use client";
+import FormattedText from "@/components/FormattedText";
 
 import { Suspense, useCallback, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -283,7 +284,7 @@ function PrintExercises({
 function PrintMeals({ diet }: { diet: Diet }) {
   // Formato simplificado: texto livre (copiar/colar) preservando quebras de linha.
   if (diet.content) {
-    return <div className="print-content">{diet.content}</div>;
+    return <div className="print-content"><FormattedText text={diet.content} /></div>;
   }
   // Legado: refeições estruturadas.
   return (

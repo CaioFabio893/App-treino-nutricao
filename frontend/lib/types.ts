@@ -95,6 +95,7 @@ export interface Meal {
 }
 
 export interface Diet {
+  kind?: "diet" | "recipe";
   id?: string;
   // Vazio/ausente = dieta de biblioteca; o aluno pode ser atribuído depois
   // via edição (mecanismo existente: diets.studentId).

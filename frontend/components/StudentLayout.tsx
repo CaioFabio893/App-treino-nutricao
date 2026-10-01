@@ -15,6 +15,7 @@ const NAV_ITEMS: { href: string; label: string; icon: "grid" | "dumbbell" | "pro
   { href: "/dashboard", label: "Início", icon: "grid" },
   { href: "/treinos", label: "Treino", icon: "dumbbell" },
   { href: "/dietas", label: "Dieta", icon: "leaf" },
+  { href: "/receitas", label: "Receitas", icon: "leaf" },
 ];
 
 /**

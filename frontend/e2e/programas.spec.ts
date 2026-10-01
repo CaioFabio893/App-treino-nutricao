@@ -94,6 +94,7 @@ test.describe("Programa de treino (admin)", () => {
     await page.waitForURL("**/dashboard");
 
     await page.goto("/programas");
+    await page.waitForURL("**/treinos");
     await expect(page.getByRole("heading", { name: "Treino" })).toBeVisible();
     await expect(page.getByText("Louise Lima (Ciclo 2)")).toBeVisible();
     await expect(page.getByRole("link", { name: "Abrir treino" }).first()).toBeVisible();

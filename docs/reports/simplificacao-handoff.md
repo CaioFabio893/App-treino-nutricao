@@ -1,4 +1,8 @@
-> Atualização mais recente: web treino-web-00022-huh, área do aluno unificada
+> Atualização 01/10: web treino-web-00026-net, API treino-api-00019-yac.
+> Início/Treino/Dieta/Receitas; editor com negrito/títulos/listas e prévia,
+> receitas por aluno, layout mais suave. Dados/progresso existentes preservados.
+> Uso/rollback: receitas-formatacao-layout-2026-10-01.md.
+> Atualização anterior: web treino-web-00022-huh, área do aluno unificada
 > em Início/Treino/Dieta, sem tela antiga de treinos. Paleta verde compartilhada.
 > /programas redireciona para /treinos; progresso e dados preservados.
 > Instruções em treino-unificado-paleta-2026-09-30.md.

@@ -386,6 +386,7 @@ func (r *firestoreRepo) CreateDiet(ctx context.Context, d *models.Diet) (*models
 		"startDate":   d.StartDate,
 		"endDate":     d.EndDate,
 		"content":     d.Content,
+		"kind":        d.Kind,
 		"meals":       d.Meals,
 		"createdAt":   firestore.ServerTimestamp,
 		"updatedAt":   firestore.ServerTimestamp,
@@ -455,6 +456,7 @@ func (r *firestoreRepo) UpdateDiet(ctx context.Context, id string, d *models.Die
 		"startDate":   d.StartDate,
 		"endDate":     d.EndDate,
 		"content":     d.Content,
+		"kind":        d.Kind,
 		"meals":       d.Meals,
 		"updatedAt":   firestore.ServerTimestamp,
 	}, firestore.MergeAll)

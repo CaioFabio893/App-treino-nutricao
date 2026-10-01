@@ -133,6 +133,7 @@ type ExerciseItem struct {
 //   - Meals: refeições com alimentos — formato legado, mantido para
 //     compatibilidade com dietas já cadastradas.
 type Diet struct {
+	Kind        string    `json:"kind,omitempty"` // recipe = receitas; vazio/diet = dieta existente
 	ID          string    `json:"id,omitempty"`
 	StudentID   string    `json:"studentId"`
 	Name        string    `json:"name"`

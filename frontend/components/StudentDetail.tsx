@@ -65,7 +65,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
       setAllWorkouts(w);
       setAllDiets(d);
       setWorkouts(w.filter((x) => x.studentId === student.id));
-      setDiets(d.filter((x) => x.studentId === student.id));
+      setDiets(d.filter((x) => x.studentId === student.id && x.kind !== "recipe"));
       setError(null);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Falha ao carregar");
@@ -174,6 +174,7 @@ export default function StudentDetail({ student, onStudentChange }: Props) {
           <Link className="btn-sm" href={`/admin/diets?new=1&student=${student.id}`}>
             + Dieta
           </Link>
+          <Link className="btn-sm" href={`/admin/recipes?new=1&student=${student.id}`}>+ Receita</Link>
           <Link className="btn-sm acc" href={`/admin/print?student=${student.id}`}>
             🖨 Plano semanal
           </Link>

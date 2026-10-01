@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
+import FormattedText from "@/components/FormattedText";
 import * as api from "@/lib/api";
 import type { Diet } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
@@ -9,7 +10,7 @@ import LoadError from "@/components/LoadError";
 import { todayDateLabel, todayDateKey } from "@/lib/days";
 
 /** Página "Dietas" do aluno: dieta ativa (texto ou refeições legadas). */
-export default function StudentDietPage() {
+export default function StudentDietPage({ recipe = false }: { recipe?: boolean }) {
   const { getToken, profile } = useAuth();
   const [diets, setDiets] = useState<Diet[]>([]);
   const [ready, setReady] = useState(false);
@@ -19,14 +20,14 @@ export default function StudentDietPage() {
     try {
       const token = await getToken();
       const d = await api.listDiets(token);
-      setDiets(d.filter((x) => x.studentId === (profile?.id ?? "")));
+      setDiets(d.filter((x) => x.studentId === (profile?.id ?? "") && (recipe ? x.kind === "recipe" : x.kind !== "recipe")));
       setLoadError(false);
     } catch {
       setLoadError(true);
     } finally {
       setReady(true);
     }
-  }, [getToken, profile]);
+  }, [getToken, profile, recipe]);
 
   useEffect(() => {
     void load();
@@ -39,12 +40,12 @@ export default function StudentDietPage() {
       <div>
         <div className="page-head">
           <div>
-            <h1>Sua dieta</h1>
+            <h1>{recipe ? "Suas receitas" : "Sua dieta"}</h1>
             <div className="page-sub">{todayDateLabel()}</div>
           </div>
         </div>
         <LoadError
-          message="Não foi possível carregar sua dieta."
+          message={recipe ? "Não foi possível carregar suas receitas." : "Não foi possível carregar sua dieta."}
           onRetry={() => void load()}
         />
       </div>
@@ -52,24 +53,24 @@ export default function StudentDietPage() {
   }
 
   const today = todayDateKey();
-  const todayDiet = diets.find(
+  const available = diets.filter(
     (d) =>
       (!d.startDate || d.startDate <= today) &&
       (!d.endDate || d.endDate >= today)
   );
 
+  const todayDiet = available[0];
   return (
     <div>
       <div className="page-head">
         <div>
-          <h1>Sua dieta</h1>
+          <h1>{recipe ? "Suas receitas" : "Sua dieta"}</h1>
           <div className="page-sub">{todayDateLabel()}</div>
         </div>
       </div>
 
-      {todayDiet ? (
-        <>
-          <div className="stu-card">
+      {(recipe ? available : todayDiet ? [todayDiet] : []).map(todayDiet => (
+          <div className="stu-card" key={todayDiet.id}>
             <div className="stu-card-title">{todayDiet.name}</div>
             <div className="stu-card-sub">
               {todayDiet.description || ""}
@@ -79,8 +80,8 @@ export default function StudentDietPage() {
             </div>
             {todayDiet.content ? (
               <>
-                <div className="stu-diet-content">{todayDiet.content}</div>
-                <CopyDietButton content={todayDiet.content} />
+                <FormattedText text={todayDiet.content} />
+                <CopyDietButton content={todayDiet.content} recipe={recipe} />
               </>
             ) : (
               todayDiet.meals?.map((meal, mi) => (
@@ -100,11 +101,10 @@ export default function StudentDietPage() {
               ))
             )}
           </div>
-        </>
-      ) : (
+      ))}
+      {!todayDiet && (
         <div className="empty-box">
-          Nenhuma dieta foi atribuída ainda. Quando seu nutricionista cadastrar,
-          aparece aqui.
+          {recipe ? "Nenhuma receita foi atribuída ainda. Quando seu responsável cadastrar, aparece aqui." : "Nenhuma dieta foi atribuída ainda. Quando seu nutricionista cadastrar, aparece aqui."}
         </div>
       )}
     </div>
@@ -112,7 +112,7 @@ export default function StudentDietPage() {
 }
 
 /** Botão de copiar a dieta em texto (mesmo padrão do botão de copiar treino). */
-function CopyDietButton({ content }: { content: string }) {
+function CopyDietButton({ content, recipe }: { content: string; recipe?: boolean }) {
   const [copied, setCopied] = useState(false);
   const copy = async () => {
     try {
@@ -125,7 +125,7 @@ function CopyDietButton({ content }: { content: string }) {
   };
   return (
     <button type="button" className="btn-sm stu-copy-btn" onClick={() => void copy()}>
-      {copied ? "✓ Copiado!" : "Copiar dieta"}
+      {copied ? "✓ Copiado!" : recipe ? "Copiar receita" : "Copiar dieta"}
     </button>
   );
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import TextEditor from "./TextEditor";
 import * as api from "@/lib/api";
 import type { Diet, Meal, UserProfile } from "@/lib/types";
 
@@ -26,6 +27,7 @@ export function mealsToText(meals: Meal[] | undefined): string {
 
 interface Props {
   initial?: Diet;
+  recipe?: boolean;
   presetStudent?: string;
   copyId?: string;
   students: UserProfile[];
@@ -41,6 +43,7 @@ interface Props {
  */
 export default function DietForm({
   initial,
+  recipe = false,
   presetStudent,
   copyId,
   students,
@@ -99,6 +102,7 @@ export default function DietForm({
       const token = await getToken();
       const payload: Diet = {
         studentId,
+        kind: recipe ? "recipe" : (initial?.kind ?? "diet"),
         name: name.trim(),
         description: description.trim(),
         startDate,
@@ -130,7 +134,7 @@ export default function DietForm({
 
       <div className="page-head">
         <div>
-          <h1>{initial?.id ? "Editar dieta" : "Nova dieta"}</h1>
+          <h1>{initial?.id ? (recipe ? "Editar receita" : "Editar dieta") : (recipe ? "Nova receita" : "Nova dieta")}</h1>
           <div className="page-sub">
             {initial?.id
               ? "Altere os campos e salve."
@@ -146,9 +150,9 @@ export default function DietForm({
       )}
 
       <div className="frm-card">
-        <h3>Dados da dieta</h3>
+        <h3>{recipe ? "Dados da receita" : "Dados da dieta"}</h3>
         <div className="frm-row">
-          <label htmlFor="diet-name">Nome da dieta</label>
+          <label htmlFor="diet-name">{recipe ? "Nome da receita" : "Nome da dieta"}</label>
           <input
             id="diet-name"
             value={name}
@@ -209,19 +213,12 @@ export default function DietForm({
       </div>
 
       <div className="frm-card" style={{ marginTop: 12 }}>
-        <h3>Conteúdo da dieta</h3>
+        <h3>{recipe ? "Conteúdo da receita" : "Conteúdo da dieta"}</h3>
         <div className="frm-row">
           <label htmlFor="diet-content">
-            Plano alimentar (texto livre) <span style={{ color: "var(--muted)" }}>· copiar e colar</span>
+            {recipe ? "Receita (texto livre)" : "Plano alimentar (texto livre)"} <span style={{ color: "var(--muted)" }}>· copiar e colar</span>
           </label>
-          <textarea
-            id="diet-content"
-            className="diet-content-input"
-            rows={16}
-            value={content}
-            placeholder={"Ex.:\n\nCAFÉ DA MANHÃ (07:00)\n• 2 ovos cozidos\n• 1 banana\n• 30g de aveia\n\nALMOÇO (12:30)\n• 150g de arroz integral\n• 200g de frango grelhado\n• Salada à vontade com azeite"}
-            onChange={(e) => setContent(e.target.value)}
-          />
+          <TextEditor value={content} onChange={setContent} />
         </div>
       </div>
 
@@ -232,7 +229,7 @@ export default function DietForm({
           disabled={!canSave || busy}
           onClick={() => void save()}
         >
-          {busy ? "Salvando…" : "Salvar dieta"}
+          {busy ? "Salvando…" : (recipe ? "Salvar receita" : "Salvar dieta")}
         </button>
       </div>
     </div>
