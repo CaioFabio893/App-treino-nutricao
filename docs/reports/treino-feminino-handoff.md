@@ -48,12 +48,16 @@ Checks finais executados em 07/10/2026: Go 196 PASS + `vet` limpo, Vitest 131/23
 1. Leia source, JSON e diff; confira58exercícios/8treinos, volumes, descansos, orientações e fases. Duração em faixa usa início da faixa; a faixa original fica nas repetições/notas. Pausa no topo não vira duração total. Dados por lado preservados como texto.
 2. CONCLUÍDO em 07/10: vídeos, AMRAP e edição de metadata. Alongamentos mantidos ausentes (fonte não prescreve).
 3. CONCLUÍDO localmente em 07/10: Go/Vitest/tsc/lint/build verdes; testes de campos novos e duplicação. E2E de ponta a ponta (modalidade/progresso separado/ownership) fica para a etapa de publicação.
-4. Só então publique API antes do frontend, com digest e candidato sem tráfego; confira saúde. Configs/cloudbuild/URLs e práticas operacionais estão em PROJECT_STATE e relatórios anteriores.
-5. Importe atomicamente nove documentos com precondição exists:false:8workouts + programs/treino-feminino, studentId vazio. Se IDs existirem, verificar conteúdo e não sobrescrever. OAuth privado via gcloud; nunca imprimir token. Não cadastrar aluno automaticamente.
-6. Confira readback de todos os campos e teste associação em fixture rastreada. Remova somente fixture criada por você. Preserve contas/dados reais e docs previamente cadastrados.
+4. CONCLUÍDO: API publicada antes do frontend (digests `09ede5aa…`/`a8a96a90…`), tráfego migrado e saúde 200.
+5. CONCLUÍDO: import atômico de 9 documentos com `exists:false` via Firestore REST (OAuth gcloud, token nunca impresso), studentId vazio. Nenhum aluno associado.
+6. CONCLUÍDO: readback confirmou modality/circuitSeconds/Phase/VideoURLs e programa com 8 treinos. Associação ao aluno fica para a UI (não feita automaticamente).
 7. Atualize este relatório/PROJECT_STATE/.gates com resultados/revisões e instruções: Gestão→Treino→Treino Feminino→Associar programa inteiro→aluno.
 
-Pendente: itens 4–7 (publicação/importação) — exigem credenciais `gcloud` e ordem do dono; nada foi publicado.
+CONCLUÍDO em 07/10 (produção): API `treino-api-00020-x2k` e web `treino-web-00020-vct`
+publicados com 100% de tráfego; import create-only de 8 workouts + program
+`treino-feminino`; push para `origin/main`. Smoke verde (web 200, `/health` 200,
+CORS 204, bundle novo confirmado). Falta: associar o programa ao aluno pela UI e
+o aceite humano (vídeos/alongamentos em dispositivo).
 
 ## Prompt original (histórico — parte local concluída)
 

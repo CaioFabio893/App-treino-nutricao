@@ -101,7 +101,7 @@ E2E1,6 min agora usa exemplo completo. Produção: associação integral de fixt
 validada (5/30/103) e seis checks UI; fixtures completamente removidas.
 Web00016-juj 100%, backend intacto. Cloud Build8c3fd8d0 SUCCESS.
 
-## Treino Feminino — implementação local concluída (não publicada)
+## Treino Feminino — IMPLANTADO EM PRODUÇÃO (07/10/2026)
 
 Pedido 07/10: programa único Academia/Em casa. Preparados 58 exercícios/8 treinos
 (4 gym A–D, 4 home 1–4) com `modality`/`circuitSeconds`; exercícios com
@@ -111,6 +111,11 @@ Pedido 07/10: programa único Academia/Em casa. Preparados 58 exercícios/8 trei
 fonte não prescreve (não inventados). AMRAP com contador de voltas/observações e
 reset só dos exercícios principais. Editor admin cobre modalidade/fase/duração/
 vídeos. Testes: Go 196 PASS + vet limpo; Vitest 131/23 arquivos; tsc/lint/build OK.
-Commits locais, sem push/deploy; não consta na biblioteca cloud nem foi importado.
+Deploy 07/10: API `treino-api-00020-x2k` (digest `09ede5aa…`, 100% tráfego) e web
+`treino-web-00020-vct` (digest `a8a96a90…`, 100% tráfego); import Firestore
+create-only (`exists:false`) de 8 workouts + program `treino-feminino` (studentId
+vazio = biblioteca). Smoke: web 200, `/health` 200, CORS 204, chunk servido
+contém modalidade/AMRAP. Push para `origin/main` (`ab1799e`). Falta apenas a
+associação ao aluno pela UI e os vídeos/alongamentos revisados manualmente.
 Dados: docs/data/treino-feminino-fonte.md, -preparado.json e -videos.json.
 Retomada/prompt: docs/reports/treino-feminino-handoff.md.
