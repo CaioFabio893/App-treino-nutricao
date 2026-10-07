@@ -142,7 +142,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
             </div>
             <div className="nut-meta">
               <span className="badge">
-                {d.content ? "Texto livre" : `${d.meals?.length ?? 0} refeições`}
+                {d.document ? `Documento protegido · ${d.document.pageCount} páginas` : d.content ? "Texto livre" : `${d.meals?.length ?? 0} refeições`}
               </span>
               {d.startDate && (
                 <span className="badge">
@@ -168,13 +168,13 @@ function DietsInner({ recipe }: { recipe: boolean }) {
               >
                 Editar
               </button>
-              <button
+              {!d.document && <button
                 type="button"
                 className="btn-sm"
                 onClick={() => router.push(`/admin/print?diet=${d.id}`)}
               >
                 Imprimir
-              </button>
+              </button>}
               <Duplicator recipe={recipe} students={students} onPick={(sid) => void handleDuplicate(d, sid)} />
               <button
                 type="button"

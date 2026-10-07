@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import TextEditor from "./TextEditor";
+import ProtectedDietViewer from "./ProtectedDietViewer";
 import * as api from "@/lib/api";
 import type { Diet, Meal, UserProfile } from "@/lib/types";
 
@@ -62,6 +63,8 @@ export default function DietForm({
   const [startDate, setStartDate] = useState(initial?.startDate ?? "");
   const [endDate, setEndDate] = useState(initial?.endDate ?? "");
   const [busy, setBusy] = useState(false);
+  const [document, setDocument] = useState(initial?.document);
+  const [copyLoading, setCopyLoading] = useState(Boolean(copyId));
   const [error, setError] = useState<string | null>(null);
 
   // Se veio com "copyId", carrega a dieta de origem (copiando o texto).
@@ -74,13 +77,16 @@ export default function DietForm({
         const src = await api.getDiet(copyId, token);
         if (!cancelled && src) {
           setContent(src.content ?? mealsToText(src.meals));
+          setDocument(src.document);
           if (!name) setName(`${src.name} (copia)`);
           if (!description) setDescription(src.description ?? "");
           if (!startDate) setStartDate(src.startDate ?? "");
           if (!endDate) setEndDate(src.endDate ?? "");
         }
       } catch {
-        /* silencioso */
+        if (!cancelled) setError("Não foi possível carregar a dieta de origem. Volte e tente novamente.");
+      } finally {
+        if (!cancelled) setCopyLoading(false);
       }
     })();
     return () => {
@@ -92,7 +98,7 @@ export default function DietForm({
   const dateRangeInvalid = Boolean(startDate && endDate) && startDate > endDate;
   // Aluno é opcional: sem aluno a dieta fica na biblioteca e pode ser
   // atribuída depois (mecanismo existente: diets.studentId).
-  const canSave = Boolean(name.trim()) && Boolean(content.trim()) && !dateRangeInvalid;
+  const canSave = Boolean(name.trim()) && Boolean(document || content.trim()) && !dateRangeInvalid && !copyLoading;
 
   const save = async () => {
     if (!canSave || busy) return;
@@ -108,6 +114,7 @@ export default function DietForm({
         startDate,
         endDate,
         content: content.trim(),
+        document,
         // Novo formato é texto: refeições estruturadas caem (legado vira texto).
         meals: [],
       };
@@ -215,10 +222,16 @@ export default function DietForm({
       <div className="frm-card" style={{ marginTop: 12 }}>
         <h3>{recipe ? "Conteúdo da receita" : "Conteúdo da dieta"}</h3>
         <div className="frm-row">
-          <label htmlFor="diet-content">
+          {document ? (
+            <>
+              <p>Documento protegido · {document.pageCount} páginas. Ao salvar ou associar ao aluno, o documento é mantido.</p>
+              {(initial?.id || copyId) && <ProtectedDietViewer key={initial?.id || copyId} dietId={initial?.id || copyId!} pageCount={document.pageCount} />}
+            </>
+          ) : <><label htmlFor="diet-content">
             {recipe ? "Receita (texto livre)" : "Plano alimentar (texto livre)"} <span style={{ color: "var(--muted)" }}>· copiar e colar</span>
           </label>
           <TextEditor value={content} onChange={setContent} />
+          </>}
         </div>
       </div>
 

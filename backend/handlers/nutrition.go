@@ -547,6 +547,10 @@ func (h *Handlers) HandleCreateDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "tipo de conteudo invalido", http.StatusBadRequest)
 		return
 	}
+	if !validDietDocument(d.Document) {
+		http.Error(w, "documento invalido", http.StatusBadRequest)
+		return
+	}
 	if d.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)
 		return
@@ -601,6 +605,13 @@ func (h *Handlers) HandleUpdateDiet(w http.ResponseWriter, r *http.Request) {
 	}
 	if d.Kind == "" {
 		d.Kind = existing.Kind
+	}
+	if d.Document == nil {
+		d.Document = existing.Document
+	}
+	if !validDietDocument(d.Document) || (existing.Document != nil && *d.Document != *existing.Document) {
+		http.Error(w, "documento invalido ou imutavel", http.StatusBadRequest)
+		return
 	}
 	if d.Name == "" {
 		http.Error(w, "nome obrigatorio", http.StatusBadRequest)

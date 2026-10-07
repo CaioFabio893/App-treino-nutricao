@@ -1,12 +1,19 @@
 # PROJECT_STATE — Treino Louise
 
-Atualizado 01/10/2026 após publicação de Receitas, formatação e revisão visual.
+Atualizado 07/10/2026 após publicação do visualizador de dieta em documento.
+Preferência do dono desde 07/10: um agente por vez, tarefas sequenciais e
+registro de mudanças/testes/próximos passos para handoff ao OpenCode.
+Não delegar em paralelo sem um novo pedido explícito.
 Fonte operacional: docs/reports/production-reset-and-rollout-2026-09-30.md.
 
 ## Produção atual
 
 Projeto treino-louise, Firestore (default), região southamerica-east1.
-API treino-api-00019-yac e web treino-web-00026-net, ambas com 100% tráfego.
+API treino-api-00025-hof e web treino-web-00031-jey, ambas com 100% tráfego.
+Documento Plano Alimentar Mulheres (biblioteca, 7 páginas) importado.
+Bucket privado treino-louise-private-diets, PAP enforced; original PDF não publicado.
+API DIET_DOCUMENT_BUCKET, memória512Mi e concorrência8; páginas sem marcas e leitor com rolagem contínua.
+Relatório/instruções: docs/reports/plano-alimentar-mulheres-pdf-2026-10-07.md.
 https://treino-web-834622951375.southamerica-east1.run.app
 Admin preservado: caiofabio893@gmail.com (UID WBBEE5KzI0bLZmmNPt34NBYY0el2), admin/active.
 UID/senha/perfil preservados. Duas contas e nove documentos reais removidos;

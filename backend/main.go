@@ -13,6 +13,7 @@ import (
 	firebaseAuth "firebase.google.com/go/v4/auth"
 
 	"cloud.google.com/go/firestore"
+	"cloud.google.com/go/storage"
 
 	"treino-louise/backend/handlers"
 	"treino-louise/backend/middleware"
@@ -48,6 +49,14 @@ func main() {
 	db := repository.New(firestoreClient)
 	svc := service.New(db)
 	h := handlers.New(svc, db, authClient)
+	if bucket := os.Getenv("DIET_DOCUMENT_BUCKET"); bucket != "" {
+		pageClient, err := storage.NewClient(ctx)
+		if err != nil {
+			log.Fatalf("document storage: %v", err)
+		}
+		defer pageClient.Close()
+		h.SetDietPageStore(&handlers.CloudDietPageStore{Client: pageClient, Bucket: bucket})
+	}
 	a := middleware.NewAuth(middleware.NewFirebaseVerifier(authClient), db)
 
 	mux := http.NewServeMux()
@@ -198,6 +207,7 @@ func registerRoutes(mux *http.ServeMux, h *handlers.Handlers, a *middleware.Auth
 	mux.HandleFunc("GET /api/diets", a.Require(a.RequireApproved(h.HandleListDiets)))
 	mux.HandleFunc("POST /api/diets", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleCreateDiet))))
 	mux.HandleFunc("GET /api/diets/{id}", a.Require(a.RequireApproved(h.HandleGetDiet)))
+	mux.HandleFunc("GET /api/diets/{id}/pages/{page}", a.Require(a.RequireApproved(h.HandleDietPage)))
 	mux.HandleFunc("PUT /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleUpdateDiet))))
 	mux.HandleFunc("DELETE /api/diets/{id}", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDeleteDiet))))
 	mux.HandleFunc("POST /api/diets/{id}/duplicate", a.Require(a.Allow(models.RoleAdmin)(a.RequireApproved(h.HandleDuplicateDiet))))

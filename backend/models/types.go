@@ -133,17 +133,24 @@ type ExerciseItem struct {
 //   - Meals: refeições com alimentos — formato legado, mantido para
 //     compatibilidade com dietas já cadastradas.
 type Diet struct {
-	Kind        string    `json:"kind,omitempty"` // recipe = receitas; vazio/diet = dieta existente
-	ID          string    `json:"id,omitempty"`
-	StudentID   string    `json:"studentId"`
-	Name        string    `json:"name"`
-	Description string    `json:"description,omitempty"`
-	StartDate   string    `json:"startDate,omitempty"`
-	EndDate     string    `json:"endDate,omitempty"`
-	Content     string    `json:"content,omitempty"` // texto livre da dieta (formato simplificado)
-	Meals       []*Meal   `json:"meals,omitempty"`   // legado: refeições estruturadas
-	CreatedAt   time.Time `json:"createdAt,omitempty"`
-	UpdatedAt   time.Time `json:"updatedAt,omitempty"`
+	Document    *DietDocument `json:"document,omitempty"`
+	Kind        string        `json:"kind,omitempty"` // recipe = receitas; vazio/diet = dieta existente
+	ID          string        `json:"id,omitempty"`
+	StudentID   string        `json:"studentId"`
+	Name        string        `json:"name"`
+	Description string        `json:"description,omitempty"`
+	StartDate   string        `json:"startDate,omitempty"`
+	EndDate     string        `json:"endDate,omitempty"`
+	Content     string        `json:"content,omitempty"` // texto livre da dieta (formato simplificado)
+	Meals       []*Meal       `json:"meals,omitempty"`   // legado: refeições estruturadas
+	CreatedAt   time.Time     `json:"createdAt,omitempty"`
+	UpdatedAt   time.Time     `json:"updatedAt,omitempty"`
+}
+
+// DietDocument references immutable raster pages in private storage, never a PDF URL.
+type DietDocument struct {
+	ID        string `json:"id" firestore:"id"`
+	PageCount int    `json:"pageCount" firestore:"pageCount"`
 }
 
 // Meal é uma refeição dentro de uma dieta.

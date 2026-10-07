@@ -348,6 +348,33 @@ export function listDiets(token: string): Promise<Diet[]> {
   return request<Diet[]>("/api/diets", token);
 }
 
+/** Imagem privada de uma página, com sessão e sem armazenamento em cache. */
+export async function getDietPage(id: string, page: number, token: string, signal: AbortSignal): Promise<Blob> {
+  if (!API_URL) throw new ApiError("API não configurada (NEXT_PUBLIC_API_URL)");
+  const controller = new AbortController();
+  const abort = () => controller.abort();
+  const timer = setTimeout(abort, REQUEST_TIMEOUT_MS);
+  signal.addEventListener("abort", abort, { once: true });
+  if (signal.aborted) abort();
+  try {
+    const response = await fetch(`${API_URL}/api/diets/${encodeURIComponent(id)}/pages/${page}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: "no-store", signal: controller.signal,
+    });
+    if (!response.ok) throw new ApiError(errorMessageFor(response.status), response.status);
+    if (!(response.headers.get("content-type") ?? "").startsWith("image/png")) {
+      throw new ApiError("Não foi possível abrir esta página.");
+    }
+    return await response.blob();
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    throw new ApiError(controller.signal.aborted ? TIMEOUT_ERROR_MSG : NETWORK_ERROR_MSG);
+  } finally {
+    clearTimeout(timer);
+    signal.removeEventListener("abort", abort);
+  }
+}
+
 export function getDiet(id: string, token: string): Promise<Diet> {
   return request<Diet>(`/api/diets/${id}`, token);
 }

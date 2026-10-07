@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useAuth } from "@/lib/auth";
 import FormattedText from "@/components/FormattedText";
+import ProtectedDietViewer from "@/components/ProtectedDietViewer";
 import * as api from "@/lib/api";
 import type { Diet } from "@/lib/types";
 import { LoadingScreen } from "@/components/SetupNeeded";
@@ -78,7 +79,9 @@ export default function StudentDietPage({ recipe = false }: { recipe?: boolean }
                 ? ` · ${todayDiet.startDate} → ${todayDiet.endDate || "..."}`
                 : ""}
             </div>
-            {todayDiet.content ? (
+            {todayDiet.document && todayDiet.id ? (
+              <ProtectedDietViewer key={todayDiet.id} dietId={todayDiet.id} pageCount={todayDiet.document.pageCount} />
+            ) : todayDiet.content ? (
               <>
                 <FormattedText text={todayDiet.content} />
                 <CopyDietButton content={todayDiet.content} recipe={recipe} />

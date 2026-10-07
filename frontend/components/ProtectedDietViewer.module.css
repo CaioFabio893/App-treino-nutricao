@@ -1,0 +1,12 @@
+.viewer { margin-top: 16px; border-radius: 14px; overflow: hidden; background: #edf1ef; user-select: none; -webkit-user-select: none; }
+.toolbar { display: flex; align-items: center; justify-content: space-between; gap: 10px; flex-wrap: wrap; padding: 10px 12px; font-size: 12px; }
+.toolbar label { display: flex; align-items: center; gap: 6px; }
+.toolbar select { border: 1px solid var(--border); border-radius: 10px; padding: 7px; background: white; color: var(--text); }
+.viewport { overflow-x: auto; background: #edf1ef; touch-action: pan-x pan-y pinch-zoom; }
+.pages { min-width: 100%; }
+.page { display: block; width: 100%; height: auto; background: white; margin-bottom: 10px; box-shadow: 0 2px 8px #17242012; }
+.page:last-child { margin-bottom: 0; }
+.page[width="1"] { aspect-ratio: 595 / 842; }
+.note { padding: 0 12px; font-size: 11px; color: var(--muted); }
+@media (max-width: 600px) { .viewer { margin-left: -12px; margin-right: -12px; border-radius: 8px; } }
+@media print { .viewer { display: none !important; } }

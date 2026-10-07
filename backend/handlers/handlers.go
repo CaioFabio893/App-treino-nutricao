@@ -1,4 +1,4 @@
-﻿// Package handlers é a camada HTTP: decodifica o request, valida entrada,
+// Package handlers é a camada HTTP: decodifica o request, valida entrada,
 // delega para service (regra de negócio) ou repository (persistência) e
 // serializa a resposta. Nenhuma regra de negócio vive aqui.
 package handlers
@@ -22,9 +22,10 @@ import (
 // auth (Admin SDK) é usado para excluir contas do Firebase Auth quando um
 // cadastro é recusado ou um usuário é excluído.
 type Handlers struct {
-	svc  *service.Service
-	repo repository.Repository
-	auth *firebaseAuth.Client
+	svc   *service.Service
+	repo  repository.Repository
+	auth  *firebaseAuth.Client
+	pages DietPageStore
 }
 
 // New constrói os handlers com as dependências injetadas.
@@ -71,4 +72,3 @@ func tooLong(s string, max int) bool {
 func (h *Handlers) HandleHealth(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
 }
-

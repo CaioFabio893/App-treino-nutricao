@@ -95,6 +95,8 @@ export interface Meal {
 }
 
 export interface Diet {
+  /** Páginas privadas; o arquivo PDF original nunca é enviado ao navegador. */
+  document?: { id: string; pageCount: number };
   kind?: "diet" | "recipe";
   id?: string;
   // Vazio/ausente = dieta de biblioteca; o aluno pode ser atribuído depois

@@ -1,6 +1,8 @@
 # Gates pós-rollout/reset — 30/09/2026
 
 # Atualizado 01/10/2026: receitas, formatação e layout publicados.
+# Atualizado 07/10/2026: documento alimentar privado; Go+vet PASS,
+# Vitest129/23arquivos PASS, tsc/lint PASS, E2E32/3.1min PASS, builds SUCCESS.
 
 go=188 PASS (go vet limpo)
 vitest=126 PASS (22 arquivos; editor, leitura formatada e execução)
@@ -21,3 +23,5 @@ nutrition_ui=6 PASS em produção (editor/prévia, leitura, separação e 4 abas
 nutrition_api=roundtrip diet/recipe PASS / tipo inválido400 / alunoPUT403
 # docs/reports/production-reset-and-rollout-2026-09-30.md
 # Dispositivos físicos e aceite humano continuam pendentes.
+
+pdf_continuous=7pages source SHA256 equal PASS / UI8checks PASS / no watermark

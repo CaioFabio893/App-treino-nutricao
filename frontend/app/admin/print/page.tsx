@@ -74,7 +74,7 @@ function PrintInner() {
         ]);
         setStudent(s);
         setPlanWorkouts(ws.filter((w) => w.studentId === studentId));
-        setPlanDiets(ds.filter((d) => d.studentId === studentId));
+        setPlanDiets(ds.filter((d) => d.studentId === studentId && !d.document));
       } else if (workoutId) {
         const w = await api.getWorkout(workoutId, token);
         setWorkout(w);
@@ -84,6 +84,7 @@ function PrintInner() {
         }
       } else if (dietId) {
         const d = await api.getDiet(dietId, token);
+        if (d.document) throw new Error("Este documento está disponível somente na visualização protegida da dieta.");
         setDiet(d);
         if (d.studentId) {
           const s = await api.getStudent(d.studentId, token);
@@ -124,9 +125,9 @@ function PrintInner() {
         <button type="button" className="btn-sm" onClick={() => router.back()}>
           ‹ Voltar
         </button>
-        <button type="button" className="btn-sm acc" onClick={() => window.print()}>
+        {!error && (workout || diet || hasPlan) && <button type="button" className="btn-sm acc" onClick={() => window.print()}>
           🖨 Imprimir
-        </button>
+        </button>}
       </div>
 
       {error && <div className="err-text no-print">{error}</div>}
@@ -282,6 +283,7 @@ function PrintExercises({
 }
 
 function PrintMeals({ diet }: { diet: Diet }) {
+  if (diet.document) return null;
   // Formato simplificado: texto livre (copiar/colar) preservando quebras de linha.
   if (diet.content) {
     return <div className="print-content"><FormattedText text={diet.content} /></div>;
