@@ -46,6 +46,8 @@ export default function WorkoutForm({
   onDone,
   onCancel,
 }: Props) {
+  const [modality, setModality] = useState<WorkoutDefine["modality"]>(initial?.modality);
+  const [circuitSeconds, setCircuitSeconds] = useState(initial?.circuitSeconds ?? 0);
   const [name, setName] = useState(initial?.name ?? "");
   const [objective, setObjective] = useState(initial?.objective ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
@@ -184,6 +186,7 @@ export default function WorkoutForm({
       const token = await getToken();
       const payload: WorkoutDefine = {
         studentId,
+        modality, circuitSeconds,
         name: name.trim(),
         objective: objective.trim(),
         description: description.trim(),
@@ -231,6 +234,8 @@ export default function WorkoutForm({
 
       <div className="frm-card">
         <h3>Dados do treino</h3>
+        <div className="frm-row"><label htmlFor="workout-modality">Modalidade</label><select id="workout-modality" value={modality ?? ""} onChange={e => setModality((e.target.value || undefined) as WorkoutDefine["modality"])}><option value="">Sem divisão</option><option value="gym">Academia</option><option value="home">Em casa</option></select></div>
+        <div className="frm-row"><label htmlFor="workout-circuit">Circuito AMRAP (segundos; 0 = sem circuito)</label><input id="workout-circuit" type="number" min={0} max={3600} value={circuitSeconds} onChange={e => setCircuitSeconds(Number(e.target.value))} /></div>
         <div className="frm-row">
           <label>Nome do treino</label>
           <input
@@ -400,7 +405,13 @@ export default function WorkoutForm({
               />
             </div>
           </div>
+          <div className="frm-row-inline">
+            <div className="frm-row"><label>Etapa</label><select aria-label={`Etapa do exercício ${i + 1}`} value={ex.phase ?? ""} onChange={e => setEx(i, { phase: (e.target.value || undefined) as WorkoutExercise["phase"] })}><option value="">Sem etapa</option><option value="warmup">Aquecimento</option><option value="main">Principal</option><option value="stretching">Alongamento</option><option value="cardio">Cardio</option></select></div>
+            <div className="frm-row"><label>Duração do exercício (segundos; 0 = tempo livre)</label><input aria-label={`Duração do exercício ${i + 1}`} type="number" min={0} max={3600} value={ex.durationSeconds ?? 0} onChange={e => setEx(i, { durationSeconds: Number(e.target.value) })} /></div>
+          </div>
+          <label><input type="checkbox" checked={ex.timerExcluded ?? false} onChange={e => setEx(i, { timerExcluded: e.target.checked })} /> Dispensar cronômetro (esteira)</label>
           <div className="frm-row">
+            <label>Vídeos complementares (um link por linha)</label><textarea aria-label={`Vídeos complementares do exercício ${i + 1}`} value={(ex.videoUrls ?? []).join("\n")} onChange={e => setEx(i, {videoUrls: e.target.value.split("\n").filter(Boolean)})} />
             <label>Link de vídeo (YouTube, opcional)</label>
             <input
               value={ex.videoUrl ?? ""}

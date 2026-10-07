@@ -67,3 +67,24 @@ describe("Workout execution", () => {
     expect(() => readProgress("invalid")).toThrow();
   });
 });
+
+
+describe("AMRAP", () => {
+  it("persists rounds and notes and clears only circuit outcomes for the next round", () => {
+    const home = [{ id:"home", name:"Casa", modality:"home" as const, circuitSeconds:900, exercises:[{name:"Polichinelo",phase:"warmup" as const,sets:1,repetitions:"1min",order:1,durationSeconds:60},{name:"Sumô",phase:"main" as const,sets:1,repetitions:"15",order:2}] }];
+    const renderHome = () => <WorkoutPlayer userId="alice" programId="feminino:home" workouts={home} />;
+    const view=render(renderHome());
+    fireEvent.click(screen.getByRole("button",{name:/Polichinelo série 1: não marcada/}));
+    fireEvent.click(screen.getByRole("button",{name:/Sumô série 1: não marcada/}));
+    fireEvent.click(screen.getByRole("button",{name:"Concluir volta e iniciar próxima"}));
+    expect(screen.getByText("1 voltas concluídas nesta semana")).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:/Polichinelo série 1: conseguiu/})).toBeInTheDocument();
+    expect(screen.getByRole("button",{name:/Sumô série 1: não marcada/})).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Observações do circuito"),{target:{value:"3 exercícios da volta parcial"}});
+    view.unmount();render(renderHome());
+    expect(screen.getByText("1 voltas concluídas nesta semana")).toBeInTheDocument();
+    expect(screen.getByLabelText("Observações do circuito")).toHaveValue("3 exercícios da volta parcial");
+    fireEvent.click(screen.getByRole("button",{name:"Corrigir última volta"}));
+    expect(screen.getByText("0 voltas concluídas nesta semana")).toBeInTheDocument();
+  });
+});

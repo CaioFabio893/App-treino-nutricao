@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import ProgramDetail from "@/components/programs/ProgramDetail";
 
 const getToken = vi.fn(async () => "token");
@@ -160,4 +160,18 @@ describe("ProgramDetail — visão do aluno (read-only)", () => {
     expect(screen.getByLabelText("Agachamento Livre com Barra série 1 carga")).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Editar" })).not.toBeInTheDocument();
   });
+});
+
+
+it("offers both modalities from one program and filters the prescription", async () => {
+ workouts = TREINOS.map((w,i)=>({...w,modality:i===0?"gym":"home"}));
+ render(<ProgramDetail programId="p1" readOnly backHref="/treinos" backLabel="Treino" />);
+ await screen.findByText("Onde você vai treinar?");
+ expect(screen.queryByText("Agachamento Livre com Barra")).toBeNull();
+ fireEvent.click(screen.getByRole("button",{name:"Academia"}));
+ expect(screen.getAllByText("Agachamento Livre com Barra").length).toBeGreaterThan(0);
+ expect(screen.queryAllByText("Puxada Alta Pronada").length).toBe(0);
+ fireEvent.click(screen.getByRole("button",{name:"Em casa"}));
+ expect(screen.getAllByText("Puxada Alta Pronada").length).toBeGreaterThan(0);
+ expect(screen.queryAllByText("Agachamento Livre com Barra").length).toBe(0);
 });

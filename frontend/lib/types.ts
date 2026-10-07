@@ -36,6 +36,7 @@ export interface RejectUserRequest {
 
 
 export interface WorkoutExercise {
+  videoUrls?: string[];
   phase?: "warmup" | "main" | "cardio" | "stretching";
   durationSeconds?: number;
   timerExcluded?: boolean;
