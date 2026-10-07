@@ -112,7 +112,7 @@ fonte não prescreve (não inventados). AMRAP com contador de voltas/observaçõ
 reset só dos exercícios principais. Editor admin cobre modalidade/fase/duração/
 vídeos. Testes: Go 196 PASS + vet limpo; Vitest 131/23 arquivos; tsc/lint/build OK.
 Deploy 07/10: API `treino-api-00020-x2k` (digest `09ede5aa…`, 100% tráfego) e web
-`treino-web-00020-vct` (digest `a8a96a90…`, 100% tráfego); import Firestore
+`treino-web-00021-nzt` (digest `d614a4a3…`, 100% tráfego); import Firestore
 create-only (`exists:false`) de 8 workouts + program `treino-feminino` (studentId
 vazio = biblioteca). Smoke: web 200, `/health` 200, CORS 204, chunk servido
 contém modalidade/AMRAP. Push para `origin/main` (`ab1799e`). Falta apenas a
