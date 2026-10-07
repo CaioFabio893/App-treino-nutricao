@@ -61,19 +61,20 @@ type WorkoutDefine struct {
 
 // WorkoutExercise é um exercício dentro de um treino.
 type WorkoutExercise struct {
-	Phase           string `json:"phase,omitempty"` // warmup/main/cardio/stretching
-	DurationSeconds int    `json:"durationSeconds,omitempty"`
-	TimerExcluded   bool   `json:"timerExcluded,omitempty"`
-	ID              string `json:"id,omitempty"`
-	Name            string `json:"name"`
-	Description     string `json:"description,omitempty"`
-	Sets            int    `json:"sets"`
-	Repetitions     string `json:"repetitions"`
-	Weight          string `json:"weight,omitempty"`
-	RestSeconds     int    `json:"restSeconds,omitempty"`
-	VideoURL        string `json:"videoUrl,omitempty"` // link do YouTube (só nutri/admin edita)
-	Notes           string `json:"notes,omitempty"`
-	Order           int    `json:"order"`
+	VideoURLs       []string `json:"videoUrls,omitempty"`
+	Phase           string   `json:"phase,omitempty"` // warmup/main/cardio/stretching
+	DurationSeconds int      `json:"durationSeconds,omitempty"`
+	TimerExcluded   bool     `json:"timerExcluded,omitempty"`
+	ID              string   `json:"id,omitempty"`
+	Name            string   `json:"name"`
+	Description     string   `json:"description,omitempty"`
+	Sets            int      `json:"sets"`
+	Repetitions     string   `json:"repetitions"`
+	Weight          string   `json:"weight,omitempty"`
+	RestSeconds     int      `json:"restSeconds,omitempty"`
+	VideoURL        string   `json:"videoUrl,omitempty"` // link do YouTube (só nutri/admin edita)
+	Notes           string   `json:"notes,omitempty"`
+	Order           int      `json:"order"`
 }
 
 // ── Programas de treinamento (F19) ──

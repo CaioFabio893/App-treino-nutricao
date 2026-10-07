@@ -224,6 +224,44 @@ func TestDuplicateWorkoutForStudentCustomName(t *testing.T) {
 	}
 }
 
+// A cópia materializada na atribuição precisa carregar TAMBÉM os metadados de
+// execução do Treino Feminino: modalidade, circuito e, por exercício, fase,
+// duração, dispensa de cronômetro e vídeos complementares. Sem isto o aluno
+// receberia a prescrição sem os recursos de execução.
+func TestDuplicateWorkoutForStudentPreservesExecutionMetadata(t *testing.T) {
+	src := &models.WorkoutDefine{
+		ID:             "w-1",
+		Name:           "Treino Feminino Home 1",
+		Modality:       "home",
+		CircuitSeconds: 900,
+		Exercises: []*models.WorkoutExercise{{
+			ID:              "ex-1",
+			Name:            "Polichinelo",
+			Phase:           "warmup",
+			DurationSeconds: 60,
+			TimerExcluded:   true,
+			VideoURL:        "https://www.youtube.com/watch?v=aaa",
+			VideoURLs:       []string{"https://www.youtube.com/watch?v=bbb"},
+			Order:           1,
+		}},
+	}
+	dup := DuplicateWorkoutForStudent(src, "aluno-1", "")
+
+	if dup.Modality != "home" || dup.CircuitSeconds != 900 {
+		t.Errorf("metadata = {modality:%q circuitSeconds:%d}, want home/900", dup.Modality, dup.CircuitSeconds)
+	}
+	if len(dup.Exercises) != 1 {
+		t.Fatalf("exercícios = %d, want 1", len(dup.Exercises))
+	}
+	ex := dup.Exercises[0]
+	if ex.Phase != "warmup" || ex.DurationSeconds != 60 || !ex.TimerExcluded {
+		t.Errorf("execução = {phase:%q duration:%d timerExcluded:%v}, want warmup/60/true", ex.Phase, ex.DurationSeconds, ex.TimerExcluded)
+	}
+	if ex.VideoURL != "https://www.youtube.com/watch?v=aaa" || len(ex.VideoURLs) != 1 || ex.VideoURLs[0] != "https://www.youtube.com/watch?v=bbb" {
+		t.Errorf("vídeos = {url:%q urls:%v}, want principal + 1 complementar", ex.VideoURL, ex.VideoURLs)
+	}
+}
+
 // ── AssignProgram ──────────────────────────────────────────────────────────
 
 // programFakeRepo é o mínimo do Repository que o AssignProgram usa: ler o
