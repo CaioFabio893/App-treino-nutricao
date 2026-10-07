@@ -6,7 +6,7 @@
     "description": "Academia e Em casa · escolha onde treinar",
     "objective": "Hipertrofia, definição muscular e aumento do gasto calórico.",
     "source": "treino-feminino-fonte.md",
-    "notes": "Alongamentos não constam na fonte. Vídeos ainda precisam ser selecionados e conferidos.",
+    "notes": "Academia: 4 dias/semana, divisão AB/CD, sessões de 60 minutos. Em casa: circuito AMRAP15–20min, descanso conforme necessidade. Alongamentos não constam na fonte.",
     "workouts": [
       {
         "workoutId": "treino-feminino-gym-a",
@@ -77,7 +77,8 @@
           "durationSeconds": 60,
           "timerExcluded": false,
           "notes": "Duração: 1 a 2 minutos contínuos.\nDescanso: 0 segundos.\nDetalhamento de Execução: Movimentos circulares suaves com os pés e rotações de quadril para lubrificação articular.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=_ctrEJhBDXE",
+          "videoUrls": []
         },
         {
           "name": "Agachamento Livre Sem Peso",
@@ -89,7 +90,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 2 séries x 15 repetições.\nTempo de Descanso: 30 segundos entre as séries.\nDetalhamento de Execução: Pés na largura dos ombros, descer o quadril controladamente preservando as curvaturas naturais da coluna.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=nrM8zB5-gtE",
+          "videoUrls": []
         },
         {
           "name": "Agachamento Livre (com Barra ou no Smith)",
@@ -101,7 +103,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Posicionar a barra no trapézio, destravar a articulação do quadril e joelhos simultaneamente, agachar até aproximadamente 90° e retornar empurrando o solo pelos calcanhares.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=zgk71dUUt0Y",
+          "videoUrls": []
         },
         {
           "name": "Leg Press 45°",
@@ -113,7 +116,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Apoiar os pés na plataforma na largura do quadril, destravar o aparelho, descer a plataforma até formar um ângulo de 90° nos joelhos sem tirar o quadril do encosto, e empurrar sem travar a articulação no topo.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=nY8UsiAqwds",
+          "videoUrls": []
         },
         {
           "name": "Cadeira Extensora",
@@ -125,7 +129,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Ajustar o encosto para apoiar totalmente a coluna, estender os joelhos até a amplitude máxima, segurar 2 segundos de pausa de contração no topo e retornar lentamente.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=el3oHblB5DM",
+          "videoUrls": []
         },
         {
           "name": "Elevação Pélvica com Barra ou na Máquina",
@@ -137,7 +142,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Apoiar as escápulas no banco, apoiar a barra na dobra do quadril, elevar o quadril contraindo fortemente os glúteos até alinhar com o tronco, mantendo os joelhos em 90° no topo.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=ptK0azwOXwM",
+          "videoUrls": []
         },
         {
           "name": "Panturrilha em Pé (na Máquina ou Degrau)",
@@ -149,7 +155,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 4 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Apoiar a ponta dos pés na plataforma, descer o calcanhar ao máximo para alongar e subir realizando a flexão plantar máxima.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=824pMjvGXgc",
+          "videoUrls": []
         },
         {
           "name": "Esteira Inclinada",
@@ -183,7 +190,10 @@
           "durationSeconds": 120,
           "timerExcluded": false,
           "notes": "Duração: 2 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Giro amplo dos braços para aquecimento do manguito rotador seguido de polichinelos em ritmo moderado.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=4yPoBcn5ycA",
+          "videoUrls": [
+            "https://www.youtube.com/watch?v=QqHHUOCYPws"
+          ]
         },
         {
           "name": "Puxada Alta no Pulley (Pegada Aberta)",
@@ -195,7 +205,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Sentar no aparelho fixando as coxas, segurar a barra com pegada pronada aberta, puxar a barra em direção à parte superior do peito fechando as escápulas e retornar controladamente.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=pJM_rHhluK8",
+          "videoUrls": []
         },
         {
           "name": "Remada Baixa com Triângulo",
@@ -207,7 +218,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Pés apoiados, tronco ereto, puxar o triângulo em direção ao umbigo mantendo os cotovelos próximos ao corpo e projetando o peito para a frente.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=HpWWreyaBN0",
+          "videoUrls": []
         },
         {
           "name": "Desenvolvimento de Ombros com Halteres",
@@ -219,7 +231,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Sentada no banco a 90°, segurar os halteres na altura dos ombros e empurrá-los verticalmente para cima até estender quase completamente os braços.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=EuQAfhXBEvs",
+          "videoUrls": []
         },
         {
           "name": "Tríceps Corda no Pulley",
@@ -231,7 +244,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Cotovelos colados ao tronco, puxar a corda para baixo estendendo os braços e afastando as pontas da corda ao final do movimento.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=dTqDKC0D6P4",
+          "videoUrls": []
         },
         {
           "name": "Prancha Abdominal Solo",
@@ -243,7 +257,8 @@
           "durationSeconds": 30,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 30 a 45 segundos de sustentação.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Apoiar antebraços e pontas dos pés no solo, mantendo quadril, coluna e cabeça em perfeito alinhamento reto com abdômen contraído.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=qNRqGqESAWU",
+          "videoUrls": []
         },
         {
           "name": "Transport / Elíptico",
@@ -255,7 +270,8 @@
           "durationSeconds": 600,
           "timerExcluded": false,
           "notes": "Duração: 10 minutos contínuos.\nParâmetros: Carga moderada, ritmo constante.\nDescanso: Fim do treino.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=j38LNpTLwzY",
+          "videoUrls": []
         }
       ]
     },
@@ -277,7 +293,8 @@
           "durationSeconds": 120,
           "timerExcluded": false,
           "notes": "Duração: 2 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Em 4 apoios, estender o braço direito à frente e a perna esquerda atrás simultaneamente, alternando os lados para ativação de core e lombar.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=fY0XGhG-wmw",
+          "videoUrls": []
         },
         {
           "name": "Elevação Pélvica Solo Sem Peso",
@@ -289,7 +306,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 2 séries x 15 repetições.\nTempo de Descanso: 30 segundos entre as séries.\nDetalhamento de Execução: Deitada de costas, subir o quadril contraindo os glúteos no topo.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=xNHIK4oCkdw",
+          "videoUrls": []
         },
         {
           "name": "Stiff com Halteres ou Barra",
@@ -301,7 +319,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Pés na largura do quadril, joelhos semi-flexionados e travados, projetar o quadril para trás descendo a carga rente às pernas mantendo a coluna totalmente neutra.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=u1E3_u2gJYE",
+          "videoUrls": []
         },
         {
           "name": "Cadeira Flexora (ou Mesa Flexora)",
@@ -313,7 +332,10 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Ajustar o rolo nos calcanhares, flexionar os joelhos empurrando a alavanca em direção ao glúteo e retornar segurando a carga.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=Zss6E3VU6X0",
+          "videoUrls": [
+            "https://www.youtube.com/watch?v=2-ULaRrQa7c"
+          ]
         },
         {
           "name": "Passada / Afundo com Halteres",
@@ -325,7 +347,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 10 repetições por perna.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Dar um passo à frente descendo o joelho da perna de trás em direção ao solo até formar 90° em ambas as articulações.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=sQ5RjbpPirY",
+          "videoUrls": []
         },
         {
           "name": "Cadeira Abdutora",
@@ -337,7 +360,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Tronco bem encostado, afastar as pernas fazendo força com as laterais do glúteo e retornar devagar sem encostar os pesos.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=e2gmqTG1OgQ",
+          "videoUrls": []
         },
         {
           "name": "Panturrilha em Pé ou Sentada",
@@ -349,7 +373,10 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Flexão e extensão completa do tornozelo com carga sobre os ombros ou joelhos.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=824pMjvGXgc",
+          "videoUrls": [
+            "https://www.youtube.com/watch?v=jMWs_p-W9gY"
+          ]
         },
         {
           "name": "Bike Ergométrica",
@@ -361,7 +388,8 @@
           "durationSeconds": 600,
           "timerExcluded": false,
           "notes": "Duração: 10 minutos contínuos.\nParâmetros: Cadência moderada (70 a 80 RPM).\nDescanso: Fim do treino.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=Cph08ZOZ58g",
+          "videoUrls": []
         }
       ]
     },
@@ -383,7 +411,10 @@
           "durationSeconds": 180,
           "timerExcluded": false,
           "notes": "Duração: 3 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Aumento da temperatura corporal com saltos leves e giros controlados de tronco.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=QqHHUOCYPws",
+          "videoUrls": [
+            "https://www.youtube.com/watch?v=_wDIuVisOtc"
+          ]
         },
         {
           "name": "Supino Reto com Halteres",
@@ -395,7 +426,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Deitada no banco reto, empurrar os halteres verticalmente até a extensão dos braços e descer até a linha do peito.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=EZMYCLKuGow",
+          "videoUrls": []
         },
         {
           "name": "Remada Articulada (ou Remada com Halteres)",
@@ -407,7 +439,10 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Puxar a manopla/halter trazendo os cotovelos para trás na linha do tronco e contraindo as costas.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=QyvIEdEHzHc",
+          "videoUrls": [
+            "https://www.youtube.com/watch?v=Vk6c7CjtM14"
+          ]
         },
         {
           "name": "Elevação Lateral com Halteres",
@@ -419,7 +454,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Elevar os braços lateralmente até a altura dos ombros com os cotovelos levemente flexionados e retornar devagar.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=IwWvZ0rlNXs",
+          "videoUrls": []
         },
         {
           "name": "Abdominal Supra (Curto)",
@@ -431,7 +467,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 15 a 20 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Deitada de costas com joelhos dobrados, flexionar a coluna retirando apenas as escápulas do chão e soltando o ar na subida.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=7YxVRiATugo",
+          "videoUrls": []
         },
         {
           "name": "Prancha Abdominal Solo",
@@ -443,7 +480,8 @@
           "durationSeconds": 30,
           "timerExcluded": false,
           "notes": "Séries x Repetições: 3 séries x 30 a 45 segundos.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Sustentação isométrica do corpo em posição de prancha.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=qNRqGqESAWU",
+          "videoUrls": []
         },
         {
           "name": "Esteira ou Bike",
@@ -455,7 +493,8 @@
           "durationSeconds": 600,
           "timerExcluded": false,
           "notes": "Duração: 10 minutos contínuos.\nParâmetros: Ritmo constante moderado.\nDescanso: Fim do treino.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=Cph08ZOZ58g",
+          "videoUrls": []
         }
       ]
     },
@@ -477,7 +516,8 @@
           "durationSeconds": 60,
           "timerExcluded": false,
           "notes": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=QqHHUOCYPws",
+          "videoUrls": []
         },
         {
           "name": "Agachamento Livre Leve Sem Peso",
@@ -489,7 +529,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=nrM8zB5-gtE",
+          "videoUrls": []
         },
         {
           "name": "Agachamento Sumô (com garrafa ou mochila no peito)",
@@ -501,7 +542,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 repetições.\nExecução: Pés bem afastados, pontas dos pés viradas para fora a 45°, descer o quadril mantendo o peito aberto.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=A_eAmbXAdNQ",
+          "videoUrls": []
         },
         {
           "name": "Afundo Búlgaro (pé de trás apoiado na cadeira/sofá)",
@@ -513,7 +555,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 10 repetições por perna.\nExecução: Um pé apoiado no móvel atrás, flexionar o joelho da frente descendo até 90°.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=IGf9fR4Y7Iw",
+          "videoUrls": []
         },
         {
           "name": "Cadeira Isométrica na Parede",
@@ -525,7 +568,8 @@
           "durationSeconds": 30,
           "timerExcluded": false,
           "notes": "Volume: 30 segundos sustentando.\nExecução: Encostar as costas na parede e agachar até os joelhos formarem 90°, segurando a posição.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=sJ-_tp5ppMY",
+          "videoUrls": []
         },
         {
           "name": "Elevação Pélvica Solo com Pausa",
@@ -537,7 +581,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 repetições com 2 segundos de pausa no topo.\nExecução: Deitada de costas, subir o quadril, contrair os glúteos no topo por 2 segundos e retornar.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=xNHIK4oCkdw",
+          "videoUrls": []
         },
         {
           "name": "Panturrilha em Pé Solo",
@@ -549,7 +594,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 20 repetições.\nExecução: Elevação máxima dos calcanhares no solo ou degrau.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=M3Ou5u98FfI",
+          "videoUrls": []
         }
       ]
     },
@@ -571,7 +617,8 @@
           "durationSeconds": 60,
           "timerExcluded": false,
           "notes": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=AjKNsaieu2Y",
+          "videoUrls": []
         },
         {
           "name": "Rotação de Braços e Ombros",
@@ -583,7 +630,8 @@
           "durationSeconds": 60,
           "timerExcluded": false,
           "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=4yPoBcn5ycA",
+          "videoUrls": []
         },
         {
           "name": "Flexão de Braço (joelhos apoiados)",
@@ -595,7 +643,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 10 a 12 repetições.\nExecução: Joelhos apoiados no chão, mãos na largura dos ombros, descer o peito próximo ao solo mantendo o tronco reto.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=oTmPth0J55E",
+          "videoUrls": []
         },
         {
           "name": "Remada Curvada com Mochila",
@@ -607,7 +656,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 repetições.\nExecução: Tronco inclinado à frente a 45° com coluna reta, puxar a mochila na direção do umbigo aproximando as escápulas.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=mrYBMjhm2hw",
+          "videoUrls": []
         },
         {
           "name": "Desenvolvimento de Ombros em Pé (com mochila ou garrafas)",
@@ -619,7 +669,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 12 a 15 repetições.\nExecução: Empurrar o peso acima da cabeça estendendo os braços e retornar até a linha dos queixos.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=hlMlc2s9HdA",
+          "videoUrls": []
         },
         {
           "name": "Tríceps no Banco ou Cadeira",
@@ -631,7 +682,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 10 a 12 repetições.\nExecução: Mãos apoiadas na borda do banco, quadril projetado para a frente, flexionar os cotovelos a 90° e empurrar de volta.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=TCVj8cliLNo",
+          "videoUrls": []
         },
         {
           "name": "Prancha Abdominal Solo",
@@ -643,7 +695,8 @@
           "durationSeconds": 30,
           "timerExcluded": false,
           "notes": "Volume: 30 a 40 segundos.\nExecução: Sustentação isométrica do corpo sobre antebraços e pontas dos pés.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=qNRqGqESAWU",
+          "videoUrls": []
         }
       ]
     },
@@ -665,7 +718,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=fY0XGhG-wmw",
+          "videoUrls": []
         },
         {
           "name": "Polichinelos Leves",
@@ -677,7 +731,8 @@
           "durationSeconds": 60,
           "timerExcluded": false,
           "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=QqHHUOCYPws",
+          "videoUrls": []
         },
         {
           "name": "Stiff Unilateral (peso corporal ou mochila)",
@@ -689,7 +744,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 10 a 12 repetições por perna.\nExecução: Apoio em uma perna só, inclinar o tronco à frente elevando a perna oposta atrás, mantendo a coluna reta.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=BvJOpFp9HGU",
+          "videoUrls": []
         },
         {
           "name": "Elevação Pélvica Unilateral Solo",
@@ -701,7 +757,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 10 repetições por perna.\nExecução: Uma perna estendida para o alto, subir o quadril fazendo força no calcanhar apoiado no chão.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=UWHkvfGeHU8",
+          "videoUrls": []
         },
         {
           "name": "Abdução de Quadril Deitada (Solo)",
@@ -713,7 +770,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 repetições por perna.\nExecução: Deitada de lado, elevar a perna de cima estendida focando a contração na lateral do glúteo.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=IVRY84eMDMk",
+          "videoUrls": []
         },
         {
           "name": "Ponte de Glúteo com Calcanhar Elevado (no sofácadeira)",
@@ -725,7 +783,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 12 a 15 repetições.\nExecução: Calcanhares apoiados no móvel, elevar o quadril contraindo glúteos e posteriores.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=WtiDGrI1Ow4",
+          "videoUrls": []
         },
         {
           "name": "Abdominal Infra (Elevação de Pernas)",
@@ -737,7 +796,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 repetições.\nExecução: Deitada de costas, elevar as pernas juntas até 90° e descer controladamente sem tirar a lombar do solo.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=ixJcUH8AlL8",
+          "videoUrls": []
         }
       ]
     },
@@ -759,7 +819,8 @@
           "durationSeconds": 90,
           "timerExcluded": false,
           "notes": "",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=QqHHUOCYPws",
+          "videoUrls": []
         },
         {
           "name": "Mobilidade Articular Geral (Ombros e Quadril)",
@@ -771,7 +832,8 @@
           "durationSeconds": 90,
           "timerExcluded": false,
           "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=_ctrEJhBDXE",
+          "videoUrls": []
         },
         {
           "name": "Agachamento com Desenvolvimento (Thrusts)",
@@ -783,7 +845,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 12 repetições.\nExecução: Segurar mochilas/garrafas na altura dos ombros, agachar e ao subir empurrar o peso acima da cabeça em um movimento fluido.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=jsAGDxjGl64",
+          "videoUrls": []
         },
         {
           "name": "Passada para Trás Alternada",
@@ -795,7 +858,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 12 repetições no total (6 por perna).\nExecução: Dar um passo para trás agachando até 90° e retornar à posição em pé.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=MzRrLIkaAY0",
+          "videoUrls": []
         },
         {
           "name": "Escalador no Solo (Mountain Climber)",
@@ -807,7 +871,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 20 repetições no total (10 por perna).\nExecução: Em posição de prancha alta, puxar os joelhos alternadamente em direção ao peito em ritmo rápido.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=hq_0YlyfqGM",
+          "videoUrls": []
         },
         {
           "name": "Burpee Adaptado (sem flexão)",
@@ -819,7 +884,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 8 a 10 repetições.\nExecução: Apoiar as mãos no chão, jogar os pés para trás na posição de prancha, retornar os pés perto das mãos e saltar levemente.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=Hr45qnqRxxg",
+          "videoUrls": []
         },
         {
           "name": "Abdominal Supra (Curto)",
@@ -831,7 +897,8 @@
           "durationSeconds": 0,
           "timerExcluded": false,
           "notes": "Volume: 15 a 20 repetições.\nExecução: Flexão curta de tronco com foco no abdômen superior.",
-          "videoUrl": ""
+          "videoUrl": "https://www.youtube.com/watch?v=7YxVRiATugo",
+          "videoUrls": []
         }
       ]
     }
