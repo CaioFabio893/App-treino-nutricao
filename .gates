@@ -25,3 +25,8 @@ nutrition_api=roundtrip diet/recipe PASS / tipo inválido400 / alunoPUT403
 # Dispositivos físicos e aceite humano continuam pendentes.
 
 pdf_continuous=7pages source SHA256 equal PASS / UI8checks PASS / no watermark
+
+# Atualizado 07/10/2026 (Treino Feminino, local, não publicado):
+# Go196 PASS + vet limpo; Vitest131/23arquivos PASS; tsc/lint/build PASS.
+# Vídeos48/48 oEmbed OK. Sem importação/publicação.
+treino_feminino=local only | go=196 PASS (vet OK) | vitest=131 PASS (23 arquivos) | tsc=OK | lint=0/0 | build=OK | videos=48/48 oEmbed OK | import/publicação=NAO

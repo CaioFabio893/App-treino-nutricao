@@ -101,10 +101,16 @@ E2E1,6 min agora usa exemplo completo. Produção: associação integral de fixt
 validada (5/30/103) e seis checks UI; fixtures completamente removidas.
 Web00016-juj 100%, backend intacto. Cloud Build8c3fd8d0 SUCCESS.
 
-## Treino Feminino — checkpoint local, não publicado
+## Treino Feminino — implementação local concluída (não publicada)
 
-Pedido07/10: programa único Academia/Em casa,58exercícios/8treinos preparados.
-Seletor e metadata/cronômetros implementados localmente; vídeos/AMRAP/adminediting,
-testes e importação/publicação ainda pendentes. Não consta na biblioteca cloud.
-Dono pediu testes pelo OpenCode e execução sequencial, sem subagentes.
+Pedido 07/10: programa único Academia/Em casa. Preparados 58 exercícios/8 treinos
+(4 gym A–D, 4 home 1–4) com `modality`/`circuitSeconds`; exercícios com
+`phase`/`durationSeconds`/`timerExcluded` e vídeos (`videoUrl` + `videoUrls`).
+48 vídeos únicos conferidos via YouTube oEmbed (48/48 existem; títulos batem;
+`Bike Ergométrica` aponta para ajuste da bike — revisar). Sem alongamentos: a
+fonte não prescreve (não inventados). AMRAP com contador de voltas/observações e
+reset só dos exercícios principais. Editor admin cobre modalidade/fase/duração/
+vídeos. Testes: Go 196 PASS + vet limpo; Vitest 131/23 arquivos; tsc/lint/build OK.
+Commits locais, sem push/deploy; não consta na biblioteca cloud nem foi importado.
+Dados: docs/data/treino-feminino-fonte.md, -preparado.json e -videos.json.
 Retomada/prompt: docs/reports/treino-feminino-handoff.md.

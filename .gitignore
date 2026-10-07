@@ -45,3 +45,7 @@ frontend/playwright-report/
 frontend/blob-report/
 frontend/.playwright/
 .aider*
+
+# Artefatos locais (PDFs/temporários; podem conter dados pessoais) — nunca commitar
+/output/
+/tmp/
