@@ -368,6 +368,23 @@ func (h *Handlers) HandleCreateWorkout(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "sem permissao para criar treino", http.StatusForbidden)
 		return
 	}
+	if workout.Modality != "" && workout.Modality != "gym" && workout.Modality != "home" {
+		http.Error(w, "modalidade invalida", http.StatusBadRequest)
+		return
+	}
+	if workout.CircuitSeconds < 0 || workout.CircuitSeconds > 3600 {
+		http.Error(w, "duracao do circuito invalida", http.StatusBadRequest)
+		return
+	}
+	for _, exercise := range workout.Exercises {
+		if exercise == nil {
+			continue
+		}
+		if exercise.DurationSeconds < 0 || exercise.DurationSeconds > 3600 || (exercise.Phase != "" && exercise.Phase != "warmup" && exercise.Phase != "main" && exercise.Phase != "cardio" && exercise.Phase != "stretching") {
+			http.Error(w, "execucao do exercicio invalida", http.StatusBadRequest)
+			return
+		}
+	}
 	service.NormalizeExercises(&workout)
 	created, err := h.repo.CreateWorkout(r.Context(), &workout)
 	if err != nil {
@@ -411,6 +428,30 @@ func (h *Handlers) HandleUpdateWorkout(w http.ResponseWriter, r *http.Request) {
 	// Preserva o aluno se não vier no body.
 	if workout.StudentID == "" {
 		workout.StudentID = existing.StudentID
+	}
+	// Old editors omit new execution metadata; keep it on existing prescriptions.
+	if workout.Modality == "" {
+		workout.Modality = existing.Modality
+	}
+	if workout.CircuitSeconds == 0 {
+		workout.CircuitSeconds = existing.CircuitSeconds
+	}
+	if workout.Modality != "" && workout.Modality != "gym" && workout.Modality != "home" {
+		http.Error(w, "modalidade invalida", http.StatusBadRequest)
+		return
+	}
+	if workout.CircuitSeconds < 0 || workout.CircuitSeconds > 3600 {
+		http.Error(w, "duracao do circuito invalida", http.StatusBadRequest)
+		return
+	}
+	for _, exercise := range workout.Exercises {
+		if exercise == nil {
+			continue
+		}
+		if exercise.DurationSeconds < 0 || exercise.DurationSeconds > 3600 || (exercise.Phase != "" && exercise.Phase != "warmup" && exercise.Phase != "main" && exercise.Phase != "cardio" && exercise.Phase != "stretching") {
+			http.Error(w, "execucao do exercicio invalida", http.StatusBadRequest)
+			return
+		}
 	}
 	service.NormalizeExercises(&workout)
 	if err := h.repo.UpdateWorkout(r.Context(), id, &workout); err != nil {

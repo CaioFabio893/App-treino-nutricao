@@ -46,29 +46,34 @@ type UserProfile struct {
 // WorkoutDefine é o treino criado pelo nutricionista.
 // Os exercícios ficam embutidos no documento (array `exercises`).
 type WorkoutDefine struct {
-	ID          string             `json:"id,omitempty"`
-	StudentID   string             `json:"studentId"`
-	Name        string             `json:"name"`
-	Description string             `json:"description,omitempty"`
-	Objective   string             `json:"objective,omitempty"`
-	DayOfWeek   string             `json:"dayOfWeek,omitempty"` // "monday", "tuesday", etc.
-	Exercises   []*WorkoutExercise `json:"exercises,omitempty"`
-	CreatedAt   time.Time          `json:"createdAt,omitempty"`
-	UpdatedAt   time.Time          `json:"updatedAt,omitempty"`
+	Modality       string             `json:"modality,omitempty"`       // gym/home; absent = legacy
+	CircuitSeconds int                `json:"circuitSeconds,omitempty"` // AMRAP duration, outside warm-up
+	ID             string             `json:"id,omitempty"`
+	StudentID      string             `json:"studentId"`
+	Name           string             `json:"name"`
+	Description    string             `json:"description,omitempty"`
+	Objective      string             `json:"objective,omitempty"`
+	DayOfWeek      string             `json:"dayOfWeek,omitempty"` // "monday", "tuesday", etc.
+	Exercises      []*WorkoutExercise `json:"exercises,omitempty"`
+	CreatedAt      time.Time          `json:"createdAt,omitempty"`
+	UpdatedAt      time.Time          `json:"updatedAt,omitempty"`
 }
 
 // WorkoutExercise é um exercício dentro de um treino.
 type WorkoutExercise struct {
-	ID          string `json:"id,omitempty"`
-	Name        string `json:"name"`
-	Description string `json:"description,omitempty"`
-	Sets        int    `json:"sets"`
-	Repetitions string `json:"repetitions"`
-	Weight      string `json:"weight,omitempty"`
-	RestSeconds int    `json:"restSeconds,omitempty"`
-	VideoURL    string `json:"videoUrl,omitempty"` // link do YouTube (só nutri/admin edita)
-	Notes       string `json:"notes,omitempty"`
-	Order       int    `json:"order"`
+	Phase           string `json:"phase,omitempty"` // warmup/main/cardio/stretching
+	DurationSeconds int    `json:"durationSeconds,omitempty"`
+	TimerExcluded   bool   `json:"timerExcluded,omitempty"`
+	ID              string `json:"id,omitempty"`
+	Name            string `json:"name"`
+	Description     string `json:"description,omitempty"`
+	Sets            int    `json:"sets"`
+	Repetitions     string `json:"repetitions"`
+	Weight          string `json:"weight,omitempty"`
+	RestSeconds     int    `json:"restSeconds,omitempty"`
+	VideoURL        string `json:"videoUrl,omitempty"` // link do YouTube (só nutri/admin edita)
+	Notes           string `json:"notes,omitempty"`
+	Order           int    `json:"order"`
 }
 
 // ── Programas de treinamento (F19) ──

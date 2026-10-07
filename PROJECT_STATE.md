@@ -100,3 +100,11 @@ Template integral frontend/lib/program-example.ts. Vitest124/tsc/lint/E2E31 PASS
 E2E1,6 min agora usa exemplo completo. Produção: associação integral de fixture
 validada (5/30/103) e seis checks UI; fixtures completamente removidas.
 Web00016-juj 100%, backend intacto. Cloud Build8c3fd8d0 SUCCESS.
+
+## Treino Feminino — checkpoint local, não publicado
+
+Pedido07/10: programa único Academia/Em casa,58exercícios/8treinos preparados.
+Seletor e metadata/cronômetros implementados localmente; vídeos/AMRAP/adminediting,
+testes e importação/publicação ainda pendentes. Não consta na biblioteca cloud.
+Dono pediu testes pelo OpenCode e execução sequencial, sem subagentes.
+Retomada/prompt: docs/reports/treino-feminino-handoff.md.

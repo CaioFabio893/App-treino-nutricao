@@ -36,6 +36,9 @@ export interface RejectUserRequest {
 
 
 export interface WorkoutExercise {
+  phase?: "warmup" | "main" | "cardio" | "stretching";
+  durationSeconds?: number;
+  timerExcluded?: boolean;
   id?: string;
   name: string;
   description?: string;
@@ -65,6 +68,8 @@ export interface Exercise {
 }
 
 export interface WorkoutDefine {
+  modality?: "gym" | "home";
+  circuitSeconds?: number;
   id?: string;
   // Vazio/ausente = treino de biblioteca (ainda não atribuído a aluno).
   studentId?: string;

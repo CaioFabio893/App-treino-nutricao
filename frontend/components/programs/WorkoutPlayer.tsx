@@ -28,7 +28,7 @@ export function readProgress(raw: string | null): Progress {
   return result;
 }
 
-function Timer({ seconds = 180 }: { seconds?: number }) {
+function Timer({ seconds = 180, label = "Tempo de descanso", presets = [60, 120, 180] }: { seconds?: number; label?: string; presets?: number[] }) {
   const [duration, setDuration] = useState(seconds);
   const [elapsed, setElapsed] = useState(0);
   const [started, setStarted] = useState<number | null>(null);
@@ -36,9 +36,9 @@ function Timer({ seconds = 180 }: { seconds?: number }) {
   useEffect(() => {
     if (started === null) return;
     const tick = () => {
-      const now = Math.min(duration, Math.floor((Date.now() - started) / 1000));
+      const now = duration > 0 ? Math.min(duration, Math.floor((Date.now() - started) / 1000)) : Math.floor((Date.now() - started) / 1000);
       setElapsed(now);
-      if (now >= duration) { setStarted(null); setFinished(true); navigator.vibrate?.(400); }
+      if (duration > 0 && now >= duration) { setStarted(null); setFinished(true); navigator.vibrate?.(400); }
     };
     tick();
     const id = window.setInterval(tick, 250);
@@ -46,12 +46,12 @@ function Timer({ seconds = 180 }: { seconds?: number }) {
   }, [started, duration]);
   const reset = (value = duration) => { setDuration(value); setStarted(null); setElapsed(0); setFinished(false); };
   return <div className={styles.timer}>
-    <strong role="timer" aria-label="Tempo de descanso">{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</strong>
-    <span> / {Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}{finished ? " · Descanso concluído" : ""}</span>
+    <strong role="timer" aria-label={label}>{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</strong>
+    <span>{duration === 0 ? " · Tempo livre" : " / "}{duration > 0 && <>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</>}{finished ? " · Tempo concluído" : ""}</span>
     <div className={styles.actions}>
-      <button type="button" onClick={() => { if (started !== null) { setElapsed(Math.min(duration, Math.floor((Date.now() - started) / 1000))); setStarted(null); } else { setFinished(false); const base = elapsed >= duration ? 0 : elapsed; setElapsed(base); setStarted(Date.now() - base * 1000); } }}>{started !== null ? "Pausar" : "Iniciar"}</button>
+      <button type="button" onClick={() => { if (started !== null) { setElapsed(duration > 0 ? Math.min(duration, Math.floor((Date.now() - started) / 1000)) : Math.floor((Date.now() - started) / 1000)); setStarted(null); } else { setFinished(false); const base = duration > 0 && elapsed >= duration ? 0 : elapsed; setElapsed(base); setStarted(Date.now() - base * 1000); } }}>{started !== null ? "Pausar" : "Iniciar"}</button>
       <button type="button" onClick={() => reset()}>Zerar</button>
-      {[60, 120, 180].map(n => <button type="button" key={n} aria-pressed={duration === n} onClick={() => reset(n)}>{n / 60} min</button>)}
+      {presets.map(n => <button type="button" key={n} aria-pressed={duration === n} onClick={() => reset(n)}>{n / 60} min</button>)}
     </div>
   </div>;
 }
@@ -121,11 +121,13 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
             </div>; })}</div>
           <p className={styles.hint}>Toque no resultado: não marcada → conseguiu ✓ → não conseguiu ✗.</p>
           <label className={styles.notes}>Observações da sessão<textarea maxLength={2000} value={current.note} placeholder="Como foi o exercício?" onChange={e => update(index, { ...current, note: e.target.value })} /></label>
-          <details className={styles.rest}><summary>⏱ Descanso</summary><Timer key={`${data.week}:${workout.id}:${index}`} seconds={ex.restSeconds || 180} /></details>
+          {!ex.timerExcluded && <details className={styles.rest}><summary>⏱ Cronômetro do exercício</summary><Timer key={`execution:${data.week}:${workout.id}:${index}`} seconds={ex.durationSeconds ?? 0} label={`Tempo de ${ex.name}`} presets={ex.durationSeconds ? [ex.durationSeconds] : []} /></details>}
+          {((ex.restSeconds ?? 0) > 0 || !workout.modality) && <details className={styles.rest}><summary>⏱ Descanso</summary><Timer key={`${data.week}:${workout.id}:${index}`} seconds={ex.restSeconds || 180} /></details>}
         </div>
       </details>;
     })}
     <footer className={styles.actions}><button type="button" disabled={day === 0} onClick={() => changeDay(day - 1)}>← Anterior</button><button type="button" onClick={() => save(data)}>Salvar</button><button type="button" disabled={day >= workouts.length - 1} onClick={() => changeDay(day + 1)}>Próximo →</button></footer>
+    {workout.circuitSeconds && <details className={styles.rest}><summary>⏱ Circuito AMRAP · iniciar após o aquecimento</summary><Timer key={`amrap:${workout.id}`} seconds={workout.circuitSeconds} label="Tempo do circuito AMRAP" presets={[900, 1200]} /></details>}
     <p role="status">{message}</p><p className={styles.hint}>Registros salvos automaticamente por conta neste navegador. Não são sincronizados entre dispositivos.</p>
     {modal && <div className={styles.overlay}><section role="dialog" aria-modal="true" aria-label={modal === "week" ? "Escolher semana" : "Recordes pessoais"} className={styles.modal}>
       <h2>{modal === "week" ? "Escolher semana" : "Recordes pessoais (kg)"}</h2>

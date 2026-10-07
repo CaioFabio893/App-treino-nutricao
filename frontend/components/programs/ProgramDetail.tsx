@@ -28,6 +28,7 @@ type Status = "loading" | "ready" | "error";
  */
 export default function ProgramDetail({ programId, readOnly, backHref, backLabel }: Props) {
   const { getToken, user, profile } = useAuth();
+  const [modality, setModality] = useState<"gym" | "home" | null>(null);
   const [preview, setPreview] = useState(false);
   const [program, setProgram] = useState<TrainingProgram | null>(null);
   const [workouts, setWorkouts] = useState<Record<string, WorkoutDefine>>({});
@@ -89,6 +90,8 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
     return acc;
   }, [workouts]);
 
+  const hasModalities = Object.values(workouts).some(w => w.modality === "gym" || w.modality === "home");
+  const visible = hasModalities ? ordered.filter(ref => workouts[ref.workoutId]?.modality === modality) : ordered;
   const totalExercises = programExerciseCount(ordered, counts);
   const totalSets = useMemo(
     () =>
@@ -175,9 +178,17 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
         </div>
       )}
 
+      {hasModalities && <div className="frm-card">
+        <h3>Onde você vai treinar?</h3>
+        <div className="btn-row">
+          <button type="button" className={modality === "gym" ? "btn-p" : "btn-sm"} aria-pressed={modality === "gym"} onClick={() => setModality("gym")}>Academia</button>
+          <button type="button" className={modality === "home" ? "btn-p" : "btn-sm"} aria-pressed={modality === "home"} onClick={() => setModality("home")}>Em casa</button>
+        </div>
+        <p className="page-sub">As duas opções estão incluídas. Você pode trocar quando quiser.</p>
+      </div>}
+      {(!hasModalities || modality) && <>
       {!readOnly && <button type="button" className="btn-sm acc" onClick={() => setPreview(!preview)}>{preview ? "Fechar execução" : "Abrir app de treino / testar execução"}</button>}
-      {(readOnly || preview) && (user?.uid || profile?.id) && <WorkoutPlayer userId={user?.uid ?? profile!.id} programId={programId} workouts={ordered.flatMap(ref => workouts[ref.workoutId] ? [workouts[ref.workoutId]] : [])} labels={ordered.filter(ref => workouts[ref.workoutId]).map((ref, i) => ref.label ?? String.fromCharCode(65 + i))} periodized={Boolean(program.notes?.includes("82,5%"))} />}
-
+      {(readOnly || preview) && (user?.uid || profile?.id) && <WorkoutPlayer userId={user?.uid ?? profile!.id} programId={hasModalities ? `${programId}:${modality}` : programId} workouts={visible.flatMap(ref => workouts[ref.workoutId] ? [workouts[ref.workoutId]] : [])} labels={visible.filter(ref => workouts[ref.workoutId]).map((ref, i) => ref.label ?? String.fromCharCode(65 + i))} periodized={Boolean(program.notes?.includes("82,5%"))} />}
       <details open={!readOnly}>
       <summary className="section-label">Consultar prescrição completa</summary>
       <div className="section-label">Treinos do programa</div>
@@ -187,7 +198,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
           Este programa ainda não tem treinos. {readOnly ? "" : "Edite o programa para incluir treinos."}
         </div>
       ) : (
-        ordered.map((ref, i) => {
+        visible.map((ref, i) => {
           const w = workouts[ref.workoutId];
           const titulo = w?.name || ref.name || `Treino ${ref.label || i + 1}`;
           const dia = w?.dayOfWeek || ref.dayOfWeek;
@@ -283,6 +294,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
           : "—"}
       </div>
       </details>
+      </>}
     </div>
   );
 }

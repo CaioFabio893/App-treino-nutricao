@@ -196,14 +196,16 @@ func (r *firestoreRepo) ListUsersByStatus(ctx context.Context, status string) ([
 
 func (r *firestoreRepo) CreateWorkout(ctx context.Context, w *models.WorkoutDefine) (*models.WorkoutDefine, error) {
 	ref, _, err := r.fs.Collection("workouts").Add(ctx, map[string]any{
-		"studentId":   w.StudentID,
-		"name":        w.Name,
-		"description": w.Description,
-		"objective":   w.Objective,
-		"dayOfWeek":   w.DayOfWeek,
-		"exercises":   w.Exercises,
-		"createdAt":   firestore.ServerTimestamp,
-		"updatedAt":   firestore.ServerTimestamp,
+		"studentId":      w.StudentID,
+		"name":           w.Name,
+		"description":    w.Description,
+		"objective":      w.Objective,
+		"dayOfWeek":      w.DayOfWeek,
+		"modality":       w.Modality,
+		"circuitSeconds": w.CircuitSeconds,
+		"exercises":      w.Exercises,
+		"createdAt":      firestore.ServerTimestamp,
+		"updatedAt":      firestore.ServerTimestamp,
 	})
 	if err != nil {
 		return nil, err
@@ -264,13 +266,15 @@ func workoutsFromIter(iter docIterator) ([]*models.WorkoutDefine, error) {
 
 func (r *firestoreRepo) UpdateWorkout(ctx context.Context, id string, w *models.WorkoutDefine) error {
 	_, err := r.fs.Collection("workouts").Doc(id).Set(ctx, map[string]any{
-		"studentId":   w.StudentID,
-		"name":        w.Name,
-		"description": w.Description,
-		"objective":   w.Objective,
-		"dayOfWeek":   w.DayOfWeek,
-		"exercises":   w.Exercises,
-		"updatedAt":   firestore.ServerTimestamp,
+		"studentId":      w.StudentID,
+		"name":           w.Name,
+		"description":    w.Description,
+		"objective":      w.Objective,
+		"dayOfWeek":      w.DayOfWeek,
+		"modality":       w.Modality,
+		"circuitSeconds": w.CircuitSeconds,
+		"exercises":      w.Exercises,
+		"updatedAt":      firestore.ServerTimestamp,
 	}, firestore.MergeAll)
 	return err
 }

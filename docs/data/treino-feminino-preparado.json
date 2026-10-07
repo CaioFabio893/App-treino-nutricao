@@ -1,0 +1,839 @@
+{
+  "program": {
+    "id": "treino-feminino",
+    "studentId": "",
+    "name": "Treino Feminino",
+    "description": "Academia e Em casa · escolha onde treinar",
+    "objective": "Hipertrofia, definição muscular e aumento do gasto calórico.",
+    "source": "treino-feminino-fonte.md",
+    "notes": "Alongamentos não constam na fonte. Vídeos ainda precisam ser selecionados e conferidos.",
+    "workouts": [
+      {
+        "workoutId": "treino-feminino-gym-a",
+        "order": 1,
+        "label": "A",
+        "name": "Academia · A · QUADRÍCEPS E GLÚTEOS"
+      },
+      {
+        "workoutId": "treino-feminino-gym-b",
+        "order": 2,
+        "label": "B",
+        "name": "Academia · B · SUPERIORES E CORE"
+      },
+      {
+        "workoutId": "treino-feminino-gym-c",
+        "order": 3,
+        "label": "C",
+        "name": "Academia · C · POSTERIOR DE COXA E GLÚTEOS"
+      },
+      {
+        "workoutId": "treino-feminino-gym-d",
+        "order": 4,
+        "label": "D",
+        "name": "Academia · D · FULL BODY E CORE"
+      },
+      {
+        "workoutId": "treino-feminino-home-1",
+        "order": 5,
+        "label": "1",
+        "name": "Em casa · 1 · QUADRÍCEPS E GLÚTEOS EXPRESS"
+      },
+      {
+        "workoutId": "treino-feminino-home-2",
+        "order": 6,
+        "label": "2",
+        "name": "Em casa · 2 · SUPERIORES E CORE EXPRESS"
+      },
+      {
+        "workoutId": "treino-feminino-home-3",
+        "order": 7,
+        "label": "3",
+        "name": "Em casa · 3 · POSTERIOR DE COXA E GLÚTEOS EXPRESS"
+      },
+      {
+        "workoutId": "treino-feminino-home-4",
+        "order": 8,
+        "label": "4",
+        "name": "Em casa · 4 · FULL BODY EXPRESS (METABÓLICO)"
+      }
+    ]
+  },
+  "workouts": [
+    {
+      "id": "treino-feminino-gym-a",
+      "studentId": "",
+      "name": "Academia · A · QUADRÍCEPS E GLÚTEOS",
+      "modality": "gym",
+      "circuitSeconds": 0,
+      "description": "Sessão de 60 minutos. Prescrição original preservada nas observações.",
+      "exercises": [
+        {
+          "name": "Rotação de Tornozelos e Quadril",
+          "sets": 1,
+          "repetitions": "1 a 2 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 60,
+          "timerExcluded": false,
+          "notes": "Duração: 1 a 2 minutos contínuos.\nDescanso: 0 segundos.\nDetalhamento de Execução: Movimentos circulares suaves com os pés e rotações de quadril para lubrificação articular.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Agachamento Livre Sem Peso",
+          "sets": 2,
+          "repetitions": "2 séries x 15 repetições.",
+          "restSeconds": 30,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 2 séries x 15 repetições.\nTempo de Descanso: 30 segundos entre as séries.\nDetalhamento de Execução: Pés na largura dos ombros, descer o quadril controladamente preservando as curvaturas naturais da coluna.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Agachamento Livre (com Barra ou no Smith)",
+          "sets": 4,
+          "repetitions": "4 séries x 10 a 12 repetições.",
+          "restSeconds": 60,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Posicionar a barra no trapézio, destravar a articulação do quadril e joelhos simultaneamente, agachar até aproximadamente 90° e retornar empurrando o solo pelos calcanhares.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Leg Press 45°",
+          "sets": 3,
+          "repetitions": "3 séries x 12 a 15 repetições.",
+          "restSeconds": 60,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Apoiar os pés na plataforma na largura do quadril, destravar o aparelho, descer a plataforma até formar um ângulo de 90° nos joelhos sem tirar o quadril do encosto, e empurrar sem travar a articulação no topo.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Cadeira Extensora",
+          "sets": 3,
+          "repetitions": "3 séries x 12 repetições.",
+          "restSeconds": 60,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Ajustar o encosto para apoiar totalmente a coluna, estender os joelhos até a amplitude máxima, segurar 2 segundos de pausa de contração no topo e retornar lentamente.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Elevação Pélvica com Barra ou na Máquina",
+          "sets": 4,
+          "repetitions": "4 séries x 10 a 12 repetições.",
+          "restSeconds": 60,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Apoiar as escápulas no banco, apoiar a barra na dobra do quadril, elevar o quadril contraindo fortemente os glúteos até alinhar com o tronco, mantendo os joelhos em 90° no topo.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Panturrilha em Pé (na Máquina ou Degrau)",
+          "sets": 4,
+          "repetitions": "4 séries x 15 repetições.",
+          "restSeconds": 45,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 4 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Apoiar a ponta dos pés na plataforma, descer o calcanhar ao máximo para alongar e subir realizando a flexão plantar máxima.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Esteira Inclinada",
+          "sets": 1,
+          "repetitions": "10 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 8,
+          "phase": "cardio",
+          "durationSeconds": 600,
+          "timerExcluded": true,
+          "notes": "Duração: 10 minutos contínuos.\nParâmetros: Inclinação de 6% a 8%, Velocidade de 4.5 a 5.5 km/h.\nDescanso: Fim do treino.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-gym-b",
+      "studentId": "",
+      "name": "Academia · B · SUPERIORES E CORE",
+      "modality": "gym",
+      "circuitSeconds": 0,
+      "description": "Sessão de 60 minutos. Prescrição original preservada nas observações.",
+      "exercises": [
+        {
+          "name": "Rotação de Ombros (Frente e Trás) + Polichinelos Leves",
+          "sets": 1,
+          "repetitions": "2 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 120,
+          "timerExcluded": false,
+          "notes": "Duração: 2 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Giro amplo dos braços para aquecimento do manguito rotador seguido de polichinelos em ritmo moderado.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Puxada Alta no Pulley (Pegada Aberta)",
+          "sets": 4,
+          "repetitions": "4 séries x 10 a 12 repetições.",
+          "restSeconds": 60,
+          "order": 2,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Sentar no aparelho fixando as coxas, segurar a barra com pegada pronada aberta, puxar a barra em direção à parte superior do peito fechando as escápulas e retornar controladamente.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Remada Baixa com Triângulo",
+          "sets": 3,
+          "repetitions": "3 séries x 12 repetições.",
+          "restSeconds": 60,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Pés apoiados, tronco ereto, puxar o triângulo em direção ao umbigo mantendo os cotovelos próximos ao corpo e projetando o peito para a frente.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Desenvolvimento de Ombros com Halteres",
+          "sets": 3,
+          "repetitions": "3 séries x 12 repetições.",
+          "restSeconds": 60,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Sentada no banco a 90°, segurar os halteres na altura dos ombros e empurrá-los verticalmente para cima até estender quase completamente os braços.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Tríceps Corda no Pulley",
+          "sets": 3,
+          "repetitions": "3 séries x 12 a 15 repetições.",
+          "restSeconds": 45,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Cotovelos colados ao tronco, puxar a corda para baixo estendendo os braços e afastando as pontas da corda ao final do movimento.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Prancha Abdominal Solo",
+          "sets": 3,
+          "repetitions": "3 séries x 30 a 45 segundos de sustentação.",
+          "restSeconds": 45,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 30,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 30 a 45 segundos de sustentação.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Apoiar antebraços e pontas dos pés no solo, mantendo quadril, coluna e cabeça em perfeito alinhamento reto com abdômen contraído.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Transport / Elíptico",
+          "sets": 1,
+          "repetitions": "10 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "cardio",
+          "durationSeconds": 600,
+          "timerExcluded": false,
+          "notes": "Duração: 10 minutos contínuos.\nParâmetros: Carga moderada, ritmo constante.\nDescanso: Fim do treino.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-gym-c",
+      "studentId": "",
+      "name": "Academia · C · POSTERIOR DE COXA E GLÚTEOS",
+      "modality": "gym",
+      "circuitSeconds": 0,
+      "description": "Sessão de 60 minutos. Prescrição original preservada nas observações.",
+      "exercises": [
+        {
+          "name": "Pássaro-Cão (Bird-Dog)",
+          "sets": 1,
+          "repetitions": "2 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 120,
+          "timerExcluded": false,
+          "notes": "Duração: 2 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Em 4 apoios, estender o braço direito à frente e a perna esquerda atrás simultaneamente, alternando os lados para ativação de core e lombar.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Elevação Pélvica Solo Sem Peso",
+          "sets": 2,
+          "repetitions": "2 séries x 15 repetições.",
+          "restSeconds": 30,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 2 séries x 15 repetições.\nTempo de Descanso: 30 segundos entre as séries.\nDetalhamento de Execução: Deitada de costas, subir o quadril contraindo os glúteos no topo.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Stiff com Halteres ou Barra",
+          "sets": 4,
+          "repetitions": "4 séries x 10 a 12 repetições.",
+          "restSeconds": 60,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 4 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Pés na largura do quadril, joelhos semi-flexionados e travados, projetar o quadril para trás descendo a carga rente às pernas mantendo a coluna totalmente neutra.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Cadeira Flexora (ou Mesa Flexora)",
+          "sets": 3,
+          "repetitions": "3 séries x 12 a 15 repetições.",
+          "restSeconds": 60,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Ajustar o rolo nos calcanhares, flexionar os joelhos empurrando a alavanca em direção ao glúteo e retornar segurando a carga.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Passada / Afundo com Halteres",
+          "sets": 3,
+          "repetitions": "3 séries x 10 repetições por perna.",
+          "restSeconds": 60,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 10 repetições por perna.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Dar um passo à frente descendo o joelho da perna de trás em direção ao solo até formar 90° em ambas as articulações.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Cadeira Abdutora",
+          "sets": 3,
+          "repetitions": "3 séries x 15 repetições.",
+          "restSeconds": 45,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Tronco bem encostado, afastar as pernas fazendo força com as laterais do glúteo e retornar devagar sem encostar os pesos.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Panturrilha em Pé ou Sentada",
+          "sets": 3,
+          "repetitions": "3 séries x 15 repetições.",
+          "restSeconds": 45,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Flexão e extensão completa do tornozelo com carga sobre os ombros ou joelhos.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Bike Ergométrica",
+          "sets": 1,
+          "repetitions": "10 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 8,
+          "phase": "cardio",
+          "durationSeconds": 600,
+          "timerExcluded": false,
+          "notes": "Duração: 10 minutos contínuos.\nParâmetros: Cadência moderada (70 a 80 RPM).\nDescanso: Fim do treino.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-gym-d",
+      "studentId": "",
+      "name": "Academia · D · FULL BODY E CORE",
+      "modality": "gym",
+      "circuitSeconds": 0,
+      "description": "Sessão de 60 minutos. Prescrição original preservada nas observações.",
+      "exercises": [
+        {
+          "name": "Polichinelos Leves + Mobilidade de Tronco",
+          "sets": 1,
+          "repetitions": "3 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 180,
+          "timerExcluded": false,
+          "notes": "Duração: 3 minutos contínuos.\nTempo de Descanso: 0 segundos.\nDetalhamento de Execução: Aumento da temperatura corporal com saltos leves e giros controlados de tronco.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Supino Reto com Halteres",
+          "sets": 3,
+          "repetitions": "3 séries x 10 a 12 repetições.",
+          "restSeconds": 60,
+          "order": 2,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 10 a 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Deitada no banco reto, empurrar os halteres verticalmente até a extensão dos braços e descer até a linha do peito.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Remada Articulada (ou Remada com Halteres)",
+          "sets": 3,
+          "repetitions": "3 séries x 12 repetições.",
+          "restSeconds": 60,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 repetições.\nTempo de Descanso: 60 segundos entre as séries.\nDetalhamento de Execução: Puxar a manopla/halter trazendo os cotovelos para trás na linha do tronco e contraindo as costas.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Elevação Lateral com Halteres",
+          "sets": 3,
+          "repetitions": "3 séries x 12 a 15 repetições.",
+          "restSeconds": 45,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 12 a 15 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Elevar os braços lateralmente até a altura dos ombros com os cotovelos levemente flexionados e retornar devagar.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Abdominal Supra (Curto)",
+          "sets": 3,
+          "repetitions": "3 séries x 15 a 20 repetições.",
+          "restSeconds": 45,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 15 a 20 repetições.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Deitada de costas com joelhos dobrados, flexionar a coluna retirando apenas as escápulas do chão e soltando o ar na subida.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Prancha Abdominal Solo",
+          "sets": 3,
+          "repetitions": "3 séries x 30 a 45 segundos.",
+          "restSeconds": 45,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 30,
+          "timerExcluded": false,
+          "notes": "Séries x Repetições: 3 séries x 30 a 45 segundos.\nTempo de Descanso: 45 segundos entre as séries.\nDetalhamento de Execução: Sustentação isométrica do corpo em posição de prancha.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Esteira ou Bike",
+          "sets": 1,
+          "repetitions": "10 minutos contínuos.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "cardio",
+          "durationSeconds": 600,
+          "timerExcluded": false,
+          "notes": "Duração: 10 minutos contínuos.\nParâmetros: Ritmo constante moderado.\nDescanso: Fim do treino.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-home-1",
+      "studentId": "",
+      "name": "Em casa · 1 · QUADRÍCEPS E GLÚTEOS EXPRESS",
+      "modality": "home",
+      "circuitSeconds": 900,
+      "description": "AMRAP 15 a 20 minutos, após aquecimento; descanso conforme necessidade.",
+      "exercises": [
+        {
+          "name": "Polichinelos",
+          "sets": 1,
+          "repetitions": "1 minuto",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 60,
+          "timerExcluded": false,
+          "notes": "",
+          "videoUrl": ""
+        },
+        {
+          "name": "Agachamento Livre Leve Sem Peso",
+          "sets": 1,
+          "repetitions": "15 repetições",
+          "restSeconds": 0,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Agachamento Sumô (com garrafa ou mochila no peito)",
+          "sets": 1,
+          "repetitions": "15 repetições.",
+          "restSeconds": 0,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 repetições.\nExecução: Pés bem afastados, pontas dos pés viradas para fora a 45°, descer o quadril mantendo o peito aberto.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Afundo Búlgaro (pé de trás apoiado na cadeira/sofá)",
+          "sets": 1,
+          "repetitions": "10 repetições por perna.",
+          "restSeconds": 0,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 10 repetições por perna.\nExecução: Um pé apoiado no móvel atrás, flexionar o joelho da frente descendo até 90°.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Cadeira Isométrica na Parede",
+          "sets": 1,
+          "repetitions": "30 segundos sustentando.",
+          "restSeconds": 0,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 30,
+          "timerExcluded": false,
+          "notes": "Volume: 30 segundos sustentando.\nExecução: Encostar as costas na parede e agachar até os joelhos formarem 90°, segurando a posição.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Elevação Pélvica Solo com Pausa",
+          "sets": 1,
+          "repetitions": "15 repetições com 2 segundos de pausa no topo.",
+          "restSeconds": 0,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 repetições com 2 segundos de pausa no topo.\nExecução: Deitada de costas, subir o quadril, contrair os glúteos no topo por 2 segundos e retornar.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Panturrilha em Pé Solo",
+          "sets": 1,
+          "repetitions": "20 repetições.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 20 repetições.\nExecução: Elevação máxima dos calcanhares no solo ou degrau.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-home-2",
+      "studentId": "",
+      "name": "Em casa · 2 · SUPERIORES E CORE EXPRESS",
+      "modality": "home",
+      "circuitSeconds": 900,
+      "description": "AMRAP 15 a 20 minutos, após aquecimento; descanso conforme necessidade.",
+      "exercises": [
+        {
+          "name": "Corrida no Lugar",
+          "sets": 1,
+          "repetitions": "1 minuto",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 60,
+          "timerExcluded": false,
+          "notes": "",
+          "videoUrl": ""
+        },
+        {
+          "name": "Rotação de Braços e Ombros",
+          "sets": 1,
+          "repetitions": "1 minuto",
+          "restSeconds": 0,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 60,
+          "timerExcluded": false,
+          "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Flexão de Braço (joelhos apoiados)",
+          "sets": 1,
+          "repetitions": "10 a 12 repetições.",
+          "restSeconds": 0,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 10 a 12 repetições.\nExecução: Joelhos apoiados no chão, mãos na largura dos ombros, descer o peito próximo ao solo mantendo o tronco reto.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Remada Curvada com Mochila",
+          "sets": 1,
+          "repetitions": "15 repetições.",
+          "restSeconds": 0,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 repetições.\nExecução: Tronco inclinado à frente a 45° com coluna reta, puxar a mochila na direção do umbigo aproximando as escápulas.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Desenvolvimento de Ombros em Pé (com mochila ou garrafas)",
+          "sets": 1,
+          "repetitions": "12 a 15 repetições.",
+          "restSeconds": 0,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 12 a 15 repetições.\nExecução: Empurrar o peso acima da cabeça estendendo os braços e retornar até a linha dos queixos.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Tríceps no Banco ou Cadeira",
+          "sets": 1,
+          "repetitions": "10 a 12 repetições.",
+          "restSeconds": 0,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 10 a 12 repetições.\nExecução: Mãos apoiadas na borda do banco, quadril projetado para a frente, flexionar os cotovelos a 90° e empurrar de volta.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Prancha Abdominal Solo",
+          "sets": 1,
+          "repetitions": "30 a 40 segundos.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 30,
+          "timerExcluded": false,
+          "notes": "Volume: 30 a 40 segundos.\nExecução: Sustentação isométrica do corpo sobre antebraços e pontas dos pés.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-home-3",
+      "studentId": "",
+      "name": "Em casa · 3 · POSTERIOR DE COXA E GLÚTEOS EXPRESS",
+      "modality": "home",
+      "circuitSeconds": 900,
+      "description": "AMRAP 15 a 20 minutos, após aquecimento; descanso conforme necessidade.",
+      "exercises": [
+        {
+          "name": "Pássaro-Cão (Bird-Dog)",
+          "sets": 1,
+          "repetitions": "10 repetições cada lado",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "",
+          "videoUrl": ""
+        },
+        {
+          "name": "Polichinelos Leves",
+          "sets": 1,
+          "repetitions": "1 minuto",
+          "restSeconds": 0,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 60,
+          "timerExcluded": false,
+          "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Stiff Unilateral (peso corporal ou mochila)",
+          "sets": 1,
+          "repetitions": "10 a 12 repetições por perna.",
+          "restSeconds": 0,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 10 a 12 repetições por perna.\nExecução: Apoio em uma perna só, inclinar o tronco à frente elevando a perna oposta atrás, mantendo a coluna reta.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Elevação Pélvica Unilateral Solo",
+          "sets": 1,
+          "repetitions": "10 repetições por perna.",
+          "restSeconds": 0,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 10 repetições por perna.\nExecução: Uma perna estendida para o alto, subir o quadril fazendo força no calcanhar apoiado no chão.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Abdução de Quadril Deitada (Solo)",
+          "sets": 1,
+          "repetitions": "15 repetições por perna.",
+          "restSeconds": 0,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 repetições por perna.\nExecução: Deitada de lado, elevar a perna de cima estendida focando a contração na lateral do glúteo.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Ponte de Glúteo com Calcanhar Elevado (no sofácadeira)",
+          "sets": 1,
+          "repetitions": "12 a 15 repetições.",
+          "restSeconds": 0,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 12 a 15 repetições.\nExecução: Calcanhares apoiados no móvel, elevar o quadril contraindo glúteos e posteriores.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Abdominal Infra (Elevação de Pernas)",
+          "sets": 1,
+          "repetitions": "15 repetições.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 repetições.\nExecução: Deitada de costas, elevar as pernas juntas até 90° e descer controladamente sem tirar a lombar do solo.",
+          "videoUrl": ""
+        }
+      ]
+    },
+    {
+      "id": "treino-feminino-home-4",
+      "studentId": "",
+      "name": "Em casa · 4 · FULL BODY EXPRESS (METABÓLICO)",
+      "modality": "home",
+      "circuitSeconds": 900,
+      "description": "AMRAP 15 a 20 minutos, após aquecimento; descanso conforme necessidade.",
+      "exercises": [
+        {
+          "name": "Polichinelos",
+          "sets": 1,
+          "repetitions": "1.5 minutos",
+          "restSeconds": 0,
+          "order": 1,
+          "phase": "warmup",
+          "durationSeconds": 90,
+          "timerExcluded": false,
+          "notes": "",
+          "videoUrl": ""
+        },
+        {
+          "name": "Mobilidade Articular Geral (Ombros e Quadril)",
+          "sets": 1,
+          "repetitions": "1.5 minutos",
+          "restSeconds": 0,
+          "order": 2,
+          "phase": "warmup",
+          "durationSeconds": 90,
+          "timerExcluded": false,
+          "notes": "Tempo de Descanso: 0 segundos. Iniciar o cronômetro principal logo em seguida.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Agachamento com Desenvolvimento (Thrusts)",
+          "sets": 1,
+          "repetitions": "12 repetições.",
+          "restSeconds": 0,
+          "order": 3,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 12 repetições.\nExecução: Segurar mochilas/garrafas na altura dos ombros, agachar e ao subir empurrar o peso acima da cabeça em um movimento fluido.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Passada para Trás Alternada",
+          "sets": 1,
+          "repetitions": "12 repetições no total (6 por perna).",
+          "restSeconds": 0,
+          "order": 4,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 12 repetições no total (6 por perna).\nExecução: Dar um passo para trás agachando até 90° e retornar à posição em pé.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Escalador no Solo (Mountain Climber)",
+          "sets": 1,
+          "repetitions": "20 repetições no total (10 por perna).",
+          "restSeconds": 0,
+          "order": 5,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 20 repetições no total (10 por perna).\nExecução: Em posição de prancha alta, puxar os joelhos alternadamente em direção ao peito em ritmo rápido.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Burpee Adaptado (sem flexão)",
+          "sets": 1,
+          "repetitions": "8 a 10 repetições.",
+          "restSeconds": 0,
+          "order": 6,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 8 a 10 repetições.\nExecução: Apoiar as mãos no chão, jogar os pés para trás na posição de prancha, retornar os pés perto das mãos e saltar levemente.",
+          "videoUrl": ""
+        },
+        {
+          "name": "Abdominal Supra (Curto)",
+          "sets": 1,
+          "repetitions": "15 a 20 repetições.",
+          "restSeconds": 0,
+          "order": 7,
+          "phase": "main",
+          "durationSeconds": 0,
+          "timerExcluded": false,
+          "notes": "Volume: 15 a 20 repetições.\nExecução: Flexão curta de tronco com foco no abdômen superior.",
+          "videoUrl": ""
+        }
+      ]
+    }
+  ]
+}
