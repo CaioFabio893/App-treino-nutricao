@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import type { TrainingProgram, WorkoutDefine } from "@/lib/types";
 import { PROGRAM_DAY_SHORT, programExerciseCount } from "@/lib/programDays";
 import { LoadingScreen } from "@/components/SetupNeeded";
+import styles from "@/components/programs/TrainingPresentation.module.css";
 import LoadError from "@/components/LoadError";
 
 /**
@@ -61,15 +62,16 @@ export default function StudentProgramsPage() {
   for (const w of workouts) if (w.id) counts[w.id] = w.exercises?.length ?? 0;
 
   return (
-    <div>
-      <div className="page-head">
+    <div className={styles.page}>
+      <div className={styles.hero}>
         <div>
-          <h1>Treino</h1>
-          <div className="page-sub">
+          <span className={styles.kicker}>SEU MOVIMENTO, SUA EVOLUÇÃO</span>
+          <h1>Meus treinos</h1>
+          <p>
             {programs.length > 0
               ? "O plano de treinos da sua nutricionista."
               : "Você ainda não tem um treino completo atribuído."}
-          </div>
+          </p>
         </div>
       </div>
 
@@ -78,28 +80,27 @@ export default function StudentProgramsPage() {
           Nenhum treino completo atribuído a você ainda. Peça ao responsável para associar seu programa de treino.
         </div>
       ) : (
-        programs.map((p) => {
+        <div className={styles.programGrid}>{programs.map((p) => {
           const days = (p.workouts ?? [])
             .map((r) => PROGRAM_DAY_SHORT[r.dayOfWeek ?? ""] ?? "")
             .filter(Boolean)
             .join(" · ");
           return (
-            <div key={p.id} className="stu-card">
-              <div className="stu-card-title">{p.name}</div>
-              {p.objective && <div className="stu-card-sub">{p.objective}</div>}
-              <div className="nut-meta">
-                <span className="badge">{p.workouts?.length ?? 0} treinos</span>
-                <span className="badge">{programExerciseCount(p.workouts, counts)} exercícios</span>
-                {days && <span className="badge">{days}</span>}
+            <article key={p.id} className={styles.programCard}>
+              <div className={styles.programTop}>
+                <span className={styles.programSymbol} aria-hidden="true"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"><path d="M6 8v8M3 10v4M18 8v8M21 10v4M6 12h12" /></svg></span>
+                <div><span className={styles.programLabel}>PROGRAMA DE TREINO</span><h2>{p.name}</h2></div>
               </div>
-              <div className="btn-row">
-                <Link href={`/treinos/${p.id}`} className="btn-sm acc">
-                  Abrir treino
-                </Link>
+              {p.objective && <p>{p.objective}</p>}
+              <div className={styles.programStats}>
+                <div><strong>{p.workouts?.length ?? 0}</strong>treinos no programa</div>
+                <div><strong>{programExerciseCount(p.workouts, counts)}</strong>exercícios</div>
               </div>
-            </div>
+              {days && <div className={styles.programDays}>Dias: {days}</div>}
+              <Link href={`/treinos/${p.id}`} className={styles.openButton}>Abrir meu treino <span aria-hidden="true">→</span></Link>
+            </article>
           );
-        })
+        })}</div>
       )}
     </div>
   );

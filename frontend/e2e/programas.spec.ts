@@ -102,11 +102,11 @@ test.describe("Programa de treino (admin)", () => {
 
     await page.goto("/programas");
     await page.waitForURL("**/treinos");
-    await expect(page.getByRole("heading", { name: "Treino" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Meus treinos" })).toBeVisible();
     await expect(page.getByText("Louise Lima (Ciclo 2)")).toBeVisible();
-    await expect(page.getByRole("link", { name: "Abrir treino" }).first()).toBeVisible();
+    await expect(page.getByRole("link", { name: "Abrir meu treino" }).first()).toBeVisible();
 
-    await page.getByRole("link", { name: "Abrir treino" }).first().click();
+    await page.getByRole("link", { name: "Abrir meu treino" }).first().click();
     await expect(page.getByRole("heading", { name: /Louise Lima \(Ciclo 2\)/ })).toBeVisible();
     // Exercícios visíveis...
     await expect(page.getByText("Agachamento Livre com Barra").first()).toBeVisible();
@@ -116,7 +116,7 @@ test.describe("Programa de treino (admin)", () => {
     await page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true }).fill("40");
     await page.getByLabel("Agachamento Livre com Barra série 1 repetições", { exact: true }).fill("8");
     await page.getByRole("button", { name: "Agachamento Livre com Barra série 1: não marcada", exact: true }).click();
-    await expect(page.getByText("1 / 19 séries concluídas com sucesso")).toBeVisible();
+    await expect(page.getByText("1 de 19 séries concluídas")).toBeVisible();
     await page.reload();
     await expect(page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true })).toHaveValue("40");
     await expect(page.getByRole("button", { name: "Agachamento Livre com Barra série 1: conseguiu", exact: true })).toBeVisible();

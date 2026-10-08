@@ -67,7 +67,6 @@
 .btn-p, .btn-s { border-radius: 10px; }
 .hbtn, .tp-btn { border-radius: 10px; }
 #toast { border-radius: 12px; }
-
 /* ══════════════════════════════════════════════════════════════════════
    ÁREA DO ALUNO — shell próprio (topbar + bottom nav + conteúdo)
    Classes com prefixo `stu-` para não acoplar ao painel do nutricionista.
@@ -75,67 +74,23 @@
    dos componentes compartilhados (wod-picker, ex-card, timeline, feed...).
    ══════════════════════════════════════════════════════════════════════ */
 
-.stu-shell {
-  min-height: 100vh; display: flex; flex-direction: column;
-  background: var(--cream); color: var(--text);
-}
-
 /* Topbar: logo + nome do aluno + sair */
-.stu-topbar {
-  position: sticky; top: 0; z-index: 150;
-  background: var(--white); border-bottom: 1.5px solid var(--border);
-  padding: calc(10px + env(safe-area-inset-top, 0px)) 16px 10px; display: flex; align-items: center; justify-content: space-between;
-  box-shadow: 0 2px 12px rgba(11,107,82,0.07);
-}
-.stu-topbar-logout {
-  background: transparent; border: 1.5px solid var(--border); color: var(--muted);
-  font-family: var(--sans); font-size: 11px; font-weight: 500; letter-spacing: 0.5px;
-  padding: 6px 14px; border-radius: 999px; cursor: pointer;
-  transition: color .15s, border-color .15s, background .15s;
-}
-.stu-topbar-logout:hover { color: var(--terra); border-color: var(--terra); background: var(--peach); }
 
 /* Conteúdo: mesmo respiro do painel (max-width 720px) */
-.stu-main { flex: 1; width: 100%; max-width: 720px; margin: 0 auto; padding: 16px 14px 130px; }
 
 /* Bottom nav fixa, estilo app mobile */
-.stu-nav {
-  position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
-  background: var(--white); border-top: 1.5px solid var(--border);
-  box-shadow: 0 -4px 20px rgba(11,107,82,0.08);
-  padding-bottom: env(safe-area-inset-bottom, 0);
-}
-.stu-nav-inner { display: flex; max-width: 720px; margin: 0 auto; }
-.stu-nav-link {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px;
-  padding: 10px 6px 8px; background: none; border: none; cursor: pointer;
-  font-family: var(--sans); font-size: 10px; font-weight: 500; letter-spacing: 0.3px;
-  color: var(--muted); text-decoration: none; border-top: 2.5px solid transparent;
-  transition: color .15s, border-top-color .15s;
-}
-.stu-nav-link svg { opacity: 0.85; transition: opacity .15s; }
-.stu-nav-link.active { color: var(--terra); border-top-color: var(--terra); }
-.stu-nav-link.active svg { opacity: 1; }
 
 /* Card genérico da área do aluno (substitui o .nut-card emprestado) */
-.stu-card {
-  background: var(--white); border: 1.5px solid var(--border);
-  border-radius: var(--r); padding: 14px; margin-bottom: 10px;
-  box-shadow: none;
-}
-.stu-card-title { font-size: 14px; font-weight: 600; color: var(--text); }
-.stu-card-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
 
 /* Dieta: refeições e alimentos legíveis (sem estilo inline) */
 .stu-meal {
-  background: var(--cream); border: 1px solid var(--border);
+  background: var(--t-canvas); border: 1px solid var(--t-line);
   border-radius: var(--r-sm); padding: 12px; margin-top: 10px;
 }
 .stu-meal-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
-.stu-meal-head b { font-size: 14px; color: var(--terra); }
-.stu-meal-head span { font-size: 12px; color: var(--muted); }
-.stu-food { font-size: 12.5px; color: var(--text); padding: 2px 0; }
-.stu-food-note { font-size: 11px; color: var(--muted); margin-top: 4px; font-style: italic; }
+.stu-meal-head b { font-size: 14px; color: var(--t-brand); }
+.stu-food { font-size: 12.5px; color: var(--t-ink); padding: 2px 0; }
 
 /* Calendário semanal do aluno: cards maiores, nome legível (sem cortar em 7 chars) */
 .stu-week {
@@ -143,20 +98,11 @@
   gap: 8px; margin: 12px 0 4px;
 }
 .stu-week-day {
-  background: var(--white); border: 1.5px solid var(--border); border-radius: 10px;
+  background: var(--t-card); border: 1.5px solid var(--t-line); border-radius: 10px;
   padding: 10px 8px; text-align: center; min-width: 0;
 }
 .stu-week-day.has { background: var(--ok-bg); border-color: #b3d49a; }
-.stu-week-day label {
-  font-size: 9px; letter-spacing: 1px; text-transform: uppercase;
-  color: var(--muted); display: block; margin-bottom: 5px;
-}
-.stu-week-day .name {
-  font-size: 11px; font-weight: 600; color: var(--muted); line-height: 1.3;
-  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
-}
 .stu-week-day.has .name { color: var(--ok); }
-.stu-week-day .empty { font-size: 11px; color: var(--muted); }
 
 /* Ajuste fino de seções da página do aluno */
 .stu-feed-label { margin-top: 18px; }
@@ -170,54 +116,32 @@
 @media (min-width: 560px) {
   .stu-dash-grid { grid-template-columns: 1fr 1fr; }
 }
-.stu-dash-card {
-  display: flex; align-items: center; gap: 12px;
-  background: var(--white); border: 1.5px solid var(--border);
-  border-radius: var(--r); padding: 16px 14px;
-  text-decoration: none; color: var(--text);
-  transition: background .12s, border-color .12s, transform .12s;
-}
-.stu-dash-card:hover { background: var(--peach); border-color: var(--blush); }
+.stu-dash-card:hover { background: var(--t-brand-tint); border-color: var(--blush); }
 .stu-dash-card:active { transform: scale(0.99); }
 .stu-dash-icon {
   flex: none; width: 44px; height: 44px; border-radius: 12px;
   display: flex; align-items: center; justify-content: center;
-  background: var(--peach); color: var(--terra);
+  background: var(--t-brand-tint); color: var(--t-brand);
 }
 .stu-dash-body { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.stu-dash-title { font-size: 15px; font-weight: 600; color: var(--text); }
-.stu-dash-desc { font-size: 11.5px; color: var(--muted); line-height: 1.35; }
 .stu-dash-arrow {
-  margin-left: auto; color: var(--muted); font-size: 16px;
+  margin-left: auto; color: var(--t-muted); font-size: 16px;
   transition: transform .12s, color .12s;
 }
-.stu-dash-card:hover .stu-dash-arrow { color: var(--terra); transform: translateX(2px); }
-
+.stu-dash-card:hover .stu-dash-arrow { color: var(--t-brand); transform: translateX(2px); }
 /* ══════════════════════════════════════════════════════════════════════
    CONTEÚDO DA DIETA — texto livre (copiar/colar) preservando quebras
    ══════════════════════════════════════════════════════════════════════ */
-.stu-diet-content {
-  margin-top: 12px; padding: 14px;
-  background: var(--cream); border: 1px solid var(--border);
-  border-radius: var(--r-sm);
-  font-size: 13.5px; line-height: 1.7; color: var(--text);
-  white-space: pre-wrap; word-break: break-word;
-  font-family: var(--sans);
-}
+
 .stu-copy-btn { margin-top: 10px; }
 /* Softer shared surfaces and readable nutrition content. */
 :root { --d-radius: 20px; --d-radius-sm: 12px; --d-shadow: 0 8px 30px rgba(15,55,40,.045); }
-.stu-shell { background: radial-gradient(ellipse at top right, #e5f2eb 0, transparent 55%),var(--d-bg); }
-.stu-main { padding-top: 28px; }
-.stu-card,.stu-dash-card,.nut-card,.frm-card { border-radius: 22px; border-color: rgba(11,107,82,.09); box-shadow: 0 8px 28px rgba(15,55,40,.045); padding: 22px; }
-.stu-card { margin-bottom: 20px; }
+
+.nut-card, .frm-card { border-radius: 22px; border-color: rgba(11,107,82,.09); box-shadow: 0 8px 28px rgba(15,55,40,.045); padding: 22px; }
+
 .page-head { margin-bottom: 24px; }
 .page-head h1 { font-size: clamp(24px,4vw,30px); letter-spacing: -.8px; }
-.stu-card-title,.stu-dash-title { letter-spacing: -.3px; }
 .btn-sm,.btn-p { border-radius: 12px; min-height: 40px; }
-.stu-topbar { border-bottom-color: transparent; background: rgba(255,255,255,.92); }
-.stu-nav { border-radius: 22px 22px 0 0; background: rgba(255,255,255,.95); box-shadow: 0 -4px 24px rgba(15,55,40,.05); }
-.stu-nav a { border-radius: 14px; }
 .formatted-text { font-size: 14px; line-height: 1.8; overflow-wrap: anywhere; padding: 16px 0; }
 .formatted-text p { white-space: pre-wrap; margin: 0; }
 .formatted-text h3 { font-size: 17px; color: var(--d-primary-dark); margin: 16px 0 8px; }
@@ -228,19 +152,17 @@
 .editor-toolbar { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
 .editor-help { font-size: 12px; color: var(--d-muted); line-height: 1.6; margin-top: 10px; }
 .text-editor textarea { line-height: 1.8; padding: 16px; border-radius: 14px; }
-@media(max-width:480px) { .stu-card,.stu-dash-card,.frm-card { padding: 18px; } .stu-main { padding-top: 22px; } }
-.dashboard .frm-card,.dashboard .nut-card { border-radius:22px; box-shadow:0 8px 28px rgba(15,55,40,.045); }
+@media(max-width:480px) {
 
+.frm-card { padding: 18px; }
+ }
+.dashboard .frm-card,.dashboard .nut-card { border-radius:22px; box-shadow:0 8px 28px rgba(15,55,40,.045); }
 /* Student workout pages and daily check-in. */
-.stu-main { width: 100%; max-width: 1000px; min-width: 0; }
-.stu-checkin { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; margin-bottom:24px; background:linear-gradient(120deg,#083D30,#0B6B52); color:#fff; border-radius:20px; text-decoration:none; box-shadow:0 8px 24px #0b6b5220; }
-.stu-checkin strong { display:block; font-size:17px; }
-.stu-checkin small { display:block; margin-top:5px; color:#d6ede4; font-size:12px; }
-.stu-checkin:focus-visible,.recipe-button:focus-visible { outline:3px solid #35C596; outline-offset:4px; }
+
+
+.recipe-button:focus-visible { outline:3px solid #35C596; outline-offset:4px; }
+
 .stu-shell .page-head { margin-bottom:22px; }
-.stu-shell .page-head h1 { font-size:clamp(23px,4vw,32px); line-height:1.2; overflow-wrap:anywhere; }
-.stu-shell .frm-card,.stu-shell .item-card,.stu-shell .stu-card { border:1px solid var(--d-border); background:var(--d-surface); border-radius:20px; padding:20px; margin-bottom:16px; }
-.stu-shell .btn-sm,.stu-shell .btn-p { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:11px 18px; font-size:14px; font-weight:600; }
 .workout-prescription-table { max-width:100%; overflow-x:auto; }
 .workout-prescription-table table { min-width:650px; }
 .stu-shell details > .section-label { cursor:pointer; padding:16px; background:var(--d-surface-2); border-radius:12px; }
@@ -254,4 +176,59 @@
 .student-selection-row { display:flex; gap:12px; align-items:center; padding:12px; border-bottom:1px solid var(--d-border); cursor:pointer; }
 .student-selection-row input { width:20px; height:20px; flex-shrink:0; accent-color:var(--d-primary); }
 .student-selection-row small { display:block; color:var(--d-muted); margin-top:4px; overflow-wrap:anywhere; }
-@media(max-width:480px) { .stu-checkin { padding:16px; } .stu-shell .frm-card,.stu-shell .item-card,.stu-shell .stu-card { padding:16px; } }
+@media(max-width:480px) { }
+
+/* Student training tokens: one scoped palette, no changes to .dashboard. */
+.stu-shell {
+  --t-canvas: #F3F4F1; --t-card: #FFF; --t-line: #E1E6E2;
+  --t-field-line: #758A80; --t-ink: #14201C; --t-muted: #52625B;
+  --t-brand: #0B6B52; --t-brand-press: #084E3D; --t-brand-dark: #0A3A2E;
+  --t-brand-tint: #E6F1EB; --t-info: #EEF3F0; --t-ok-bg: #E3F3E9;
+  --t-fail: #B0443B; --t-fail-bg: #FCEDEB;
+  --t-amber-bg: #FFF0CC; --t-amber-line: #E5BB60;
+  --t-amber-ink: #47320E; --t-amber-btn: #5A3B07;
+  --t-on-brand: #FFF; --t-eyebrow: #9FE0C6; --t-rail: #E6EBE7;
+  --t-history: #EEF0EE; --t-accent: #4B937B;
+  --t-overlay: rgba(20,32,28,.65); --t-focus-ring: rgba(11,107,82,.25); --t-shadow: 0 4px 14px rgba(11,107,82,.12);
+  min-height: 100dvh; display: flex; flex-direction: column;
+  background: var(--t-canvas); color: var(--t-ink); font-family: var(--d-body); font-size: 15px;
+}
+.stu-main { flex: 1; width: 100%; min-width: 0; max-width: 760px; margin: 0 auto; padding: 20px 16px calc(110px + env(safe-area-inset-bottom,0px)); }
+.stu-topbar { position: sticky; top: 0; z-index: 150; display: flex; align-items: center; justify-content: space-between; padding: calc(10px + env(safe-area-inset-top,0px)) 16px 10px; background: var(--t-card); border-bottom: 1px solid var(--t-line); }
+.stu-topbar-logout { background: var(--t-card); border: 1.5px solid var(--t-line); color: var(--t-muted); border-radius: 999px; min-height: 48px; padding: 10px 16px; font: inherit; font-size: 14px; cursor: pointer; }
+.stu-topbar-logout:hover { color: var(--t-brand); border-color: var(--t-brand); }
+.stu-nav { position: fixed; bottom: 0; left: 0; right: 0; z-index: 200; background: var(--t-card); border-top: 1px solid var(--t-line); padding: 8px 8px calc(8px + env(safe-area-inset-bottom,0px)); }
+.stu-nav-inner { display: flex; max-width: 760px; margin: 0 auto; gap: 4px; }
+.stu-nav-link { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; gap: 5px; min-height: 56px; padding: 8px 4px; color: var(--t-muted); font: inherit; font-size: 12px; font-weight: 600; border-radius: 14px; text-decoration: none; }
+.stu-nav-link.active { background: var(--t-brand-tint); color: var(--t-brand); }
+.stu-nav-link.active svg { opacity: 1; }
+.stu-shell :focus-visible { outline: 3px solid var(--t-brand); outline-offset: 3px; }
+.stu-card,.stu-dash-card { background: var(--t-card); border: 1px solid var(--t-line); border-radius: 20px; padding: 20px; margin-bottom: 16px; box-shadow: none; }
+.stu-card-title,.stu-dash-title { font-size: 18px; font-weight: 700; color: var(--t-ink); line-height: 1.4; }
+.stu-card-sub,.stu-dash-desc,.stu-food-note { font-size: 12px; color: var(--t-muted); line-height: 1.6; }
+.stu-week-day label,.stu-week-day .name,.stu-week-day .empty,.stu-meal-head span { font-size: 12px; color: var(--t-muted); }
+.stu-diet-content { margin-top: 12px; padding: 16px; background: var(--t-info); border-radius: 14px; font-size: 15px; line-height: 1.7; color: var(--t-ink); white-space: pre-wrap; overflow-wrap: anywhere; }
+.stu-shell .page-head h1 { font-family: var(--d-head); font-size: 28px; font-weight: 700; line-height: 1.25; }
+.stu-shell .frm-card,.stu-shell .item-card { border: 1px solid var(--t-line); background: var(--t-card); border-radius: 20px; padding: 20px; margin-bottom: 16px; }
+.stu-shell .btn-sm,.stu-shell .btn-p { min-height: 48px; display: inline-flex; align-items: center; justify-content: center; padding: 12px 16px; font-size: 14px; font-weight: 600; border-radius: 14px; }
+/* Daily action: the only amber surface in the training flow. */
+.stu-checkin { display: flex; align-items: center; gap: 14px; margin-bottom: 20px; padding: 18px; border: 1.5px solid var(--t-amber-line); border-radius: 20px; background: var(--t-amber-bg); color: var(--t-amber-ink); text-decoration: none; }
+.stu-checkin-icon { display: grid; place-items: center; width: 44px; height: 44px; border-radius: 50%; background: var(--t-amber-line); color: var(--t-amber-ink); flex-shrink: 0; }
+.stu-checkin-copy { flex: 1; min-width: 0; }
+.stu-checkin strong { display: block; font-size: 19px; font-weight: 800; line-height: 1.25; }
+.stu-checkin small { display: block; margin-top: 5px; font-size: 14px; line-height: 1.5; color: var(--t-amber-ink); }
+.stu-checkin-action { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 12px 16px; border-radius: 14px; background: var(--t-amber-btn); color: var(--t-on-brand); font-size: 16px; font-weight: 700; flex-shrink: 0; }
+.stu-checkin:hover { border-color: var(--t-amber-btn); }
+.stu-checkin:focus-visible { outline: 3px solid var(--t-amber-btn); outline-offset: 3px; }
+.stu-shell .exercise-video>button { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 52px; padding: 12px 16px; border: 0; border-radius: 14px; background: var(--t-ink); color: var(--t-on-brand); font-size: 15px; font-weight: 700; text-align: left; }
+.stu-shell .exercise-video-copy { flex: 1; }
+.stu-shell .exercise-video-copy small { font-size: 12px; color: var(--t-on-brand); margin-top: 4px; line-height: 1.4; font-weight: 400; }
+.stu-shell .exercise-video-play { font-size: 18px; }
+.stu-shell .exercise-video-frame { border-radius: 14px; aspect-ratio: 16/9; }
+.stu-shell .exercise-video>small { font-size: 12px; color: var(--t-muted); }
+@media(max-width:599px) {
+  .stu-checkin { display: grid; grid-template-columns: 44px minmax(0,1fr); gap: 12px; padding: 16px; }
+  .stu-checkin-action { grid-column: 1 / -1; min-height: 52px; }
+}
+@media(max-width:360px) { .stu-main { padding-inline: 14px; } }
+@media(prefers-reduced-motion:reduce) { .stu-shell * { transition: none; animation: none; } }

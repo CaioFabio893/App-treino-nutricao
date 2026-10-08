@@ -8,6 +8,8 @@ import type { ProgramWorkout, TrainingProgram, WorkoutDefine } from "@/lib/types
 import { dayLabel, PROGRAM_DAY_FULL, programExerciseCount } from "@/lib/programDays";
 import LoadError from "@/components/LoadError";
 import ExerciseVideo from "@/components/ExerciseVideo";
+import WorkoutPrescription from "./WorkoutPrescription";
+import styles from "./TrainingPresentation.module.css";
 import WorkoutPlayer from "./WorkoutPlayer";
 
 interface Props {
@@ -140,18 +142,19 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
   }
 
   return (
-    <div>
+    <div className={readOnly ? styles.page : undefined}>
       <div className="btn-row" style={{ marginTop: 0 }}>
         <Link href={backHref} className="btn-sm">
           ‹ {backLabel}
         </Link>
       </div>
 
-      <div className="page-head">
+      <div className={readOnly ? styles.hero : "page-head"}>
         <div>
+          {readOnly && <span className={styles.kicker}>SEU PROGRAMA DE TREINO</span>}
           <h1>{program.name}</h1>
-          <div className="page-sub">
-            {ordered.length} treino(s) · {totalExercises} exercícios · {totalSets} séries
+          <div className={readOnly ? styles.heroStats : "page-sub"}>
+            {readOnly ? <>{ordered.length} treinos · {totalExercises} exercícios · {totalSets} séries</> : <>{ordered.length} treino(s) · {totalExercises} exercícios · {totalSets} séries</>}
           </div>
         </div>
         {!readOnly && (
@@ -167,9 +170,9 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
       </div>
 
       {program.objective && (
-        <div className="frm-card">
-          <h3>Objetivo</h3>
-          <p style={{ margin: 0, fontSize: 13, lineHeight: 1.5 }}>{program.objective}</p>
+        <div className={readOnly ? styles.objective : "frm-card"}>
+          <h3>{readOnly ? "Objetivo do programa" : "Objetivo"}</h3>
+          <p style={readOnly ? undefined : { margin: 0, fontSize: 13, lineHeight: 1.5 }}>{program.objective}</p>
         </div>
       )}
 
@@ -179,19 +182,23 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
         </div>
       )}
 
-      {hasModalities && <div className="frm-card">
-        <h3>Onde você vai treinar?</h3>
-        <div className="btn-row">
-          <button type="button" className={modality === "gym" ? "btn-p" : "btn-sm"} aria-pressed={modality === "gym"} onClick={() => setModality("gym")}>Academia</button>
-          <button type="button" className={modality === "home" ? "btn-p" : "btn-sm"} aria-pressed={modality === "home"} onClick={() => setModality("home")}>Em casa</button>
+      {hasModalities && <div className={readOnly ? `${styles.modalityPanel} ${modality ? styles.modalityCompact : ""}` : "frm-card"}>
+        {(!readOnly || !modality) && <h3>Onde você vai treinar?</h3>}
+        <div className={readOnly ? styles.modalityOptions : "btn-row"}>
+          <button type="button" className={readOnly ? styles.modalityButton : modality === "gym" ? "btn-p" : "btn-sm"} aria-pressed={modality === "gym"} onClick={() => setModality("gym")}>
+            {readOnly ? <><span aria-hidden="true">◈</span><b>Academia</b>{modality === "gym" && <span aria-hidden="true">✓</span>}</> : "Academia"}
+          </button>
+          <button type="button" className={readOnly ? styles.modalityButton : modality === "home" ? "btn-p" : "btn-sm"} aria-pressed={modality === "home"} onClick={() => setModality("home")}>
+            {readOnly ? <><span aria-hidden="true">⌂</span><b>Em casa</b>{modality === "home" && <span aria-hidden="true">✓</span>}</> : "Em casa"}
+          </button>
         </div>
-        <p className="page-sub">As duas opções estão incluídas. Você pode trocar quando quiser.</p>
+        {!readOnly && <p className="page-sub">As duas opções estão incluídas. Você pode trocar quando quiser.</p>}
       </div>}
       {(!hasModalities || modality) && <>
       {!readOnly && <button type="button" className="btn-sm acc" onClick={() => setPreview(!preview)}>{preview ? "Fechar execução" : "Abrir app de treino / testar execução"}</button>}
       {(readOnly || preview) && (user?.uid || profile?.id) && <WorkoutPlayer userId={user?.uid ?? profile!.id} programId={hasModalities ? `${programId}:${modality}` : programId} workouts={visible.flatMap(ref => workouts[ref.workoutId] ? [workouts[ref.workoutId]] : [])} labels={visible.filter(ref => workouts[ref.workoutId]).map((ref, i) => ref.label ?? String.fromCharCode(65 + i))} periodized={Boolean(program.notes?.includes("82,5%"))} />}
-      <details open={!readOnly}>
-      <summary className="section-label">Consultar prescrição completa</summary>
+      <details open={!readOnly} className={readOnly ? styles.reference : undefined}>
+      <summary className={readOnly ? undefined : "section-label"}>Consultar prescrição completa {readOnly && <span aria-hidden="true">+</span>}</summary>
       <div className="section-label">Treinos do programa</div>
 
       {ordered.length === 0 ? (
@@ -234,6 +241,8 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
                 <div className="empty-box" style={{ margin: 0 }}>
                   Este treino não tem exercícios.
                 </div>
+              ) : readOnly ? (
+                <WorkoutPrescription exercises={w.exercises ?? []} />
               ) : (
                 <div className="workout-prescription-table"><table className="dash-table">
                   <thead>
@@ -272,7 +281,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
 
       {program.notes && (
         <>
-          <div className="section-label">Observações da fonte</div>
+          <div className="section-label">{readOnly ? "Observações do programa" : "Observações da fonte"}</div>
           <div className="frm-card">
             <pre
               style={{
@@ -289,7 +298,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
         </>
       )}
 
-      <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 14 }}>
+      <div style={{ fontSize: readOnly ? 12 : 11, color: readOnly ? "var(--t-muted)" : "var(--muted)", marginTop: 14 }}>
         Dias:{" "}
         {ordered.length > 0
           ? ordered.map((r) => dayLabel(workouts[r.workoutId]?.dayOfWeek || r.dayOfWeek)).join(" · ")

@@ -14,7 +14,7 @@ test.describe("Área do aluno (cadastro aprovado)", () => {
     await login(page, USERS.studentA.email, USERS.studentA.password);
     await page.waitForURL("**/dashboard");
     await page.getByRole("link", { name: "Treino", exact: true }).click();
-    await expect(page.getByRole("heading", { name: "Treino" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Meus treinos" })).toBeVisible();
     await expect(page.locator(".wod-chip")).toHaveCount(0);
     await expect(page.getByRole("navigation", { name: "Seções do aluno" }).getByRole("link")).toHaveCount(4);
     await expect(page.getByRole("link", { name: "Programa", exact: true })).toHaveCount(0);

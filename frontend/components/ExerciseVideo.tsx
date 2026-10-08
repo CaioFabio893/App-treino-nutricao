@@ -24,7 +24,7 @@ export default function ExerciseVideo({ url, title }: { url: string; title: stri
   if (!/^https:\/\//i.test(url)) return null;
   if (!embed) return <a href={url} target="_blank" rel="noopener noreferrer">{title}</a>;
   return <div className="exercise-video">
-    <button type="button" aria-expanded={open} onClick={() => setOpen(!open)}>{open ? "Fechar vídeo" : `▶ ${title}`}</button>
+    <button type="button" aria-label={open ? "Fechar vídeo" : title} aria-expanded={open} onClick={() => setOpen(!open)}><span className="exercise-video-play" aria-hidden="true">▶</span><span className="exercise-video-copy">{open ? "Fechar vídeo" : "Assistir execução"}<small>{title}</small></span><span aria-hidden="true">{open ? "⌄" : "→"}</span></button>
     {open && <div className="exercise-video-frame"><iframe src={embed} title={title} allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowFullScreen referrerPolicy="strict-origin-when-cross-origin" /></div>}
     {open && <small>Se o autor bloquear a reprodução no app, <a href={url} target="_blank" rel="noopener noreferrer">abra no YouTube</a>.</small>}
   </div>;

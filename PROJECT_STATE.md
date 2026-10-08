@@ -135,3 +135,26 @@ Publicado: API `treino-api-00021-bqv` (digest `d04dd5bf…`) e web
 `treino-web-00022-fw8` (digest `dda9a789…`), 100% tráfego; smoke web 200,
 `/health` 200, CORS 204, bundle com apiKey válida e features novas. Relatório:
 docs/reports/ajustes-aluno-nutricao-checkin-2026-10-07.md.
+
+## Revisão visual dos treinos — VALIDADA, aguardando publicação (07/10/2026)
+
+Trabalho iniciado por Claude/Codex (direção visual) e validado pelo OpenCode.
+Alterações exclusivamente frontend: `WorkoutPlayer` + módulo CSS reescritos
+(superfícies distintas, prescrição separada, séries com resultado em
+texto/cor, observações recolhíveis, cronômetros em grade, histórico em
+chips), `ProgramDetail`/`StudentProgramsPage` com apresentação própria do
+aluno (`TrainingPresentation.module.css` + novo `WorkoutPrescription`),
+`StudentLayout`/`student.css` com Check-in Diário em âmbar e chamada
+"Responder agora", `ExerciseVideo` com rótulo "Assistir execução".
+Lógica, persistência, `storageKey`, props, estado, handlers e APIs sem
+mudança; ramo administrativo preservado; service worker mantido em `treino-v4`
+(fora do escopo visual).
+
+Validação OpenCode (sem publicar): tsc OK · lint 0/0 · Vitest 145/145 (26
+arquivos) · `next build` OK · E2E 32/32 (2.6 min). Testes de cópia/aria
+ajustados ao novo contrato (WorkoutPlayer.test, ExerciseVideo, specs de
+aluno/isolamento/programas). `aria-label` do vídeo passou a refletir o estado
+aberto/fechado. Backend intacto. Relatório:
+docs/reports/revisao-visual-treinos-claude-2026-10-07.md.
+
+Próximo passo: publicar (deploy api/web) e conferir smoke + 360/390/430px.

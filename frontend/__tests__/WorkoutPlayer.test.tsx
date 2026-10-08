@@ -13,9 +13,9 @@ describe("Workout execution", () => {
     fireEvent.change(screen.getByLabelText("Agachamento Livre com Barra série 1 repetições"), { target: { value: "8" } });
     fireEvent.change(screen.getByLabelText("Observações da sessão"), { target: { value: "Boa amplitude" } });
     fireEvent.click(screen.getByRole("button", { name: /série 1: não marcada/ }));
-    expect(screen.getByText("1 / 2 séries concluídas com sucesso")).toBeInTheDocument();
+    expect(screen.getByText("1 de 2 séries concluídas")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /série 1: conseguiu/ }));
-    expect(screen.getByText("0 / 2 séries concluídas com sucesso")).toBeInTheDocument();
+    expect(screen.getByText("0 de 2 séries concluídas")).toBeInTheDocument();
     view.unmount(); render(player());
     expect(screen.getByLabelText("Agachamento Livre com Barra série 1 carga")).toHaveValue(40);
     expect(screen.getByLabelText("Observações da sessão")).toHaveValue("Boa amplitude");
@@ -24,19 +24,19 @@ describe("Workout execution", () => {
   it("isolates accounts and derives PR suggestions and previous sessions by week", () => {
     const view = render(player());
     fireEvent.change(screen.getByLabelText("Agachamento Livre com Barra série 1 carga"), { target: { value: "50" } });
-    fireEvent.click(screen.getByRole("button", { name: "PRs" }));
+    fireEvent.click(screen.getByRole("button", { name: "Meus recordes" }));
     fireEvent.change(screen.getByLabelText("Agachamento Livre com Barra"), { target: { value: "100" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar PRs" }));
-    expect(screen.getByText(/Sugestão: 70 kg/)).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "SEM 1" }));
+    expect(screen.getByText("Sugestão para esta semana:", { exact: false })).toHaveTextContent("70 kg");
+    fireEvent.click(screen.getByRole("button", { name: /Semana 1/ }));
     fireEvent.click(screen.getByRole("button", { name: /Semana 5/ }));
-    expect(screen.getByText(/Sugestão: 82.5 kg/)).toBeInTheDocument();
+    expect(screen.getByText("Sugestão para esta semana:", { exact: false })).toHaveTextContent("82.5 kg");
     expect(screen.getByText("Última sessão · Semana 1")).toBeInTheDocument();
     expect(screen.getByLabelText("Agachamento Livre com Barra série 1 carga")).toHaveValue(null);
     view.rerender(player("bob"));
-    expect(screen.getByRole("button", { name: "SEM 1" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Semana 1/ })).toBeInTheDocument();
     expect(screen.getByLabelText("Agachamento Livre com Barra série 1 carga")).toHaveValue(null);
-    expect(screen.queryByText(/Sugestão:/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Sugestão para esta semana:/)).not.toBeInTheDocument();
   });
   it("counts real elapsed time, pauses, resets presets and stops at the target", () => {
     vi.useFakeTimers();
@@ -59,7 +59,7 @@ describe("Workout execution", () => {
   it("reports storage failures instead of claiming success", () => {
     render(player());
     vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => { throw new Error("quota"); });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar" }));
+    fireEvent.click(screen.getByRole("button", { name: /Salvar progresso/ }));
     expect(screen.getByRole("status")).toHaveTextContent("Falha ao salvar");
   });
   it("sanitizes persisted values and refuses invalid JSON", () => {

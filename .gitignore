@@ -49,3 +49,6 @@ frontend/.playwright/
 # Artefatos locais (PDFs/temporários; podem conter dados pessoais) — nunca commitar
 /output/
 /tmp/
+
+# Cache local do Vite (criado pela prévia visual) — nunca commitar
+/.vite/

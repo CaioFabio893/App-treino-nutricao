@@ -62,7 +62,9 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 
       <main className="stu-main">
         <a className="stu-checkin" href="https://forms.gle/7E8rybhNQEbnqpTe8" target="_blank" rel="noopener noreferrer">
-          <span><strong>Check-in Diário</strong><small>Conte à Louise como foi seu dia</small></span><span aria-hidden="true">↗</span>
+          <span className="stu-checkin-icon" aria-hidden="true"><svg width="25" height="25" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><path d="M9 5H6a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-3"/><rect x="9" y="2" width="6" height="5" rx="1.5"/><path d="m8 14 3 3 5-6"/></svg></span>
+          <span className="stu-checkin-copy"><strong>Check-in Diário</strong><small>Responda hoje e mantenha a Louise por dentro.</small></span>
+          <span className="stu-checkin-action">Responder agora <span aria-hidden="true">↗</span></span>
         </a>
         {children}
       </main>

@@ -66,8 +66,8 @@ test.describe("F7 — isolamento e somente leitura com Auth/Firestore reais do e
     await login(page, USERS.studentC.email, USERS.studentC.password);
     await page.waitForURL("**/dashboard");
     await page.getByRole("link",{name:"Treino",exact:true}).click();
-    await expect(page.getByRole("heading",{name:"Treino"})).toBeVisible();
-    await expect(page.getByRole("link", {name:"Abrir treino",exact:true}).first()).toBeVisible();
+    await expect(page.getByRole("heading",{name:"Meus treinos"})).toBeVisible();
+    await expect(page.getByRole("link", {name:"Abrir meu treino",exact:true}).first()).toBeVisible();
     await expect(page.locator("input, textarea, .chk-btn")).toHaveCount(0);
     await expect(page.getByRole("button",{name:/finalizar|registrar|marcar/i})).toHaveCount(0);
     await page.getByRole("link",{name:"Dieta",exact:true}).click();

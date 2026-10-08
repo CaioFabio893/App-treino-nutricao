@@ -57,7 +57,7 @@ function Timer({ seconds = 180, label = "Tempo de descanso", presets = [60, 120,
     <strong role="timer" aria-label={label}>{String(Math.floor(elapsed / 60)).padStart(2, "0")}:{String(elapsed % 60).padStart(2, "0")}</strong>
     <span>{duration === 0 ? " · Tempo livre" : " / "}{duration > 0 && <>{Math.floor(duration / 60)}:{String(duration % 60).padStart(2, "0")}</>}{finished ? (label === "Tempo de descanso" ? " · Descanso concluído" : " · Tempo concluído") : ""}</span>
     <div className={styles.actions}>
-      <button type="button" onClick={() => { if (started !== null) { setElapsed(duration > 0 ? Math.min(duration, Math.floor((Date.now() - started) / 1000)) : Math.floor((Date.now() - started) / 1000)); setStarted(null); } else { setFinished(false); const base = duration > 0 && elapsed >= duration ? 0 : elapsed; setElapsed(base); setStarted(Date.now() - base * 1000); } }}>{started !== null ? "Pausar" : "Iniciar"}</button>
+      <button type="button" className={styles.primaryButton} onClick={() => { if (started !== null) { setElapsed(duration > 0 ? Math.min(duration, Math.floor((Date.now() - started) / 1000)) : Math.floor((Date.now() - started) / 1000)); setStarted(null); } else { setFinished(false); const base = duration > 0 && elapsed >= duration ? 0 : elapsed; setElapsed(base); setStarted(Date.now() - base * 1000); } }}>{started !== null ? "Pausar" : "Iniciar"}</button>
       <button type="button" onClick={() => reset()}>Zerar</button>
       {presets.map(n => <button type="button" key={n} aria-pressed={duration === n} onClick={() => reset(n)}>{n / 60} min</button>)}
     </div>
@@ -110,14 +110,13 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
   const completed = exercises.reduce((sum, ex, i) => sum + Array.from({ length: ex.sets }, (_, s) => session(i).sets[s]?.status === "ok" ? 1 : 0).reduce((a: number, b) => a + b, 0), 0);
   const changeDay = (value: number) => save({ ...data, day: value });
   return <section className={styles.player} aria-label="Execução do programa">
-    <header className={styles.header}><div><b>Louise Lima</b><small>Seu programa de treino</small></div><div className={styles.actions}>
-      {periodized && <button type="button" onClick={() => { setDraft({ ...data.prs }); setModal("pr"); }}>PRs</button>}
-      <button type="button" onClick={() => setModal("week")}>SEM {data.week}</button>
+    <header className={styles.header}><div><small className={styles.eyebrow}>ACOMPANHAMENTO LOUISE LIMA</small><b>Vamos treinar?</b><small>Escolha seu treino e acompanhe cada série.</small></div><div className={styles.actions}>
+      {periodized && <button type="button" onClick={() => { setDraft({ ...data.prs }); setModal("pr"); }}>Meus recordes</button>}
+      <button type="button" onClick={() => setModal("week")}>Semana {data.week} <span aria-hidden="true">⌄</span></button>
     </div></header>
-    <nav className={styles.tabs} aria-label="Treinos do programa">{workouts.map((w, i) => <button type="button" key={w.id ?? i} aria-pressed={day === i} onClick={() => changeDay(i)}><b>{labels?.[i] ?? String.fromCharCode(65 + i)}</b><small>{w.name}</small>{Object.keys(data.sessions).some(k => { try { const parts = JSON.parse(k); return parts[0] === data.week && parts[1] === (w.id ?? w.name); } catch { return false; } }) && <span aria-label="Tem registros">●</span>}</button>)}</nav>
-    <div className={styles.phase}>Semana {data.week}{periodized && <> · {data.week === 8 ? "Deload · " : ""}{String(percentages[data.week - 1]).replace(".", ",")}% do PR</>}</div>
-    <h2>{workout.name}</h2>
-    <div className={styles.progress}><span>{completed} / {total} séries concluídas com sucesso</span><progress value={completed} max={total || 1} /></div>
+    <nav className={`${styles.tabs} ${workouts.length >= 5 ? styles.tabsScrollable : ""}`} aria-label="Treinos do programa">{workouts.map((w, i) => <button type="button" key={w.id ?? i} aria-label={`Treino ${labels?.[i] ?? String.fromCharCode(65 + i)} · ${w.name}`} aria-pressed={day === i} onClick={() => changeDay(i)}><b><span>Treino</span> {labels?.[i] ?? String.fromCharCode(65 + i)}</b><small>{w.name}</small>{Object.keys(data.sessions).some(k => { try { const parts = JSON.parse(k); return parts[0] === data.week && parts[1] === (w.id ?? w.name); } catch { return false; } }) && <span className={styles.recorded} aria-label="Tem registros">●</span>}</button>)}</nav>
+    <div className={styles.workoutHeading}><div><span className={styles.sectionKicker}>TREINO {labels?.[day] ?? String.fromCharCode(65 + day)}</span><h2>{workout.name}</h2>{periodized && <div className={styles.phase}>· {data.week === 8 ? "Deload · " : ""}{String(percentages[data.week - 1]).replace(".", ",")}% do PR</div>}</div><span className={styles.exerciseCount}>{exercises.length} exercícios</span></div>
+    <div className={styles.progress}><div><strong>Seu progresso</strong><span>{completed} de {total} séries concluídas</span></div><progress value={completed} max={total || 1} aria-label="Séries concluídas" /></div>
     {workout.objective && <p>{workout.objective}</p>}
     {workout.description && <aside className={styles.cardio}><h3>Orientações / Cardio final</h3><div>{workout.description.replace(/\*\*/g, "")}</div></aside>}
     {Boolean(workout.circuitSeconds) && <div className={styles.cardio}>
@@ -125,7 +124,7 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
       <p>Repita os exercícios principais durante 15 ou 20 minutos. Descanse conforme necessário. Aquecimento não conta como volta.</p>
       <Timer key={`amrap:${workout.id}`} seconds={workout.circuitSeconds} label="Tempo do circuito AMRAP" presets={[900,1200]} />
       <p aria-live="polite">{circuit.rounds} voltas concluídas nesta semana</p>
-      <div className={styles.actions}><button type="button" onClick={newRound}>Concluir volta e iniciar próxima</button><button type="button" disabled={circuit.rounds === 0} onClick={() => saveCircuit({ rounds: Math.max(0,circuit.rounds - 1) })}>Corrigir última volta</button></div>
+      <div className={styles.actions}><button type="button" className={styles.primaryButton} onClick={newRound}>Concluir volta e iniciar próxima</button><button type="button" disabled={circuit.rounds === 0} onClick={() => saveCircuit({ rounds: Math.max(0,circuit.rounds - 1) })}>Corrigir última volta</button></div>
       <label>Observações do circuito<textarea aria-label="Observações do circuito" value={circuit.notes} onChange={e => saveCircuit({ notes: e.target.value.slice(0,2000) })} /></label>
     </div>}
     {exercises.map((ex, index) => {
@@ -136,30 +135,62 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
       const pr = Number((data.prs[ex.name] ?? "").replace(",", "."));
       const suggested = periodized && pr > 0 ? Math.round(pr * percentages[data.week - 1] / 100 * 2) / 2 : null;
       return <details key={`${data.week}:${workout.id}:${index}`} className={styles.exercise} open={index === 0}>
-        <summary><span className={styles.number}>{index + 1}</span><span><b>{ex.name}</b>{ex.phase && <small>{{warmup:"Aquecimento",main:"Principal",cardio:"Cardio",stretching:"Alongamento"}[ex.phase]}</small>}<small>{ex.sets} séries · {ex.repetitions} reps{ex.weight ? ` · ${ex.weight}` : ""}{suggested !== null ? ` · Sugestão: ${suggested} kg` : ""}</small></span><span>⌄</span></summary>
+        <summary>
+          <span className={styles.number}>{String(index + 1).padStart(2, "0")}</span>
+          <span className={styles.exerciseTitle}>
+            <span className={styles.exerciseCategory}>{ex.phase ? {warmup:"Aquecimento",main:"Exercício principal",cardio:"Cardio",stretching:"Alongamento"}[ex.phase] : "Exercício"}</span>
+            <b>{ex.name}</b>
+            <span className={styles.exerciseMeta}>{ex.sets} séries · {ex.repetitions} reps</span>
+          </span>
+          <span className={styles.expandIcon} aria-hidden="true">⌄</span>
+        </summary>
         <div className={styles.body}>
-          {ex.description && <p>{ex.description}</p>}{ex.notes && <p className={styles.note}>{ex.notes}</p>}
+          <dl className={styles.prescription} aria-label={`Prescrição de ${ex.name}`}>
+            <div><dt>Séries</dt><dd aria-label={!ex.sets ? "Não informada" : undefined}>{ex.sets || "—"}</dd></div>
+            <div><dt>Reps</dt><dd aria-label={!ex.repetitions ? "Não informada" : undefined}>{ex.repetitions || "—"}</dd></div>
+            <div><dt>Carga</dt><dd aria-label={!ex.weight ? "Não informada" : undefined}>{ex.weight || "—"}</dd></div>
+            <div><dt>Descanso</dt><dd aria-label={!ex.restSeconds ? "Não informada" : undefined}>{ex.restSeconds ? `${ex.restSeconds}s` : "—"}</dd></div>
+          </dl>
+          {suggested !== null && <p className={styles.suggestion}>Sugestão para esta semana: <strong>{suggested} kg</strong></p>}
+          {ex.description && <p className={styles.note}>{ex.description}</p>}{ex.notes && <p className={styles.note}>{ex.notes}</p>}
           {[...new Set([ex.videoUrl, ...(ex.videoUrls ?? [])].filter((url): url is string => Boolean(url)))].map((url, i) => <ExerciseVideo key={url} url={url} title={`${i ? "Vídeo complementar" : "Ver execução"} · ${ex.name}`} />)}
-          {previous && <div className={styles.previous}><b>Última sessão · Semana {previousWeek}</b><div>{previous.sets.map((s, i) => <span key={i}>S{i + 1}: {s.weight || "—"} kg × {s.reps || "—"} {s.status === "ok" ? "✓" : s.status === "fail" ? "✗" : ""} </span>)}</div></div>}
-          <div className={styles.table}><div className={styles.row}><span>#</span><span>Carga (kg)</span><span>Reps</span><span>Alvo</span><span>Resultado</span></div>
-            {Array.from({ length: Math.min(ex.sets, 100) }, (_, s) => { const entry = current.sets[s] ?? { weight: "", reps: "", status: "" }; const edit = (patch: Partial<SetEntry>) => { const sets = Array.from({ length: ex.sets }, (_, n) => current.sets[n] ?? { weight: "", reps: "", status: "" }); sets[s] = { ...entry, ...patch }; update(index, { ...current, sets }); }; return <div className={styles.row} key={s}><span>{s + 1}</span>
-              <input aria-label={`${ex.name} série ${s + 1} carga`} type="number" min="0" max="99999" step="0.5" placeholder={suggested !== null ? String(suggested) : "kg"} value={entry.weight} onChange={e => edit({ weight: numeric(e.target.value) })} />
-              <input aria-label={`${ex.name} série ${s + 1} repetições`} type="number" min="0" max="99999" step="1" placeholder="reps" value={entry.reps} onChange={e => edit({ reps: numeric(e.target.value) })} />
-              <span>{ex.repetitions}</span><button type="button" className={entry.status === "ok" ? styles.ok : entry.status === "fail" ? styles.fail : ""} aria-label={`${ex.name} série ${s + 1}: ${entry.status === "ok" ? "conseguiu" : entry.status === "fail" ? "não conseguiu" : "não marcada"}`} onClick={() => edit({ status: entry.status === "" ? "ok" : entry.status === "ok" ? "fail" : "" })}>{entry.status === "ok" ? "✓" : entry.status === "fail" ? "✗" : "○"}</button>
-            </div>; })}</div>
-          <p className={styles.hint}>Toque no resultado: não marcada → conseguiu ✓ → não conseguiu ✗.</p>
-          <label className={styles.notes}>Observações da sessão<textarea maxLength={2000} value={current.note} placeholder="Como foi o exercício?" onChange={e => update(index, { ...current, note: e.target.value })} /></label>
-          {!ex.timerExcluded && (workout.modality || ex.phase || ex.durationSeconds) && <details className={styles.rest}><summary>⏱ Cronômetro do exercício</summary><Timer key={`execution:${data.week}:${workout.id}:${index}`} seconds={ex.durationSeconds ?? 0} label={`Tempo de ${ex.name}`} presets={ex.durationSeconds ? [ex.durationSeconds] : []} /></details>}
-          {((ex.restSeconds ?? 0) > 0 || !workout.modality) && <details className={styles.rest}><summary>⏱ Descanso</summary><Timer key={`${data.week}:${workout.id}:${index}`} seconds={ex.restSeconds || 180} /></details>}
+          {previous && <div className={styles.previous}><b>Última sessão · Semana {previousWeek}</b><div>{previous.sets.map((s, i) => <span key={i}>S{i + 1} {s.weight || "—"} kg × {s.reps || "—"} {s.status === "ok" ? "✓" : s.status === "fail" ? "✗" : ""} </span>)}</div></div>}
+          <div className={styles.logHeading}><h3>Registre suas séries</h3><span>Meta: {ex.repetitions || "—"} reps</span></div>
+          <div className={styles.seriesLegend} aria-hidden="true"><span>Série</span><span>Carga (kg)</span><span>Reps</span><span>Resultado</span></div>
+          <div className={styles.table}>
+            {Array.from({ length: Math.min(ex.sets, 100) }, (_, s) => {
+              const entry = current.sets[s] ?? { weight: "", reps: "", status: "" };
+              const edit = (patch: Partial<SetEntry>) => {
+                const sets = Array.from({ length: ex.sets }, (_, n) => current.sets[n] ?? { weight: "", reps: "", status: "" });
+                sets[s] = { ...entry, ...patch };
+                update(index, { ...current, sets });
+              };
+              return <div className={`${styles.row} ${entry.status === "ok" ? styles.rowComplete : entry.status === "fail" ? styles.rowFailed : ""}`} key={s}>
+                <span className={styles.setNumber}><span className={styles.srOnly}>Série </span><b>{s + 1}</b></span>
+                <label className={styles.setField}><span className={styles.srOnly}>Carga (kg)</span><input aria-label={`${ex.name} série ${s + 1} carga`} type="number" inputMode="decimal" min="0" max="99999" step="0.5" placeholder={suggested !== null ? String(suggested) : "—"} value={entry.weight} onChange={e => edit({ weight: numeric(e.target.value) })} /></label>
+                <label className={styles.setField}><span className={styles.srOnly}>Repetições</span><input aria-label={`${ex.name} série ${s + 1} repetições`} type="number" inputMode="numeric" min="0" max="99999" step="1" placeholder="—" value={entry.reps} onChange={e => edit({ reps: numeric(e.target.value) })} /></label>
+                <button type="button" className={`${styles.resultButton} ${entry.status === "ok" ? styles.ok : entry.status === "fail" ? styles.fail : ""}`} aria-label={`${ex.name} série ${s + 1}: ${entry.status === "ok" ? "conseguiu" : entry.status === "fail" ? "não conseguiu" : "não marcada"}`} onClick={() => edit({ status: entry.status === "" ? "ok" : entry.status === "ok" ? "fail" : "" })}>
+                  <span>{entry.status === "ok" ? "Feito" : entry.status === "fail" ? "Falhou" : "Marcar"}</span><span aria-hidden="true">{entry.status === "ok" ? "✓" : entry.status === "fail" ? "✗" : ""}</span>
+                </button>
+              </div>;
+            })}
+          </div>
+          <p className={styles.hint}>Toque em Marcar série para registrar. Toque de novo para corrigir.</p>
+          <details className={styles.sessionNotes}><summary>Adicionar observações da sessão <span aria-hidden="true">+</span></summary><label className={styles.notes}>Observações da sessão<textarea maxLength={2000} value={current.note} placeholder="Como foi o exercício?" onChange={e => update(index, { ...current, note: e.target.value })} /></label></details>
+          <div className={styles.timerGrid}>
+          {!ex.timerExcluded && (workout.modality || ex.phase || ex.durationSeconds) && <details className={styles.rest}><summary><span>⏱ Cronômetro do exercício</span><span aria-hidden="true">⌄</span></summary><Timer key={`execution:${data.week}:${workout.id}:${index}`} seconds={ex.durationSeconds ?? 0} label={`Tempo de ${ex.name}`} presets={ex.durationSeconds ? [ex.durationSeconds] : []} /></details>}
+          {((ex.restSeconds ?? 0) > 0 || !workout.modality) && <details className={styles.rest}><summary><span>⏱ Descanso</span><span aria-hidden="true">⌄</span></summary><Timer key={`${data.week}:${workout.id}:${index}`} seconds={ex.restSeconds || 180} /></details>}
+          </div>
         </div>
       </details>;
     })}
-    <footer className={styles.actions}><button type="button" disabled={day === 0} onClick={() => changeDay(day - 1)}>← Anterior</button><button type="button" onClick={() => save(data)}>Salvar</button><button type="button" disabled={day >= workouts.length - 1} onClick={() => changeDay(day + 1)}>Próximo →</button></footer>
-    <p role="status">{message}</p><p className={styles.hint}>Registros salvos automaticamente por conta neste navegador. Não são sincronizados entre dispositivos.</p>
+    <footer className={`${styles.actions} ${styles.footer}`}><button type="button" disabled={day === 0} onClick={() => changeDay(day - 1)}>← Anterior</button><button type="button" className={styles.primaryButton} onClick={() => save(data)}>Salvar progresso</button><button type="button" disabled={day >= workouts.length - 1} onClick={() => changeDay(day + 1)}>Próximo →</button></footer>
+    <p className={styles.saveStatus} role="status">{message}</p><p className={styles.hint}>Seus registros ficam salvos neste aparelho e não aparecem em outros.</p>
     {modal && <div className={styles.overlay}><section role="dialog" aria-modal="true" aria-label={modal === "week" ? "Escolher semana" : "Recordes pessoais"} className={styles.modal}>
+      <div className={styles.sheetHandle} aria-hidden="true" />
       <h2>{modal === "week" ? "Escolher semana" : "Recordes pessoais (kg)"}</h2>
-      {modal === "week" ? <div className={styles.weeks}>{percentages.map((pct, i) => <button key={i} type="button" aria-pressed={data.week === i + 1} onClick={() => { save({ ...data, week: i + 1 }); setModal(null); }}>Semana {i + 1}{periodized && <small>{i === 7 ? "Deload · " : ""}{String(pct).replace(".", ",")}%</small>}</button>)}</div> : prNames.map(name => <label className={styles.notes} key={name}>{name}<input type="number" min="0" max="99999" step="0.5" value={draft[name] ?? ""} onChange={e => setDraft({ ...draft, [name]: numeric(e.target.value) })} /></label>)}
-      <div className={styles.actions}>{modal === "pr" && <button type="button" onClick={() => { save({ ...data, prs: draft }); setModal(null); }}>Salvar PRs</button>}<button type="button" onClick={() => setModal(null)}>{modal === "pr" ? "Cancelar" : "Fechar"}</button></div>
+      {modal === "week" ? <div className={styles.weeks}>{percentages.map((pct, i) => <button key={i} type="button" aria-label={`Semana ${i + 1}`} aria-pressed={data.week === i + 1} onClick={() => { save({ ...data, week: i + 1 }); setModal(null); }}>{i + 1}{periodized && <small>{i === 7 ? "Deload · " : ""}{String(pct).replace(".", ",")}%</small>}</button>)}</div> : prNames.map(name => <label className={styles.notes} key={name}>{name}<input type="number" min="0" max="99999" step="0.5" value={draft[name] ?? ""} onChange={e => setDraft({ ...draft, [name]: numeric(e.target.value) })} /></label>)}
+      <div className={styles.actions}>{modal === "pr" && <button type="button" className={styles.primaryButton} onClick={() => { save({ ...data, prs: draft }); setModal(null); }}>Salvar PRs</button>}<button type="button" onClick={() => setModal(null)}>{modal === "pr" ? "Cancelar" : "Fechar"}</button></div>
     </section></div>}
   </section>;
 }
