@@ -8,7 +8,7 @@
 //     métodos não-GET e origins externas não são interceptadas.
 //   • Atualização: a nova versão só assume após o usuário confirmar
 //     (mensagem SKIP_WAITING enviada pelo app) — sem reload forçado.
-const CACHE = "treino-v3";
+const CACHE = "treino-v4";
 const PRECACHE_URLS = [
   "/",
   "/login",

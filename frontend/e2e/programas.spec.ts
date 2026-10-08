@@ -78,13 +78,20 @@ test.describe("Programa de treino (admin)", () => {
     // A cópia nasce na biblioteca (sem aluno) — a coluna "Aluno" mostra isso.
     await expect(rowCopia).toContainText("Biblioteca (sem aluno)");
 
-    // ── 4. Atribuir materializa cópias dos treinos para o aluno ────────────
+    // ── 4. Associar em lote: preserva a FONTE e cria uma cópia por aluno ───
     // "Ana Aluna" = USERS.studentA do seed (backend/cmd/e2eseed).
-    await rowOriginal.getByRole("button", { name: "Associar programa inteiro" }).click();
-    await page.locator(".modal-box").getByText("Ana Aluna").click();
+    await rowOriginal.getByRole("button", { name: "Associar a vários alunos" }).click();
+    const modal = page.locator(".modal-box");
+    await modal.getByRole("checkbox", { name: /Ana Aluna/ }).check();
+    await modal.getByRole("button", { name: /Associar a 1 aluno/ }).click();
 
-    await expect(rowOriginal).toContainText("atribuído", { timeout: 20_000 });
-    await expect(rowOriginal.getByRole("button", { name: "Associar programa inteiro" })).toHaveCount(0);
+    // A cópia independente vai para a aluna; o modelo original segue na biblioteca.
+    const rowsOriginal = table
+      .locator("tr")
+      .filter({ hasText: "Louise Lima (Ciclo 2)" })
+      .filter({ hasNotText: "(copia)" });
+    await expect(rowsOriginal.filter({ hasText: "Ana Aluna" })).toBeVisible({ timeout: 20_000 });
+    await expect(rowsOriginal.filter({ hasText: "Biblioteca (sem aluno)" })).toBeVisible();
 
     // ── 5. O aluno enxerga o programa, somente leitura ────────────────────
     await page.getByRole("button", { name: "Sair", exact: true }).first().click();

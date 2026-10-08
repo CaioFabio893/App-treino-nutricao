@@ -4,3 +4,19 @@
 .player button,.player input,.player textarea { border-radius: 12px; }
 .phase,.previous,.timer,.cardio { border-radius: 16px; }
 .modal { border-radius: 24px; }
+
+.player { background: #f4f8f5; box-shadow: 0 12px 40px rgba(8,61,48,.07); }
+.header { flex-wrap:wrap; padding-bottom:14px; border-bottom:1px solid var(--d-border); }
+.header b { letter-spacing:-.6px; }
+.tabs button { min-height:92px; text-align:left; padding:14px; }
+.tabs button[aria-pressed=true] { box-shadow:0 5px 15px rgba(11,107,82,.18); }
+.player h2 { font-size:clamp(22px,4vw,30px); line-height:1.25; margin:20px 0 12px; }
+.exercise>summary { min-height:82px; }
+.exercise summary b { font-size:15px; line-height:1.5; }
+.exercise small { color:var(--d-muted); line-height:1.5; }
+.exercise[open] { border-color:var(--d-primary-mid); }
+.number { min-width:36px; text-align:center; font-weight:700; }
+.body p { line-height:1.6; }
+.row input { min-height:44px; }
+.player :focus-visible { outline:3px solid var(--d-primary-bright); outline-offset:2px; }
+@media(max-width:480px) { .player { padding:14px; margin:16px 0; border-radius:20px; } .header { align-items:flex-start; } .tabs button { min-width:96px; } .row { min-width:290px; grid-template-columns:20px minmax(60px,1fr) minmax(55px,1fr) minmax(38px,.6fr) 48px; } }

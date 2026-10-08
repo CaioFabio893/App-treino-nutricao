@@ -126,7 +126,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
       {error && <div className="err-text">{error}</div>}
 
       {diets.length === 0 ? (
-        recipe ? <div className="empty-box">Nenhuma receita cadastrada. Use Nova receita para colar o conteúdo e associar ao aluno.</div> : <EmptyDietState onAction={() => router.push(`${base}?new=1`)} />
+        recipe ? <div className="empty-box">Nenhuma receita cadastrada. Use Nova receita para disponibilizar conteúdo para todos os alunos.</div> : <EmptyDietState onAction={() => router.push(`${base}?new=1`)} />
       ) : (
         diets.map((d) => (
           <div key={d.id} className="nut-card">
@@ -135,7 +135,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
               <div>
                 <div className="nut-card-title">{d.name}</div>
                 <div className="nut-card-sub">
-                  {studentName(d.studentId)}
+                  {recipe ? "Disponível para todos os alunos" : studentName(d.studentId)}
                   {d.description ? ` · ${d.description}` : ""}
                 </div>
               </div>
@@ -175,7 +175,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
               >
                 Imprimir
               </button>}
-              <Duplicator recipe={recipe} students={students} onPick={(sid) => void handleDuplicate(d, sid)} />
+              {!recipe && <Duplicator students={students} onPick={(sid) => void handleDuplicate(d, sid)} />}
               <button
                 type="button"
                 className="btn-sm danger"

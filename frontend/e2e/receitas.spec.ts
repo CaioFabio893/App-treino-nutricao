@@ -5,13 +5,12 @@ test("receita formatada salva, duplica e aparece só em Receitas do aluno associ
   const admin = await idTokenFor(USERS.admin.email, USERS.admin.password);
   const student = await idTokenFor(USERS.studentA.email, USERS.studentA.password);
   const other = await idTokenFor(USERS.studentB.email, USERS.studentB.password);
-  const me = await (await apiGet(request, "/api/me", student)).json();
   const name = `Receita E2E ${Date.now()}`;
   await login(page, USERS.admin.email, USERS.admin.password);
   await page.waitForURL("**/admin");
   await page.goto("/admin/recipes?new=1");
   await page.getByLabel("Nome da receita").fill(name);
-  await page.getByLabel("Aluno", {exact:true}).selectOption(me.id);
+  // Receita é global: o formulário não pede aluno.
   await page.getByLabel(/Receita \(texto livre\)/).fill("## Preparo\n- **Aveia** 🥣\nMisture e sirva.");
   await page.getByRole("button", {name:"Visualizar",exact:true}).click();
   await expect(page.locator(".formatted-text strong")).toHaveText("Aveia");
@@ -21,7 +20,8 @@ test("receita formatada salva, duplica e aparece só em Receitas do aluno associ
   const list = await (await apiGet(request, "/api/diets", admin)).json();
   const recipe = list.find((d: {name:string}) => d.name === name);
   expect(recipe.kind).toBe("recipe");
-  expect((await apiGet(request, `/api/diets/${recipe.id}`, other)).status()).toBe(404);
+  // Receita é GLOBAL: qualquer aluno aprovado lê (mas não escreve).
+  expect((await apiGet(request, `/api/diets/${recipe.id}`, other)).status()).toBe(200);
   expect((await request.put(`${API_BASE}/api/diets/${recipe.id}`, {headers:{Authorization:`Bearer ${student}`},data:recipe})).status()).toBe(403);
   const duplicate = await request.post(`${API_BASE}/api/diets/${recipe.id}/duplicate`, {headers:{Authorization:`Bearer ${admin}`},data:{newName:name+" copia"}});
   expect(duplicate.status()).toBe(200);
@@ -32,7 +32,8 @@ test("receita formatada salva, duplica e aparece só em Receitas do aluno associ
   await page.waitForURL("**/dashboard");
   await page.goto("/receitas");
   await expect(page.getByRole("heading", {name:"Suas receitas"})).toBeVisible();
-  await expect(page.getByText(name,{exact:true})).toBeVisible();
+  // A receita aparece como botão (nome) e abre por clique.
+  await page.getByRole("button", { name, exact: true }).click();
   await expect(page.locator(".formatted-text strong").first()).toHaveText("Aveia");
   await page.goto("/dietas");
   await expect(page.getByRole("heading", {name:"Sua dieta"})).toBeVisible();

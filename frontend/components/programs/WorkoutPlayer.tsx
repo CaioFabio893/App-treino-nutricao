@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type { WorkoutDefine } from "@/lib/types";
+import ExerciseVideo from "@/components/ExerciseVideo";
 import styles from "./WorkoutPlayer.module.css";
 
 type SetEntry = { weight: string; reps: string; status: "" | "ok" | "fail" };
@@ -138,8 +139,7 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
         <summary><span className={styles.number}>{index + 1}</span><span><b>{ex.name}</b>{ex.phase && <small>{{warmup:"Aquecimento",main:"Principal",cardio:"Cardio",stretching:"Alongamento"}[ex.phase]}</small>}<small>{ex.sets} séries · {ex.repetitions} reps{ex.weight ? ` · ${ex.weight}` : ""}{suggested !== null ? ` · Sugestão: ${suggested} kg` : ""}</small></span><span>⌄</span></summary>
         <div className={styles.body}>
           {ex.description && <p>{ex.description}</p>}{ex.notes && <p className={styles.note}>{ex.notes}</p>}
-          {ex.videoUrl && /^https:\/\//i.test(ex.videoUrl) && <a href={ex.videoUrl} target="_blank" rel="noopener noreferrer">Ver vídeo de {ex.name}</a>}
-          {ex.videoUrls?.filter(url => /^https:\/\//i.test(url)).map((url,i) => <p key={url}><a href={url} target="_blank" rel="noopener noreferrer">Vídeo complementar {i + 1} · {ex.name}</a></p>)}
+          {[...new Set([ex.videoUrl, ...(ex.videoUrls ?? [])].filter((url): url is string => Boolean(url)))].map((url, i) => <ExerciseVideo key={url} url={url} title={`${i ? "Vídeo complementar" : "Ver execução"} · ${ex.name}`} />)}
           {previous && <div className={styles.previous}><b>Última sessão · Semana {previousWeek}</b><div>{previous.sets.map((s, i) => <span key={i}>S{i + 1}: {s.weight || "—"} kg × {s.reps || "—"} {s.status === "ok" ? "✓" : s.status === "fail" ? "✗" : ""} </span>)}</div></div>}
           <div className={styles.table}><div className={styles.row}><span>#</span><span>Carga (kg)</span><span>Reps</span><span>Alvo</span><span>Resultado</span></div>
             {Array.from({ length: Math.min(ex.sets, 100) }, (_, s) => { const entry = current.sets[s] ?? { weight: "", reps: "", status: "" }; const edit = (patch: Partial<SetEntry>) => { const sets = Array.from({ length: ex.sets }, (_, n) => current.sets[n] ?? { weight: "", reps: "", status: "" }); sets[s] = { ...entry, ...patch }; update(index, { ...current, sets }); }; return <div className={styles.row} key={s}><span>{s + 1}</span>

@@ -60,12 +60,17 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
         </button>
       </header>
 
-      <main className="stu-main">{children}</main>
+      <main className="stu-main">
+        <a className="stu-checkin" href="https://forms.gle/7E8rybhNQEbnqpTe8" target="_blank" rel="noopener noreferrer">
+          <span><strong>Check-in Diário</strong><small>Conte à Louise como foi seu dia</small></span><span aria-hidden="true">↗</span>
+        </a>
+        {children}
+      </main>
 
       <nav className="stu-nav" aria-label="Seções do aluno">
         <div className="stu-nav-inner">
           {items.map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
             const AppIcon = navAppIcons[item.icon];
             return (
               <Link

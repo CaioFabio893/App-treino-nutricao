@@ -107,7 +107,7 @@ export default function DietForm({
     try {
       const token = await getToken();
       const payload: Diet = {
-        studentId,
+        studentId: recipe ? "" : studentId,
         kind: recipe ? "recipe" : (initial?.kind ?? "diet"),
         name: name.trim(),
         description: description.trim(),
@@ -167,6 +167,7 @@ export default function DietForm({
             onChange={(e) => setName(e.target.value)}
           />
         </div>
+        {recipe ? <p className="page-sub">Disponível para todos os alunos, sem associação individual.</p> : <>
         <div className="frm-row">
           <label htmlFor="diet-student">Aluno</label>
           <select
@@ -182,6 +183,7 @@ export default function DietForm({
             ))}
           </select>
         </div>
+        </>}
         <div className="frm-row-inline">
           <div className="frm-row">
             <label htmlFor="diet-start">Data de início</label>

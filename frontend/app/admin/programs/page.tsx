@@ -182,20 +182,34 @@ function ProgramsInner() {
     }
   };
 
-  const handleAssign = async (p: TrainingProgram, studentId: string) => {
-    if (busyId) return;
+  const handleAssign = async (p: TrainingProgram, studentIds: string[], pending: Record<string, string>) => {
+    if (busyId) return studentIds;
     setBusyId(p.id!);
     setError(null);
+    const failed: string[] = [];
+    let completed = 0;
     try {
       const token = await getToken();
-      await api.assignProgram(p.id!, studentId, token);
-      showToast(`Programa atribuído a ${studentName(studentId)}.`);
-      void load();
+      for (const studentId of studentIds) {
+        try {
+          // Preserve the source and each student's independent prescription.
+          if (!pending[studentId]) {
+            const clone = await api.duplicateProgram(p.id!, { newName: p.name }, token);
+            pending[studentId] = clone.id!;
+          }
+          await api.assignProgram(pending[studentId], studentId, token);
+          delete pending[studentId];
+          completed++;
+        } catch { failed.push(studentId); }
+      }
+      await load();
+      if (failed.length) setError(`${completed} aluno(s) receberam o programa. Não foi possível associar a ${failed.map(studentName).join(", ")}. Tente novamente apenas para esses alunos.`);
+      else showToast(`Programa associado a ${completed} aluno(s). Modelo original preservado.`);
     } catch (e) {
       setError(api.friendlyError(e));
-    } finally {
-      setBusyId("");
-    }
+      return studentIds;
+    } finally { setBusyId(""); }
+    return failed;
   };
 
   const renderCard = (p: TrainingProgram) => {
@@ -245,15 +259,8 @@ function ProgramsInner() {
           >
             {busyId === p.id ? "…" : "Duplicar"}
           </button>
-          {p.studentId ? (
-            <span className="badge">atribuído</span>
-          ) : (
-            <AssignPicker
-              students={students}
-              onPick={(sid) => void handleAssign(p, sid)}
-              busy={busyId === p.id}
-            />
-          )}
+          <AssignPicker students={students.filter(s => s.id !== p.studentId)}
+            onPick={(ids, pending) => handleAssign(p, ids, pending)} busy={Boolean(busyId)} />
           <button
             type="button"
             className="btn-sm danger"
@@ -300,15 +307,8 @@ function ProgramsInner() {
           >
             Duplicar
           </button>
-          {p.studentId ? (
-            <span className="badge">atribuído</span>
-          ) : (
-            <AssignPicker
-              students={students}
-              onPick={(sid) => void handleAssign(p, sid)}
-              busy={busyId === p.id}
-            />
-          )}
+          <AssignPicker students={students.filter(s => s.id !== p.studentId)}
+            onPick={(ids, pending) => handleAssign(p, ids, pending)} busy={Boolean(busyId)} />
           <button
             type="button"
             className="btn-sm danger"
@@ -345,7 +345,7 @@ function ProgramsInner() {
         <WorkoutsPageSkeleton />
       ) : programs.length === 0 ? (
         <div className="empty-box">
-          Cadastre um programa completo com todos os treinos A, B, C, D… e associe o conjunto inteiro a um aluno.
+          Cadastre um programa completo com todos os treinos A, B, C, D… e associe o conjunto inteiro a vários alunos de uma vez.
         </div>
       ) : (
         <>
@@ -406,52 +406,48 @@ function ProgramsInner() {
   );
 }
 
-/** Botão que pergunta para qual aluno atribuir o programa. */
-function AssignPicker({
-  students,
-  onPick,
-  busy,
-}: {
+function AssignPicker({ students, onPick, busy }: {
   students: UserProfile[];
-  onPick: (sid: string) => void;
+  onPick: (ids: string[], pending: Record<string, string>) => Promise<string[]>;
   busy: boolean;
 }) {
   const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button type="button" className="btn-sm" disabled={busy} onClick={() => setOpen(true)}>
-        Associar programa inteiro
-      </button>
-      {open && (
-        <div className="modal-bg open" onClick={() => setOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-title">Associar programa inteiro a um aluno</div>
-            <p style={{ fontSize: 12, color: "var(--muted)" }}>
-              Todos os treinos serão associados ao aluno escolhido de uma só vez.
-              Para manter também um modelo na biblioteca, duplique o programa antes de associar.
-            </p>
-            {students.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--muted)" }}>Nenhum aluno disponível.</p>
-            ) : (
-              students.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="btn-sm full"
-                  style={{ marginBottom: 8 }}
-                  onClick={() => {
-                    onPick(s.id);
-                    setOpen(false);
-                  }}
-                >
-                  {s.name || s.id}
-                </button>
-              ))
-            )}
-          </div>
+  const [query, setQuery] = useState("");
+  const [selected, setSelected] = useState<string[]>([]);
+  const [pending] = useState<Record<string, string>>({});
+  const [failure, setFailure] = useState("");
+  const visible = students.filter(s => `${s.name} ${s.email}`.toLowerCase().includes(query.toLowerCase()));
+  const close = () => { if (!busy) setOpen(false); };
+  const submit = async () => {
+    const failed = await onPick(selected, pending);
+    setSelected(failed);
+    setFailure(failed.length ? `${failed.length} associação(ões) pendentes. Tente novamente.` : "");
+    if (!failed.length) setOpen(false);
+  };
+  return <>
+    <button type="button" className="btn-sm" disabled={busy} onClick={() => setOpen(true)}>Associar a vários alunos</button>
+    {open && <div className="modal-bg open" onClick={close}>
+      <section className="modal-box" role="dialog" aria-modal="true" aria-label="Associar programa a alunos" onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") close(); }}>
+        <h2 className="modal-title">Associar programa a alunos</h2>
+        <p className="page-sub">Cada aluno recebe todos os treinos. O programa original continua disponível.</p>
+        <input autoFocus type="search" aria-label="Buscar alunos" placeholder="Buscar por nome ou e-mail" value={query} disabled={busy} onChange={e => setQuery(e.target.value)} />
+        <div className="btn-row">
+          <button type="button" className="btn-sm" disabled={busy} onClick={() => setSelected([...new Set([...selected, ...visible.map(s => s.id)])])}>Selecionar todos da busca</button>
+          <button type="button" className="btn-sm" disabled={busy} onClick={() => setSelected([])}>Limpar seleção</button>
         </div>
-      )}
-    </>
-  );
+        <div className="student-selection">
+          {visible.map(s => <label key={s.id} className="student-selection-row">
+            <input type="checkbox" disabled={busy} checked={selected.includes(s.id)} onChange={e => setSelected(e.target.checked ? [...selected, s.id] : selected.filter(id => id !== s.id))} />
+            <span><b>{s.name || s.id}</b><small>{s.email}</small></span>
+          </label>)}
+          {!visible.length && <p>Nenhum aluno encontrado.</p>}
+        </div>
+        {failure && <p role="alert" className="err-text">{failure}</p>}
+        <div className="btn-row">
+          <button type="button" className="btn-sm acc" disabled={busy || !selected.length} onClick={() => void submit()}>{busy ? "Associando…" : `Associar a ${selected.length} aluno(s)`}</button>
+          <button type="button" className="btn-sm" disabled={busy} onClick={close}>Fechar</button>
+        </div>
+      </section>
+    </div>}
+  </>;
 }

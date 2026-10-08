@@ -14,6 +14,7 @@ import { todayDateLabel, todayDateKey } from "@/lib/days";
 export default function StudentDietPage({ recipe = false }: { recipe?: boolean }) {
   const { getToken, profile } = useAuth();
   const [diets, setDiets] = useState<Diet[]>([]);
+  const [openedRecipe, setOpenedRecipe] = useState<string | null>(null);
   const [ready, setReady] = useState(false);
   const [loadError, setLoadError] = useState(false);
 
@@ -21,7 +22,7 @@ export default function StudentDietPage({ recipe = false }: { recipe?: boolean }
     try {
       const token = await getToken();
       const d = await api.listDiets(token);
-      setDiets(d.filter((x) => x.studentId === (profile?.id ?? "") && (recipe ? x.kind === "recipe" : x.kind !== "recipe")));
+      setDiets(d.filter((x) => (recipe ? x.kind === "recipe" : x.studentId === (profile?.id ?? "") && x.kind !== "recipe")));
       setLoadError(false);
     } catch {
       setLoadError(true);
@@ -54,7 +55,7 @@ export default function StudentDietPage({ recipe = false }: { recipe?: boolean }
   }
 
   const today = todayDateKey();
-  const available = diets.filter(
+  const available = recipe ? diets : diets.filter(
     (d) =>
       (!d.startDate || d.startDate <= today) &&
       (!d.endDate || d.endDate >= today)
@@ -70,9 +71,11 @@ export default function StudentDietPage({ recipe = false }: { recipe?: boolean }
         </div>
       </div>
 
-      {(recipe ? available : todayDiet ? [todayDiet] : []).map(todayDiet => (
+      {recipe && <p className="page-sub">Receitas liberadas para todos. Toque no nome para abrir.</p>}
+      {available.map(todayDiet => (
           <div className="stu-card" key={todayDiet.id}>
-            <div className="stu-card-title">{todayDiet.name}</div>
+            {recipe ? <button type="button" className="recipe-button" aria-expanded={openedRecipe === todayDiet.id} onClick={() => setOpenedRecipe(openedRecipe === todayDiet.id ? null : todayDiet.id!)}>{todayDiet.name}<span aria-hidden="true">{openedRecipe === todayDiet.id ? "−" : "+"}</span></button> : <div className="stu-card-title">{todayDiet.name}</div>}
+            {(!recipe || openedRecipe === todayDiet.id) && <>
             <div className="stu-card-sub">
               {todayDiet.description || ""}
               {todayDiet.startDate
@@ -103,11 +106,12 @@ export default function StudentDietPage({ recipe = false }: { recipe?: boolean }
                 </div>
               ))
             )}
+            </>}
           </div>
       ))}
       {!todayDiet && (
         <div className="empty-box">
-          {recipe ? "Nenhuma receita foi atribuída ainda. Quando seu responsável cadastrar, aparece aqui." : "Nenhuma dieta foi atribuída ainda. Quando seu nutricionista cadastrar, aparece aqui."}
+          {recipe ? "Nenhuma receita disponível ainda." : "Nenhuma dieta foi atribuída ainda. Quando seu nutricionista cadastrar, aparece aqui."}
         </div>
       )}
     </div>

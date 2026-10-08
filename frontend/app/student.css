@@ -230,3 +230,28 @@
 .text-editor textarea { line-height: 1.8; padding: 16px; border-radius: 14px; }
 @media(max-width:480px) { .stu-card,.stu-dash-card,.frm-card { padding: 18px; } .stu-main { padding-top: 22px; } }
 .dashboard .frm-card,.dashboard .nut-card { border-radius:22px; box-shadow:0 8px 28px rgba(15,55,40,.045); }
+
+/* Student workout pages and daily check-in. */
+.stu-main { width: 100%; max-width: 1000px; min-width: 0; }
+.stu-checkin { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:18px 22px; margin-bottom:24px; background:linear-gradient(120deg,#083D30,#0B6B52); color:#fff; border-radius:20px; text-decoration:none; box-shadow:0 8px 24px #0b6b5220; }
+.stu-checkin strong { display:block; font-size:17px; }
+.stu-checkin small { display:block; margin-top:5px; color:#d6ede4; font-size:12px; }
+.stu-checkin:focus-visible,.recipe-button:focus-visible { outline:3px solid #35C596; outline-offset:4px; }
+.stu-shell .page-head { margin-bottom:22px; }
+.stu-shell .page-head h1 { font-size:clamp(23px,4vw,32px); line-height:1.2; overflow-wrap:anywhere; }
+.stu-shell .frm-card,.stu-shell .item-card,.stu-shell .stu-card { border:1px solid var(--d-border); background:var(--d-surface); border-radius:20px; padding:20px; margin-bottom:16px; }
+.stu-shell .btn-sm,.stu-shell .btn-p { min-height:44px; display:inline-flex; align-items:center; justify-content:center; padding:11px 18px; font-size:14px; font-weight:600; }
+.workout-prescription-table { max-width:100%; overflow-x:auto; }
+.workout-prescription-table table { min-width:650px; }
+.stu-shell details > .section-label { cursor:pointer; padding:16px; background:var(--d-surface-2); border-radius:12px; }
+.exercise-video { margin:12px 0; }
+.exercise-video button { min-height:44px; padding:10px 16px; border:1px solid var(--d-border); border-radius:12px; color:var(--d-primary-dark); background:var(--d-surface-2); cursor:pointer; font:inherit; font-weight:600; }
+.exercise-video-frame { aspect-ratio:16/9; margin:12px 0; overflow:hidden; border-radius:14px; background:#101815; }
+.exercise-video-frame iframe { width:100%; height:100%; border:0; }
+.exercise-video small { display:block; color:var(--d-muted); line-height:1.5; }
+.recipe-button { display:flex; width:100%; justify-content:space-between; gap:16px; align-items:center; text-align:left; font:inherit; font-weight:600; font-size:16px; color:var(--d-primary-dark); padding:14px 16px; border:1px solid var(--d-border); border-radius:12px; background:var(--d-surface-2); cursor:pointer; min-height:52px; }
+.student-selection { max-height:40vh; overflow:auto; margin:16px 0; }
+.student-selection-row { display:flex; gap:12px; align-items:center; padding:12px; border-bottom:1px solid var(--d-border); cursor:pointer; }
+.student-selection-row input { width:20px; height:20px; flex-shrink:0; accent-color:var(--d-primary); }
+.student-selection-row small { display:block; color:var(--d-muted); margin-top:4px; overflow-wrap:anywhere; }
+@media(max-width:480px) { .stu-checkin { padding:16px; } .stu-shell .frm-card,.stu-shell .item-card,.stu-shell .stu-card { padding:16px; } }

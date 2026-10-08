@@ -7,6 +7,7 @@ import * as api from "@/lib/api";
 import type { ProgramWorkout, TrainingProgram, WorkoutDefine } from "@/lib/types";
 import { dayLabel, PROGRAM_DAY_FULL, programExerciseCount } from "@/lib/programDays";
 import LoadError from "@/components/LoadError";
+import ExerciseVideo from "@/components/ExerciseVideo";
 import WorkoutPlayer from "./WorkoutPlayer";
 
 interface Props {
@@ -234,7 +235,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
                   Este treino não tem exercícios.
                 </div>
               ) : (
-                <table className="dash-table">
+                <div className="workout-prescription-table"><table className="dash-table">
                   <thead>
                     <tr>
                       <th>#</th>
@@ -252,6 +253,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
                         <td className="num">{e.order || j + 1}</td>
                         <td>
                           <span className="dash-cell-title">{e.name}</span>
+                          {[...new Set([e.videoUrl, ...(e.videoUrls ?? [])].filter((url): url is string => Boolean(url)))].map(url => <ExerciseVideo key={url} url={url} title={`Ver execução · ${e.name}`} />)}
                         </td>
                         <td className="num">{e.sets || "—"}</td>
                         <td>{e.repetitions || "—"}</td>
@@ -261,7 +263,7 @@ export default function ProgramDetail({ programId, readOnly, backHref, backLabel
                       </tr>
                     ))}
                   </tbody>
-                </table>
+                </table></div>
               )}
             </div>
           );

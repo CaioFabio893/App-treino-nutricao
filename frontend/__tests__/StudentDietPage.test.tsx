@@ -112,3 +112,35 @@ describe("StudentDietPage — dieta do aluno", () => {
       vi.useRealTimers();
     }
   });});
+
+describe("StudentDietPage — receitas globais", () => {
+  const globalRecipe: Diet = {
+    id: "r1",
+    studentId: "",
+    kind: "recipe",
+    name: "Coxinha da Lou",
+    content: "MODO DE PREPARO\n• Cozinhe a batata\n• Recheie e asse",
+  };
+
+  it("lista receitas globais (sem aluno) e abre por clique", async () => {
+    mocks.getToken.mockResolvedValue("tok");
+    mocks.listDiets.mockResolvedValue([globalRecipe, textDiet]);
+
+    render(<StudentDietPage recipe />);
+    // Receita aparece como botão; a dieta própria (kind diet) não aparece na aba de receitas.
+    const botao = await screen.findByRole("button", { name: /Coxinha da Lou/ });
+    expect(screen.queryByText("Plano Hipercalórico")).not.toBeInTheDocument();
+    // Conteúdo escondido até abrir.
+    expect(screen.queryByText(/MODO DE PREPARO/)).not.toBeInTheDocument();
+    await userEvent.click(botao);
+    expect(screen.getByText(/MODO DE PREPARO/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Copiar receita/ })).toBeInTheDocument();
+  });
+
+  it("mostra estado vazio quando não há receita", async () => {
+    mocks.getToken.mockResolvedValue("tok");
+    mocks.listDiets.mockResolvedValue([]);
+    render(<StudentDietPage recipe />);
+    expect(await screen.findByText(/Nenhuma receita disponível ainda/)).toBeInTheDocument();
+  });
+});
