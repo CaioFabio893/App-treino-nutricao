@@ -11,6 +11,7 @@ import ConfirmModal from "@/components/ConfirmModal";
 import ProgramDetail from "@/components/programs/ProgramDetail";
 import ProgramForm from "@/components/programs/ProgramForm";
 import ProgramImport from "@/components/programs/ProgramImport";
+import StudentAssignmentPicker, { assignSelectedStudents } from "@/components/StudentAssignmentPicker";
 
 export default function ProgramsPage() {
   return (
@@ -182,26 +183,23 @@ function ProgramsInner() {
     }
   };
 
-  const handleAssign = async (p: TrainingProgram, studentIds: string[], pending: Record<string, string>) => {
+  const handleAssign = async (p: TrainingProgram, studentIds: string[], pending: Record<string, string>, progress: (done: number) => void) => {
     if (busyId) return studentIds;
     setBusyId(p.id!);
     setError(null);
-    const failed: string[] = [];
+    let failed: string[] = [];
     let completed = 0;
     try {
       const token = await getToken();
-      for (const studentId of studentIds) {
-        try {
-          // Preserve the source and each student's independent prescription.
-          if (!pending[studentId]) {
-            const clone = await api.duplicateProgram(p.id!, { newName: p.name }, token);
-            pending[studentId] = clone.id!;
-          }
-          await api.assignProgram(pending[studentId], studentId, token);
-          delete pending[studentId];
-          completed++;
-        } catch { failed.push(studentId); }
-      }
+      failed = await assignSelectedStudents(studentIds, async studentId => {
+        if (!pending[studentId]) {
+          const clone = await api.duplicateProgram(p.id!, { newName: p.name }, token);
+          pending[studentId] = clone.id!;
+        }
+        await api.assignProgram(pending[studentId], studentId, token);
+        delete pending[studentId];
+        completed++;
+      }, progress);
       await load();
       if (failed.length) setError(`${completed} aluno(s) receberam o programa. Não foi possível associar a ${failed.map(studentName).join(", ")}. Tente novamente apenas para esses alunos.`);
       else showToast(`Programa associado a ${completed} aluno(s). Modelo original preservado.`);
@@ -259,8 +257,8 @@ function ProgramsInner() {
           >
             {busyId === p.id ? "…" : "Duplicar"}
           </button>
-          <AssignPicker students={students.filter(s => s.id !== p.studentId)}
-            onPick={(ids, pending) => handleAssign(p, ids, pending)} busy={Boolean(busyId)} />
+          <StudentAssignmentPicker title="Associar programa de treino" description="Selecione os alunos. Cada um recebe todos os treinos, com registros independentes. O modelo original continua disponível." students={students.filter(s => s.id !== p.studentId)}
+            onPick={(ids, pending, progress) => handleAssign(p, ids, pending, progress)} busy={Boolean(busyId)} />
           <button
             type="button"
             className="btn-sm danger"
@@ -307,8 +305,8 @@ function ProgramsInner() {
           >
             Duplicar
           </button>
-          <AssignPicker students={students.filter(s => s.id !== p.studentId)}
-            onPick={(ids, pending) => handleAssign(p, ids, pending)} busy={Boolean(busyId)} />
+          <StudentAssignmentPicker title="Associar programa de treino" description="Selecione os alunos. Cada um recebe todos os treinos, com registros independentes. O modelo original continua disponível." students={students.filter(s => s.id !== p.studentId)}
+            onPick={(ids, pending, progress) => handleAssign(p, ids, pending, progress)} busy={Boolean(busyId)} />
           <button
             type="button"
             className="btn-sm danger"
@@ -406,48 +404,3 @@ function ProgramsInner() {
   );
 }
 
-function AssignPicker({ students, onPick, busy }: {
-  students: UserProfile[];
-  onPick: (ids: string[], pending: Record<string, string>) => Promise<string[]>;
-  busy: boolean;
-}) {
-  const [open, setOpen] = useState(false);
-  const [query, setQuery] = useState("");
-  const [selected, setSelected] = useState<string[]>([]);
-  const [pending] = useState<Record<string, string>>({});
-  const [failure, setFailure] = useState("");
-  const visible = students.filter(s => `${s.name} ${s.email}`.toLowerCase().includes(query.toLowerCase()));
-  const close = () => { if (!busy) setOpen(false); };
-  const submit = async () => {
-    const failed = await onPick(selected, pending);
-    setSelected(failed);
-    setFailure(failed.length ? `${failed.length} associação(ões) pendentes. Tente novamente.` : "");
-    if (!failed.length) setOpen(false);
-  };
-  return <>
-    <button type="button" className="btn-sm" disabled={busy} onClick={() => setOpen(true)}>Associar a vários alunos</button>
-    {open && <div className="modal-bg open" onClick={close}>
-      <section className="modal-box" role="dialog" aria-modal="true" aria-label="Associar programa a alunos" onClick={e => e.stopPropagation()} onKeyDown={e => { if (e.key === "Escape") close(); }}>
-        <h2 className="modal-title">Associar programa a alunos</h2>
-        <p className="page-sub">Cada aluno recebe todos os treinos. O programa original continua disponível.</p>
-        <input autoFocus type="search" aria-label="Buscar alunos" placeholder="Buscar por nome ou e-mail" value={query} disabled={busy} onChange={e => setQuery(e.target.value)} />
-        <div className="btn-row">
-          <button type="button" className="btn-sm" disabled={busy} onClick={() => setSelected([...new Set([...selected, ...visible.map(s => s.id)])])}>Selecionar todos da busca</button>
-          <button type="button" className="btn-sm" disabled={busy} onClick={() => setSelected([])}>Limpar seleção</button>
-        </div>
-        <div className="student-selection">
-          {visible.map(s => <label key={s.id} className="student-selection-row">
-            <input type="checkbox" disabled={busy} checked={selected.includes(s.id)} onChange={e => setSelected(e.target.checked ? [...selected, s.id] : selected.filter(id => id !== s.id))} />
-            <span><b>{s.name || s.id}</b><small>{s.email}</small></span>
-          </label>)}
-          {!visible.length && <p>Nenhum aluno encontrado.</p>}
-        </div>
-        {failure && <p role="alert" className="err-text">{failure}</p>}
-        <div className="btn-row">
-          <button type="button" className="btn-sm acc" disabled={busy || !selected.length} onClick={() => void submit()}>{busy ? "Associando…" : `Associar a ${selected.length} aluno(s)`}</button>
-          <button type="button" className="btn-sm" disabled={busy} onClick={close}>Fechar</button>
-        </div>
-      </section>
-    </div>}
-  </>;
-}

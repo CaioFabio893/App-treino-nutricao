@@ -35,3 +35,8 @@ if (!window.ResizeObserver) {
 afterEach(() => {
   localStorage.clear();
 });
+// Native dialog methods are absent in jsdom; browser E2E exercises real focus.
+if (!HTMLDialogElement.prototype.showModal) {
+  HTMLDialogElement.prototype.showModal = function () { this.setAttribute("open", ""); };
+  HTMLDialogElement.prototype.close = function () { this.removeAttribute("open"); };
+}

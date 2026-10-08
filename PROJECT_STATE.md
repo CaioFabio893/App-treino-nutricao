@@ -161,3 +161,6 @@ Próximo passo: publicar (deploy api/web) e conferir smoke + 360/390/430px.
 
 ## Revisão visual publicada — 08/10/2026
 Codex finalizou a pedido do dono: build Linux corrigido com webpack no Dockerfile; Cloud Build 0c4a8d6f SUCCESS, treino-web-00023-mvw com 100% do tráfego. /treinos HTTP200, CSS/check-in novos confirmados nos assets. Backend preservado. Gates do OpenCode aproveitados; nenhuma suíte repetida. Detalhes no relatório da revisão visual.
+
+## Associação em lote e remoção do seletor — PUBLICADO 08/10/2026
+Treinos e planos alimentares compartilham seletor com busca, selecionar todos, lista em blocos de100, contador/progresso e retry parcial. Cópias individuais/modelo preservado; AdminAreaSwitch removido do Providers. tsc/lint/build PASS, Vitest147/27 PASS, E2E33/33 PASS (2.4min). CloudBuild fce3bdbb SUCCESS, web00024-ll9 100% tráfego. Backend sem mudança. Relatório docs/reports/associacao-em-lote-2026-10-08.md.

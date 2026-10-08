@@ -81,7 +81,7 @@ test.describe("Programa de treino (admin)", () => {
     // ── 4. Associar em lote: preserva a FONTE e cria uma cópia por aluno ───
     // "Ana Aluna" = USERS.studentA do seed (backend/cmd/e2eseed).
     await rowOriginal.getByRole("button", { name: "Associar a vários alunos" }).click();
-    const modal = page.locator(".modal-box");
+    const modal = page.getByRole("dialog", { name: "Associar programa de treino" });
     await modal.getByRole("checkbox", { name: /Ana Aluna/ }).check();
     await modal.getByRole("button", { name: /Associar a 1 aluno/ }).click();
 

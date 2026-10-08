@@ -87,7 +87,7 @@ describe("Programas - associacao em lote", () => {
     await userEvent.click(screen.getByRole("checkbox", { name: /Bia/ }));
     await userEvent.click(screen.getByRole("button", { name: /Associar a 2 aluno/ }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(/1 associa..o\(.es\) pendentes/);
+    expect(await screen.findByRole("alert")).toHaveTextContent(/1 aluno\(s\) não receberam/);
     expect(mocks.duplicateProgram).toHaveBeenCalledTimes(2);
 
     // Retry: so Bia esta selecionada; a copia dela ja existe (pending) -> nao duplica de novo.

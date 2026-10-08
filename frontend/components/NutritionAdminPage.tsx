@@ -8,6 +8,7 @@ import type { Diet, UserProfile } from "@/lib/types";
 import { DietsPageSkeleton } from "@/components/Skeleton";
 import DietForm from "@/components/DietForm";
 import ConfirmModal from "@/components/ConfirmModal";
+import StudentAssignmentPicker, { assignSelectedStudents } from "@/components/StudentAssignmentPicker";
 import { EmptyDietState } from "@/components/EmptyDietState";
 
 export default function DietsPage({ recipe = false }: { recipe?: boolean }) {
@@ -34,6 +35,8 @@ function DietsInner({ recipe }: { recipe: boolean }) {
   const [error, setError] = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Diet | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [assigning, setAssigning] = useState(false);
+  const [notice, setNotice] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -97,14 +100,20 @@ function DietsInner({ recipe }: { recipe: boolean }) {
     }
   };
 
-  const handleDuplicate = async (d: Diet, targetStudentId: string) => {
+  const handleAssign = async (diet: Diet, ids: string[], _pending: Record<string, string>, progress: (done: number) => void) => {
+    void _pending;
+    if (assigning) return ids;
+    setAssigning(true); setError(null); setNotice("");
     try {
       const token = await getToken();
-      await api.duplicateDiet(d.id!, { newStudentId: targetStudentId, newName: `${d.name} (copia)` }, token);
-      void load();
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Falha ao duplicar");
-    }
+      const failed = await assignSelectedStudents(ids, async studentId => {
+        await api.duplicateDiet(diet.id!, { newStudentId: studentId, newName: diet.name }, token);
+      }, progress);
+      await load();
+      setNotice(`Plano alimentar associado a ${ids.length - failed.length} aluno(s). Modelo original preservado.`);
+      return failed;
+    } catch (e) { setError(api.friendlyError(e)); return ids; }
+    finally { setAssigning(false); }
   };
 
   return (
@@ -124,6 +133,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
       </div>
 
       {error && <div className="err-text">{error}</div>}
+      {notice && <div className="empty-box" role="status">{notice}</div>}
 
       {diets.length === 0 ? (
         recipe ? <div className="empty-box">Nenhuma receita cadastrada. Use Nova receita para disponibilizar conteúdo para todos os alunos.</div> : <EmptyDietState onAction={() => router.push(`${base}?new=1`)} />
@@ -175,7 +185,7 @@ function DietsInner({ recipe }: { recipe: boolean }) {
               >
                 Imprimir
               </button>}
-              {!recipe && <Duplicator students={students} onPick={(sid) => void handleDuplicate(d, sid)} />}
+              {!recipe && <StudentAssignmentPicker title="Associar plano alimentar" description="Selecione os alunos que receberão este plano, incluindo seu documento. Cada aluno terá sua própria cópia; o modelo continua disponível." students={students.filter(s => s.id !== d.studentId)} busy={assigning} onPick={(ids, pending, progress) => handleAssign(d, ids, pending, progress)} />}
               <button
                 type="button"
                 className="btn-sm danger"
@@ -207,49 +217,3 @@ function DietsInner({ recipe }: { recipe: boolean }) {
   );
 }
 
-function Duplicator({
-  recipe,
-  students,
-  onPick,
-}: {
-  recipe?: boolean;
-  students: UserProfile[];
-  onPick: (sid: string) => void;
-}) {
-  const [open, setOpen] = useState(false);
-  return (
-    <>
-      <button type="button" className="btn-sm" onClick={() => setOpen(true)}>
-        Duplicar
-      </button>
-      {open && (
-        <div className="modal-bg open" onClick={() => setOpen(false)}>
-          <div className="modal-box" onClick={(e) => e.stopPropagation()}>
-            <div className="modal-handle" />
-            <div className="modal-title">{recipe ? "Duplicar receita" : "Duplicar dieta"}</div>
-            {students.length === 0 ? (
-              <p style={{ fontSize: 12, color: "var(--muted)" }}>
-                Nenhum aluno disponível.
-              </p>
-            ) : (
-              students.map((s) => (
-                <button
-                  key={s.id}
-                  type="button"
-                  className="btn-sm full"
-                  style={{ marginBottom: 8 }}
-                  onClick={() => {
-                    onPick(s.id);
-                    setOpen(false);
-                  }}
-                >
-                  {s.name || s.id}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </>
-  );
-}
