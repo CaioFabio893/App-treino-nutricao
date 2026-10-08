@@ -32,3 +32,8 @@ pdf_continuous=7pages source SHA256 equal PASS / UI8checks PASS / no watermark
 treino_feminino=published | go=196 PASS (vet OK) | vitest=131 PASS (23 arquivos) | tsc=OK | lint=0/0 | build=OK | videos=48/48 oEmbed OK | api=treino-api-00020-x2k | web=treino-web-00021-nzt | import=9 docs create-only OK | smoke=web200/api200/cors204
 # AVISO 07/10: firebase apps:sdkconfig devolveu apiKey EXPIRADA; a key valida
 # vem de: gcloud services api-keys get-key-string <nome> . Sempre conferir.
+
+# Atualizado 08/10/2026 (ajustes aluno/nutricao/check-in, PUBLICADO):
+# Go201 PASS + vet limpo; Vitest145/26arquivos; tsc/lint/build OK; E2E32 PASS.
+# Receitas globais, associacao em lote, check-in diario, videos embutidos, sw v4.
+aluno_nutricao_checkin=published | go=201 PASS (vet OK) | vitest=145 PASS (26 arquivos) | tsc=OK | lint=0/0 | build=OK | e2e=32 PASS | api=treino-api-00021-bqv | web=treino-web-00022-fw8 | smoke=web200/api200/cors204

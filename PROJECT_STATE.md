@@ -119,3 +119,19 @@ contém modalidade/AMRAP. Push para `origin/main` (`ab1799e`). Falta apenas a
 associação ao aluno pela UI e os vídeos/alongamentos revisados manualmente.
 Dados: docs/data/treino-feminino-fonte.md, -preparado.json e -videos.json.
 Retomada/prompt: docs/reports/treino-feminino-handoff.md.
+
+## Ajustes aluno/nutrição/check-in — PUBLICADO (08/10/2026)
+
+Trabalho iniciado pelo Codex (UI + import) e fechado pelo OpenCode (testes,
+gates, publicação). Receitas passam a ser globais (`kind=recipe`, leitura para
+todo perfil aprovado via `canReadDiet`; escrita continua admin-only); associação
+de programa em lote preserva a fonte e cria cópia por aluno; faixa de Check-in
+Diário no layout do aluno; vídeos embutidos (`ExerciseVideo`, youtube-nocookie);
+service worker `treino-v4`. Import já feito pelo Codex: 10 registros (3 dietas +
+7 receitas) e 28 páginas PNG no bucket privado.
+
+Gates: Go 201 PASS + vet limpo · Vitest 145/26 · tsc/lint/build OK · E2E 32 PASS.
+Publicado: API `treino-api-00021-bqv` (digest `d04dd5bf…`) e web
+`treino-web-00022-fw8` (digest `dda9a789…`), 100% tráfego; smoke web 200,
+`/health` 200, CORS 204, bundle com apiKey válida e features novas. Relatório:
+docs/reports/ajustes-aluno-nutricao-checkin-2026-10-07.md.
