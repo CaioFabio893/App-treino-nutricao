@@ -33,3 +33,9 @@ Implementação:
 A ordem relativa dos controles no DOM foi conservada; a ordem visual dos blocos informativos no corpo do exercício usa CSS order para atender à hierarquia solicitada. O OpenCode deve conferir leitura assistiva e visual juntas. As funções de cálculo, persistência, storageKey, props, estado, handlers e APIs permanecem sem mudança nesta etapa. Nenhum arquivo de backend foi editado. O service worker permanece na versão anterior, fora do escopo exclusivamente visual.
 
 Validação e publicação ficam para OpenCode. Pontos de aceite: 360/390/430px, ausência de overflow da página, contraste, grade das séries, foco, botões de estado, vídeo, timer, PRs/semanas, preservação de registros e apresentação do ramo administrativo. Esta lista é orientação para os testes pendentes, não evidência de aprovação.
+
+## Publicação finalizada pelo Codex — 08/10/2026
+
+A pedido do dono, o Codex retomou o fechamento do OpenCode. O commit c2c4803 já continha as alterações e os gates aprovados (Vitest145, E2E32, tsc/lint/build). A tentativa Cloud Build 6dd80a31 falhou no resolvedor next/font do Turbopack no Linux. O Dockerfile passou a usar `next build --webpack`, mantendo as mesmas fontes e configuração pública do cliente.
+
+Cloud Build 0c4a8d6f-e29f-4a26-9cf2-3a2c7b197d42 SUCCESS, compilação e TypeScript aprovados. Imagem sha256:1828c69b5dc0719aef89825237a93704392947d5ee9c77564c03005943323183. Revisão treino-web-00023-mvw pronta e com 100% do tráfego após atualização explícita do tráfego. /treinos HTTP200; CSS entregue contém --t-amber-bg e bundle contém Responder agora. Backend e dados não alterados. Nenhuma suíte de testes repetida; validação funcional e visual humana permanece a do usuário, sem alegar inspeção em dispositivos físicos.

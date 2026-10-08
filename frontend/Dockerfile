@@ -29,7 +29,8 @@ RUN npm ci
 COPY . .
 
 # Sem .env.local: todas as NEXT_PUBLIC_* vêm dos build args acima.
-RUN npm run build
+# Evita a falha do resolvedor de next/font do Turbopack no build Linux.
+RUN npm run build -- --webpack
 
 # Runtime: o Next com `output: "standalone"` gera um servidor Node autocontido
 FROM node:20-alpine AS runtime

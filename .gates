@@ -44,3 +44,5 @@ aluno_nutricao_checkin=published | go=201 PASS (vet OK) | vitest=145 PASS (26 ar
 # Logica/persistencia/storageKey/props/handlers/APIs sem mudanca; SW segue treino-v4.
 # tsc OK; lint 0/0; Vitest145/26 PASS; build OK; E2E32 PASS. Backend intacto (go=201).
 revisao_visual_treinos=pronto | tsc=OK | lint=0/0 | vitest=145 PASS (26 arquivos) | build=OK | e2e=32 PASS | go=201 (sem mudanca) | status=aguardando publicacao
+
+revisao_visual_treinos_publicacao=published | cloudbuild=0c4a8d6f SUCCESS (webpack) | web=treino-web-00023-mvw 100% | smoke=treinos200/checkinCSS | backend=unchanged

@@ -158,3 +158,6 @@ aberto/fechado. Backend intacto. Relatório:
 docs/reports/revisao-visual-treinos-claude-2026-10-07.md.
 
 Próximo passo: publicar (deploy api/web) e conferir smoke + 360/390/430px.
+
+## Revisão visual publicada — 08/10/2026
+Codex finalizou a pedido do dono: build Linux corrigido com webpack no Dockerfile; Cloud Build 0c4a8d6f SUCCESS, treino-web-00023-mvw com 100% do tráfego. /treinos HTTP200, CSS/check-in novos confirmados nos assets. Backend preservado. Gates do OpenCode aproveitados; nenhuma suíte repetida. Detalhes no relatório da revisão visual.
