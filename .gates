@@ -48,3 +48,5 @@ revisao_visual_treinos=pronto | tsc=OK | lint=0/0 | vitest=145 PASS (26 arquivos
 revisao_visual_treinos_publicacao=published | cloudbuild=0c4a8d6f SUCCESS (webpack) | web=treino-web-00023-mvw 100% | smoke=treinos200/checkinCSS | backend=unchanged
 
 associacao_lote=published | tsc=PASS | lint=0/0 | vitest=147/27 PASS | e2e=33/33 PASS | build=webpack PASS | cloudbuild=fce3bdbb SUCCESS | web=treino-web-00024-ll9 100% | backend=unchanged
+
+treino_compacto_exemplo=published | vitest=147/27 PASS | e2e=33/33 PASS mobile360/390/430 | tsc=PASS | lint_player=PASS | build=PASS | cloudbuild=a995f7f3 SUCCESS | web=treino-web-00025-xc4 100%

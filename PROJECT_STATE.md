@@ -164,3 +164,6 @@ Codex finalizou a pedido do dono: build Linux corrigido com webpack no Dockerfil
 
 ## Associação em lote e remoção do seletor — PUBLICADO 08/10/2026
 Treinos e planos alimentares compartilham seletor com busca, selecionar todos, lista em blocos de100, contador/progresso e retry parcial. Cópias individuais/modelo preservado; AdminAreaSwitch removido do Providers. tsc/lint/build PASS, Vitest147/27 PASS, E2E33/33 PASS (2.4min). CloudBuild fce3bdbb SUCCESS, web00024-ll9 100% tráfego. Backend sem mudança. Relatório docs/reports/associacao-em-lote-2026-10-08.md.
+
+## Treino compacto baseado no exemplo — PUBLICADO 08/10/2026
+Estrutura do Desktop/exemplo adaptada: abas finas, nomes14px, cards compactos e séries5colunas, vídeos embutidos e paleta do projeto mantidos. Vitest147/27, E2E33/33 (360/390/430 sem overflow, registros preservados), tsc/lint player/build PASS. CloudBuild a995f7f3 SUCCESS; web00025-xc4 100%. Relatório docs/reports/treino-compacto-exemplo-2026-10-08.md.

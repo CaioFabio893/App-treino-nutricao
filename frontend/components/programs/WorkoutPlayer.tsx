@@ -110,11 +110,11 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
   const completed = exercises.reduce((sum, ex, i) => sum + Array.from({ length: ex.sets }, (_, s) => session(i).sets[s]?.status === "ok" ? 1 : 0).reduce((a: number, b) => a + b, 0), 0);
   const changeDay = (value: number) => save({ ...data, day: value });
   return <section className={styles.player} aria-label="Execução do programa">
-    <header className={styles.header}><div><small className={styles.eyebrow}>ACOMPANHAMENTO LOUISE LIMA</small><b>Vamos treinar?</b><small>Escolha seu treino e acompanhe cada série.</small></div><div className={styles.actions}>
+    <header className={styles.header}><div><small className={styles.eyebrow}>LOUISE LIMA</small><b>Meu treino</b></div><div className={styles.actions}>
       {periodized && <button type="button" onClick={() => { setDraft({ ...data.prs }); setModal("pr"); }}>Meus recordes</button>}
       <button type="button" onClick={() => setModal("week")}>Semana {data.week} <span aria-hidden="true">⌄</span></button>
     </div></header>
-    <nav className={`${styles.tabs} ${workouts.length >= 5 ? styles.tabsScrollable : ""}`} aria-label="Treinos do programa">{workouts.map((w, i) => <button type="button" key={w.id ?? i} aria-label={`Treino ${labels?.[i] ?? String.fromCharCode(65 + i)} · ${w.name}`} aria-pressed={day === i} onClick={() => changeDay(i)}><b><span>Treino</span> {labels?.[i] ?? String.fromCharCode(65 + i)}</b><small>{w.name}</small>{Object.keys(data.sessions).some(k => { try { const parts = JSON.parse(k); return parts[0] === data.week && parts[1] === (w.id ?? w.name); } catch { return false; } }) && <span className={styles.recorded} aria-label="Tem registros">●</span>}</button>)}</nav>
+    <nav className={`${styles.tabs} ${workouts.length >= 5 ? styles.tabsScrollable : ""}`} aria-label="Treinos do programa">{workouts.map((w, i) => <button type="button" key={w.id ?? i} aria-label={`Treino ${labels?.[i] ?? String.fromCharCode(65 + i)} · ${w.name}`} aria-pressed={day === i} onClick={() => changeDay(i)}><b><span>Treino</span> {labels?.[i] ?? String.fromCharCode(65 + i)}</b><small className={styles.srOnly}>{w.name}</small>{Object.keys(data.sessions).some(k => { try { const parts = JSON.parse(k); return parts[0] === data.week && parts[1] === (w.id ?? w.name); } catch { return false; } }) && <span className={styles.recorded} aria-label="Tem registros">●</span>}</button>)}</nav>
     <div className={styles.workoutHeading}><div><span className={styles.sectionKicker}>TREINO {labels?.[day] ?? String.fromCharCode(65 + day)}</span><h2>{workout.name}</h2>{periodized && <div className={styles.phase}>· {data.week === 8 ? "Deload · " : ""}{String(percentages[data.week - 1]).replace(".", ",")}% do PR</div>}</div><span className={styles.exerciseCount}>{exercises.length} exercícios</span></div>
     <div className={styles.progress}><div><strong>Seu progresso</strong><span>{completed} de {total} séries concluídas</span></div><progress value={completed} max={total || 1} aria-label="Séries concluídas" /></div>
     {workout.objective && <p>{workout.objective}</p>}
@@ -136,11 +136,11 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
       const suggested = periodized && pr > 0 ? Math.round(pr * percentages[data.week - 1] / 100 * 2) / 2 : null;
       return <details key={`${data.week}:${workout.id}:${index}`} className={styles.exercise} open={index === 0}>
         <summary>
-          <span className={styles.number}>{String(index + 1).padStart(2, "0")}</span>
+          
           <span className={styles.exerciseTitle}>
-            <span className={styles.exerciseCategory}>{ex.phase ? {warmup:"Aquecimento",main:"Exercício principal",cardio:"Cardio",stretching:"Alongamento"}[ex.phase] : "Exercício"}</span>
+            
             <b>{ex.name}</b>
-            <span className={styles.exerciseMeta}>{ex.sets} séries · {ex.repetitions} reps</span>
+            <span className={styles.exerciseMeta}>{ex.sets} séries · {ex.repetitions} reps{ex.restSeconds ? ` · ${ex.restSeconds}s descanso` : ""}{ex.phase ? ` · ${{warmup:"Aquecimento",main:"Principal",cardio:"Cardio",stretching:"Alongamento"}[ex.phase]}` : ""}</span>
           </span>
           <span className={styles.expandIcon} aria-hidden="true">⌄</span>
         </summary>
@@ -156,7 +156,7 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
           {[...new Set([ex.videoUrl, ...(ex.videoUrls ?? [])].filter((url): url is string => Boolean(url)))].map((url, i) => <ExerciseVideo key={url} url={url} title={`${i ? "Vídeo complementar" : "Ver execução"} · ${ex.name}`} />)}
           {previous && <div className={styles.previous}><b>Última sessão · Semana {previousWeek}</b><div>{previous.sets.map((s, i) => <span key={i}>S{i + 1} {s.weight || "—"} kg × {s.reps || "—"} {s.status === "ok" ? "✓" : s.status === "fail" ? "✗" : ""} </span>)}</div></div>}
           <div className={styles.logHeading}><h3>Registre suas séries</h3><span>Meta: {ex.repetitions || "—"} reps</span></div>
-          <div className={styles.seriesLegend} aria-hidden="true"><span>Série</span><span>Carga (kg)</span><span>Reps</span><span>Resultado</span></div>
+          <div className={styles.seriesLegend} aria-hidden="true"><span>Série</span><span>Carga (kg)</span><span>Reps</span><span>Meta</span><span>Feito</span></div>
           <div className={styles.table}>
             {Array.from({ length: Math.min(ex.sets, 100) }, (_, s) => {
               const entry = current.sets[s] ?? { weight: "", reps: "", status: "" };
@@ -169,13 +169,14 @@ function Player({ storageKey, workouts, labels, periodized }: { storageKey: stri
                 <span className={styles.setNumber}><span className={styles.srOnly}>Série </span><b>{s + 1}</b></span>
                 <label className={styles.setField}><span className={styles.srOnly}>Carga (kg)</span><input aria-label={`${ex.name} série ${s + 1} carga`} type="number" inputMode="decimal" min="0" max="99999" step="0.5" placeholder={suggested !== null ? String(suggested) : "—"} value={entry.weight} onChange={e => edit({ weight: numeric(e.target.value) })} /></label>
                 <label className={styles.setField}><span className={styles.srOnly}>Repetições</span><input aria-label={`${ex.name} série ${s + 1} repetições`} type="number" inputMode="numeric" min="0" max="99999" step="1" placeholder="—" value={entry.reps} onChange={e => edit({ reps: numeric(e.target.value) })} /></label>
+                <span className={styles.target}>{ex.repetitions || "—"}</span>
                 <button type="button" className={`${styles.resultButton} ${entry.status === "ok" ? styles.ok : entry.status === "fail" ? styles.fail : ""}`} aria-label={`${ex.name} série ${s + 1}: ${entry.status === "ok" ? "conseguiu" : entry.status === "fail" ? "não conseguiu" : "não marcada"}`} onClick={() => edit({ status: entry.status === "" ? "ok" : entry.status === "ok" ? "fail" : "" })}>
-                  <span>{entry.status === "ok" ? "Feito" : entry.status === "fail" ? "Falhou" : "Marcar"}</span><span aria-hidden="true">{entry.status === "ok" ? "✓" : entry.status === "fail" ? "✗" : ""}</span>
+                  <span className={styles.srOnly}>{entry.status === "ok" ? "Feito" : entry.status === "fail" ? "Falhou" : "Marcar"}</span><span aria-hidden="true">{entry.status === "ok" ? "✓" : entry.status === "fail" ? "✗" : "○"}</span>
                 </button>
               </div>;
             })}
           </div>
-          <p className={styles.hint}>Toque em Marcar série para registrar. Toque de novo para corrigir.</p>
+          <p className={styles.hint}>Toque em ○ para marcar. ✓ concluída · ✗ falhou.</p>
           <details className={styles.sessionNotes}><summary>Adicionar observações da sessão <span aria-hidden="true">+</span></summary><label className={styles.notes}>Observações da sessão<textarea maxLength={2000} value={current.note} placeholder="Como foi o exercício?" onChange={e => update(index, { ...current, note: e.target.value })} /></label></details>
           <div className={styles.timerGrid}>
           {!ex.timerExcluded && (workout.modality || ex.phase || ex.durationSeconds) && <details className={styles.rest}><summary><span>⏱ Cronômetro do exercício</span><span aria-hidden="true">⌄</span></summary><Timer key={`execution:${data.week}:${workout.id}:${index}`} seconds={ex.durationSeconds ?? 0} label={`Tempo de ${ex.name}`} presets={ex.durationSeconds ? [ex.durationSeconds] : []} /></details>}

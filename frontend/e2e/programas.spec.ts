@@ -121,6 +121,20 @@ test.describe("Programa de treino (admin)", () => {
     await expect(page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true })).toHaveValue("40");
     await expect(page.getByRole("button", { name: "Agachamento Livre com Barra série 1: conseguiu", exact: true })).toBeVisible();
 
+    // Estrutura compacta em celulares, mantendo os registros após recarregar.
+    for (const width of [360, 390, 430]) {
+      await page.setViewportSize({ width, height: 844 });
+      const player = page.getByRole("region", { name: "Execução do programa" });
+      await expect(player).toBeVisible();
+      expect(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth)).toBeTruthy();
+      const exerciseTitle = player.locator("details > summary b").first();
+      expect(await exerciseTitle.evaluate(el => parseFloat(getComputedStyle(el).fontSize))).toBeLessThanOrEqual(14);
+      const field = page.getByLabel("Agachamento Livre com Barra série 1 carga", { exact: true });
+      expect(await field.evaluate(el => el.getBoundingClientRect().height)).toBeGreaterThanOrEqual(44);
+      await player.scrollIntoViewIfNeeded();
+      await page.screenshot({ path: `test-results/treino-mobile-${width}.png`, fullPage: true });
+    }
+
     // A rota do detalhe do admin continua acessível pelo backend.
     expect(detailUrl).toContain("/admin/programs?id=");
   });

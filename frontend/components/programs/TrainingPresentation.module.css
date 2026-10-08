@@ -1,51 +1,53 @@
 /* Student-only training presentation, using the palette from .stu-shell. */
 .page { color: var(--t-ink); font-family: var(--d-body); font-size: 15px; }
-.hero { padding: 0; margin: 20px 0; color: var(--t-ink); }
-.hero h1 { font-family: var(--d-head); font-size: 28px; font-weight: 700; line-height: 1.25; color: var(--t-ink); letter-spacing: -.5px; margin: 8px 0; overflow-wrap: anywhere; }
+.hero { padding: 0; margin: 12px 0; color: var(--t-ink); }
+.hero h1 { font-family: var(--d-head); font-size: 17px; font-weight: 700; line-height: 1.25; color: var(--t-ink); letter-spacing: -.5px; margin: 8px 0; overflow-wrap: anywhere; }
 .hero p { color: var(--t-muted); font-size: 14px; line-height: 1.6; }
 .kicker { font-size: 12px; font-weight: 600; color: var(--t-muted); }
 .heroStats { margin-top: 12px; font-size: 14px; line-height: 1.6; color: var(--t-muted); }
-.programGrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 16px; }
-.programCard { padding: 20px; background: var(--t-card); border: 1px solid var(--t-line); border-radius: 20px; display: flex; flex-direction: column; }
-.programTop { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
-.programSymbol { flex-shrink: 0; display: grid; place-items: center; height: 48px; width: 48px; border-radius: 14px; background: var(--t-brand-tint); color: var(--t-brand); }
+.programGrid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,320px),1fr)); gap: 10px; }
+.programCard { padding: 14px; background: var(--t-card); border: 1px solid var(--t-line); border-radius: 12px; display: flex; flex-direction: column; }
+.programTop { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
+.programSymbol { flex-shrink: 0; display: grid; place-items: center; height: 36px; width: 36px; border-radius: 14px; background: var(--t-brand-tint); color: var(--t-brand); }
 .programLabel { color: var(--t-muted); font-size: 12px; font-weight: 600; display: block; margin-bottom: 4px; }
-.programCard h2 { font-family: var(--d-head); color: var(--t-ink); font-size: 20px; line-height: 1.4; margin: 0; }
+.programCard h2 { font-family: var(--d-head); color: var(--t-ink); font-size: 17px; line-height: 1.4; margin: 0; }
 .programCard p { font-size: 15px; line-height: 1.6; color: var(--t-muted); margin: 0 0 16px; }
-.programStats { display: flex; gap: 24px; padding: 16px 0; border-block: 1px solid var(--t-line); margin-bottom: 16px; }
+.programStats { display: flex; gap: 24px; padding: 16px 0; border-block: 1px solid var(--t-line); margin-bottom: 10px; }
 .programStats>div { font-size: 12px; color: var(--t-muted); }
-.programStats strong { font-size: 24px; font-weight: 700; color: var(--t-brand-dark); display: block; margin-bottom: 4px; }
-.programDays { color: var(--t-muted); font-size: 12px; margin-bottom: 16px; line-height: 1.6; }
-.openButton { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; min-height: 52px; width: 100%; border-radius: 14px; background: var(--t-brand); color: var(--t-on-brand); font-size: 16px; font-weight: 700; text-decoration: none; margin-top: auto; }
+.programStats strong { font-size: 15px; font-weight: 700; color: var(--t-brand-dark); display: block; margin-bottom: 4px; }
+.programDays { color: var(--t-muted); font-size: 12px; margin-bottom: 10px; line-height: 1.6; }
+.openButton { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 16px; min-height: 44px; width: 100%; border-radius: 14px; background: var(--t-brand); color: var(--t-on-brand); font-size: 16px; font-weight: 700; text-decoration: none; margin-top: auto; }
 .openButton:hover { background: var(--t-brand-press); }
 .openButton:focus-visible,.modalityButton:focus-visible { outline: 3px solid var(--t-brand); outline-offset: 3px; }
 .objective { border-left: 4px solid var(--t-accent); padding: 12px 16px; margin: 16px 0; background: var(--t-info); border-radius: 0 14px 14px 0; }
 .objective h3 { font-size: 12px; color: var(--t-muted); font-weight: 600; margin-bottom: 4px; }
 .objective p { font-size: 15px; color: var(--t-ink); line-height: 1.6; margin: 0; }
-.modalityPanel { margin: 20px 0; }
-.modalityPanel h3 { color: var(--t-ink); font-family: var(--d-head); font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+.modalityPanel { margin: 12px 0; }
+.modalityPanel h3 { color: var(--t-ink); font-family: var(--d-head); font-size: 17px; font-weight: 700; margin-bottom: 12px; }
 .modalityOptions { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; padding: 4px; border-radius: 18px; background: var(--t-rail); }
-.modalityButton { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 64px; padding: 8px 12px; border-radius: 14px; border: 0; background: transparent; color: var(--t-brand-dark); cursor: pointer; font: inherit; }
+.modalityButton { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 8px 12px; border-radius: 14px; border: 0; background: transparent; color: var(--t-brand-dark); cursor: pointer; font: inherit; }
 .modalityButton b { font-size: 15px; font-weight: 600; }
 .modalityButton[aria-pressed=true] { background: var(--t-brand); color: var(--t-on-brand); }
 .modalityCompact { margin: 16px 0; }
 .modalityCompact .modalityButton { min-height: 48px; }
 .reference { margin-top: 24px; border-top: 1px solid var(--t-line); padding-top: 8px; }
-.reference>summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; list-style: none; color: var(--t-muted); font-size: 15px; font-weight: 600; min-height: 52px; padding: 12px 0; }
+.reference>summary { cursor: pointer; display: flex; align-items: center; justify-content: space-between; gap: 8px; list-style: none; color: var(--t-muted); font-size: 15px; font-weight: 600; min-height: 44px; padding: 12px 0; }
 .reference>summary::-webkit-details-marker { display: none; }
 .reference>summary span { background: var(--t-card); border: 1.5px solid var(--t-line); border-radius: 50%; width: 32px; height: 32px; display: grid; place-items: center; flex-shrink: 0; color: var(--t-brand); }
 .reference[open]>summary span { transform: rotate(45deg); }
 .prescriptionList { display: grid; gap: 12px; margin-top: 16px; }
-.prescriptionCard { background: var(--t-card); border: 1px solid var(--t-line); border-radius: 20px; padding: 16px; }
-.prescriptionTitle { display: flex; gap: 12px; align-items: center; margin-bottom: 16px; }
+.prescriptionCard { background: var(--t-card); border: 1px solid var(--t-line); border-radius: 12px; padding: 16px; }
+.prescriptionTitle { display: flex; gap: 12px; align-items: center; margin-bottom: 10px; }
 .prescriptionTitle>span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 12px; background: var(--t-brand-tint); color: var(--t-brand); font-size: 16px; font-weight: 700; flex-shrink: 0; }
-.prescriptionTitle h4 { font-family: var(--d-head); font-size: 18px; font-weight: 700; color: var(--t-ink); line-height: 1.4; margin: 0; }
+.prescriptionTitle h4 { font-family: var(--d-head); font-size: 15px; font-weight: 700; color: var(--t-ink); line-height: 1.4; margin: 0; }
 .prescriptionTitle small { display: block; color: var(--t-muted); font-size: 12px; margin-top: 4px; }
 .prescriptionValues { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 8px; background: var(--t-info); border-radius: 14px; padding: 12px 8px; }
 .prescriptionValues dt { color: var(--t-muted); font-size: 12px; font-weight: 600; margin-bottom: 4px; overflow-wrap: anywhere; }
-.prescriptionValues dd { font-size: 20px; line-height: 1.3; color: var(--t-ink); font-weight: 700; overflow-wrap: anywhere; }
+.prescriptionValues dd { font-size: 17px; line-height: 1.3; color: var(--t-ink); font-weight: 700; overflow-wrap: anywhere; }
 .prescriptionNote { margin-top: 12px; font-size: 15px; line-height: 1.6; color: var(--t-ink); background: var(--t-info); border-left: 4px solid var(--t-accent); padding: 12px 16px; border-radius: 0 14px 14px 0; }
-.prescriptionCard :global(.exercise-video)>button { background: var(--t-ink); color: var(--t-on-brand); border: 0; width: 100%; min-height: 52px; text-align: left; }
+.prescriptionCard :global(.exercise-video)>button { background: var(--t-ink); color: var(--t-on-brand); border: 0; width: 100%; min-height: 44px; text-align: left; }
 @media(min-width:640px) { .modalityOptions { max-width: 400px; } }
 @media(max-width:339px) { .prescriptionValues { grid-template-columns: repeat(2,minmax(0,1fr)); } }
 @media(prefers-reduced-motion:reduce) { .page * { transition: none; animation: none; } }
+
+@media(max-width:639px){.hero h1{font-size:18px;}.heroStats{font-size:12px;margin-top:6px;}.programCard h2{font-size:15px;}.programCard p,.objective p{font-size:13px;}.modalityPanel h3{font-size:15px;}.modalityButton b{font-size:13px;}.modalityPanel{margin:12px 0;}.modalityCompact .modalityButton{min-height:44px;}.prescriptionTitle h4{font-size:14px;}.programStats{padding:10px 0;gap:20px;}.prescriptionValues dd{font-size:14px;}}
