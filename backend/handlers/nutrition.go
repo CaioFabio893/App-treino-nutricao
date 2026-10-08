@@ -571,7 +571,7 @@ func (h *Handlers) HandleGetDiet(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
-	if !canAccessResource(r, d.StudentID) {
+	if !canReadDiet(r, d) {
 		http.Error(w, "dieta nao encontrada", http.StatusNotFound)
 		return
 	}
@@ -760,4 +760,10 @@ func (h *Handlers) HandleDuplicateDiet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	writeJSON(w, http.StatusOK, created)
+}
+
+// Reading recipes is available to all profiles allowed by the business-read middleware.
+// This helper must not be used for writes.
+func canReadDiet(r *http.Request, d *models.Diet) bool {
+	return d != nil && (d.Kind == "recipe" || canAccessResource(r, d.StudentID))
 }

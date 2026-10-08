@@ -58,7 +58,7 @@ func (h *Handlers) HandleDietPage(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "falha ao ler dieta", http.StatusInternalServerError)
 		return
 	}
-	if d == nil || !canAccessResource(r, d.StudentID) || d.Document == nil || !validDietDocument(d.Document) {
+	if d == nil || !canReadDiet(r, d) || d.Document == nil || !validDietDocument(d.Document) {
 		http.Error(w, "pagina nao encontrada", http.StatusNotFound)
 		return
 	}

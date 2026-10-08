@@ -424,7 +424,25 @@ func (r *firestoreRepo) ListDietsForStudent(ctx context.Context, studentID strin
 		Where("studentId", "==", studentID).
 		OrderBy("createdAt", firestore.Desc).
 		Documents(ctx)
-	return dietsFromIter(iter)
+	owned, err := dietsFromIter(iter)
+	if err != nil {
+		return nil, err
+	}
+	recipes, err := dietsFromIter(r.fs.Collection("diets").Where("kind", "==", "recipe").Documents(ctx))
+	if err != nil {
+		return nil, err
+	}
+	seen := make(map[string]bool)
+	for _, d := range owned {
+		seen[d.ID] = true
+	}
+	for _, d := range recipes {
+		if !seen[d.ID] {
+			owned = append(owned, d)
+			seen[d.ID] = true
+		}
+	}
+	return owned, nil
 }
 
 func (r *firestoreRepo) ListDiets(ctx context.Context) ([]*models.Diet, error) {
